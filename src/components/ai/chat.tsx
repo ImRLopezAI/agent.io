@@ -1,6 +1,5 @@
 'use client'
 
-import type { useAi } from '@ui/ai/use-ai'
 import {
 	Attachment,
 	AttachmentPreview,
@@ -32,10 +31,11 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '@ui/dropdown-menu'
-import { atom, useAtom, useAtomValue, useSetAtom } from 'jotai'
 import { ArrowUp, ChevronDown, LayoutPanelLeft, Mic } from 'lucide-react'
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 import { cn } from '#/lib/utils'
+import { useAiChat } from './context'
+import { useChatPromptStore } from './chat-prompt-store'
 import {
 	MentionEditor,
 	type MentionEditorHandle,
@@ -55,22 +55,9 @@ const MIN_MEASUREMENT_WIDTH_PX = 100
 
 /* ─── Types ─── */
 
-type ChatPromptProps = ReturnType<typeof useAi>
-
-/* ─── Chat UI atoms (Jotai) ───
- *
- * Module-scoped atoms drive the transient prompt-input flags. Each
- * component only re-renders for the slice it actually reads (Jotai's
- * per-atom subscription) — no manual store, no reducer.
- */
-
-const maxModeAtom = atom(false)
-const isMultilineAtom = atom(false)
-const hasEditorContentAtom = atom(false)
-
 /* ─── Main Component ─── */
 
-export function ChatPrompt(props: ChatPromptProps) {
+export function ChatPrompt() {
 	const {
 		attachments,
 		messages,
@@ -81,15 +68,14 @@ export function ChatPrompt(props: ChatPromptProps) {
 		model,
 		changeModel,
 		models,
-	} = props
+	} = useAiChat()
 	const HAS_MESSAGES = messages.length > 0
 	const HAS_FILE = attachments.files.length > 0
 
-	const [maxMode, setMaxMode] = useAtom(maxModeAtom)
-	const isMultiline = useAtomValue(isMultilineAtom)
-	const setIsMultiline = useSetAtom(isMultilineAtom)
-	const hasEditorContent = useAtomValue(hasEditorContentAtom)
-	const setHasEditorContent = useSetAtom(hasEditorContentAtom)
+	const {
+		state: { maxMode, isMultiline, hasEditorContent },
+		dispatch,
+	} = useChatPromptStore()
 
 	const hiddenRef = useRef<HTMLDivElement>(null)
 	const containerRef = useRef<HTMLDivElement>(null)
@@ -113,8 +99,11 @@ export function ChatPrompt(props: ChatPromptProps) {
 		const availableWidth = container.clientWidth - CONTROLS_RESERVED_WIDTH_PX
 		hidden.style.width = `${Math.max(availableWidth, MIN_MEASUREMENT_WIDTH_PX)}px`
 		hidden.textContent = editorRef.current?.getText() || ' '
-		setIsMultiline(hidden.scrollHeight > MULTILINE_THRESHOLD_PX)
-	}, [setIsMultiline])
+		dispatch({
+			type: 'setMultiline',
+			value: hidden.scrollHeight > MULTILINE_THRESHOLD_PX,
+		})
+	}, [dispatch])
 
 	// Measure once on mount / whenever the collapsed↔expanded layout flips
 	// (HAS_MESSAGES is the only input that actually changes the measurement
@@ -147,10 +136,9 @@ export function ChatPrompt(props: ChatPromptProps) {
 			const transformed = transformWithMentions(text, mentions)
 			handleSubmit({ ...message, text: transformed })
 			editor.clear()
-			setHasEditorContent(false)
-			setIsMultiline(false)
+			dispatch({ type: 'resetInputLayout' })
 		},
-		[handleSubmit, setHasEditorContent, setIsMultiline],
+		[handleSubmit, dispatch],
 	)
 
 	const handleEditorTextChange = useCallback(
@@ -158,16 +146,11 @@ export function ChatPrompt(props: ChatPromptProps) {
 			setInputRef.current(text)
 			const hasContent =
 				text.trim().length > 0 || !!editorRef.current?.getMentions().length
-			setHasEditorContent(hasContent)
+			dispatch({ type: 'setHasEditorContent', value: hasContent })
 			// Measure in the same event turn — no effect cascade needed.
 			measureMultiline()
 		},
-		[setHasEditorContent, measureMultiline],
-	)
-
-	const toggleMaxMode = useCallback(
-		() => setMaxMode((prev) => !prev),
-		[setMaxMode],
+		[dispatch, measureMultiline],
 	)
 
 	const HAS_VALUE = hasEditorContent || HAS_FILE
@@ -224,7 +207,9 @@ export function ChatPrompt(props: ChatPromptProps) {
 			<DropdownMenuContent side='top' align='end' className='w-[220px]'>
 				<DropdownMenuCheckboxItem
 					checked={maxMode}
-					onCheckedChange={toggleMaxMode}
+					onCheckedChange={(checked) =>
+						dispatch({ type: 'setMaxMode', value: checked })
+					}
 					className='font-medium'
 				>
 					MAX Mode

@@ -46,6 +46,7 @@ import type { useAi } from './use-ai'
 // an `interface` cannot `extends`; use an intersection type alias instead.
 type ChatIterationProps = ReturnType<typeof useAi> & {
 	modelSelectorVariant?: 'dropdown' | 'modal'
+	menuSide?: 'top' | 'bottom' | 'left' | 'right'
 }
 
 export function ChatIteration(props: ChatIterationProps) {
@@ -69,7 +70,7 @@ export function ChatIteration(props: ChatIterationProps) {
 			</Suggestions>
 			<div className='w-full px-4 pb-4'>
 				<PromptInput globalDrop multiple onSubmit={props.handleSubmit}>
-					<PromptInputHeader></PromptInputHeader>
+					<PromptInputHeader />
 					<PromptInputBody>
 						<PromptInputTextarea
 							onChange={({ target }) => props.input.setInput(target.value)}
@@ -80,7 +81,7 @@ export function ChatIteration(props: ChatIterationProps) {
 						<PromptInputTools>
 							<PromptInputActionMenu>
 								<PromptInputActionMenuTrigger />
-								<PromptInputActionMenuContent>
+								<PromptInputActionMenuContent side={props.menuSide ?? 'bottom'}>
 									<PromptInputActionAddAttachments />
 								</PromptInputActionMenuContent>
 							</PromptInputActionMenu>

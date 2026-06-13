@@ -1,5 +1,4 @@
 import { SpinnerVerbsShimmer, StreamingFooterIndicator } from '@ui/ai/loading'
-import type { useAi } from '@ui/ai/use-ai'
 import {
 	Confirmation,
 	ConfirmationAccepted,
@@ -57,6 +56,7 @@ import {
 } from 'react'
 import { cn } from '#/lib/utils'
 
+import { useAiChat } from './context'
 import { AGENTS, MENTION_CONFIGS, MENTION_TRIGGERS } from './mentions'
 import {
 	type AgentStepPart,
@@ -64,10 +64,8 @@ import {
 	segmentParts,
 } from './segment-parts'
 
-type ChatConversationProps = ReturnType<typeof useAi>
-
-type MessagePart = ChatConversationProps['messages'][number]['parts'][number]
-type MessageRole = ChatConversationProps['messages'][number]['role']
+type MessagePart = ReturnType<typeof useAiChat>['messages'][number]['parts'][number]
+type MessageRole = ReturnType<typeof useAiChat>['messages'][number]['role']
 
 /**
  * Lets deeply-memoized parts (AgentToolStep, sub-tool rows) respond to an
@@ -81,7 +79,7 @@ type MessageRole = ChatConversationProps['messages'][number]['role']
  * `this.addToolApprovalResponse = async (...) => ...`). Since `chatRef.current`
  * is stable for the lifetime of the chat, no `useCallback` wrap is needed.
  */
-type ApprovalResponder = ChatConversationProps['addToolApprovalResponse']
+type ApprovalResponder = ReturnType<typeof useAiChat>['addToolApprovalResponse']
 const ApprovalContext = createContext<ApprovalResponder | null>(null)
 const useApprovalResponder = () => useContext(ApprovalContext)
 
@@ -110,13 +108,9 @@ const mentionComponents = {
 	},
 }
 
-export function ChatMessages({
-	messages,
-	status,
-	error,
-	reload,
-	addToolApprovalResponse,
-}: ChatConversationProps) {
+export function ChatMessages() {
+	const { messages, status, error, reload, addToolApprovalResponse } =
+		useAiChat()
 	const visibleMessages = useMemo(
 		() => messages.filter((message) => message.role !== 'system'),
 		[messages],

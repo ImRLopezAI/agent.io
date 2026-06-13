@@ -6,9 +6,11 @@ import {
 	DrawerTitle,
 	DrawerTrigger,
 } from '../drawer'
+import { PromptInputProvider } from '../ai-elements/prompt-input'
 import { ChatIteration } from './chat'
 import { ChatConversation } from './conversation'
 import type { useAi } from './use-ai'
+import { AiRobotixLogo } from '../logo'
 
 interface ChatDrawerProps extends React.ComponentProps<typeof DrawerTrigger> {
 	handler: ReturnType<typeof useAi>
@@ -27,11 +29,7 @@ export function AiChatDrawer({
 			<DrawerTrigger {...props} />
 			<DrawerContent className='flex size-full max-h-[90vh]'>
 				<DrawerHeader className='flex flex-row items-center space-x-4 border-b px-4 py-2'>
-					<img
-						src='/apple-touch-icon.png'
-						alt='AI Robotix Logo'
-						className='size-8 rounded-full'
-					/>
+					<AiRobotixLogo className='size-12' />
 					<DrawerTitle>{label}</DrawerTitle>
 				</DrawerHeader>
 				<div className='no-scrollbar mx-auto flex h-[68%] w-[95%] flex-1 overflow-auto'>

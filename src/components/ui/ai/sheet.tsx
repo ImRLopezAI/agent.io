@@ -6,9 +6,11 @@ import {
 	SheetTitle,
 	SheetTrigger,
 } from '../sheet'
+import { PromptInputProvider } from '../ai-elements/prompt-input'
 import { ChatIteration } from './chat'
 import { ChatConversation } from './conversation'
 import type { useAi } from './use-ai'
+import { AiRobotixLogo } from '../logo'
 
 interface AiChatSheetProps extends React.ComponentProps<typeof SheetTrigger> {
 	handler: ReturnType<typeof useAi>
@@ -25,11 +27,7 @@ export function AiChatSheet({
 			<SheetTrigger {...props} />
 			<SheetContent className='scrollbar-background flex size-full overflow-hidden'>
 				<SheetHeader className='flex flex-row items-center space-x-4 border-b px-4 py-2'>
-					<img
-						src='/apple-touch-icon.png'
-						alt='AI Robotix Logo'
-						className='size-8 rounded-full'
-					/>
+					<AiRobotixLogo className='size-12' />
 					<SheetTitle>{label}</SheetTitle>
 				</SheetHeader>
 				<div className='mx-auto flex min-h-0 w-[95%] flex-1'>

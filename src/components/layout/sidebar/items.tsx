@@ -28,13 +28,18 @@ export type NavGroup = StaticNavGroup | DynamicNavGroup
 
 export type BadgeTypes = 'NEW' | 'COMING' | 'WIP' | 'UPDATED' | (string & {})
 
+export type NavItemNavType = 'link' | 'dropdown' | 'wrapped'
+
 export type NavItem = {
+	id?: string
 	title: string
-	href: React.ComponentProps<'a'>['href']
+	href?: React.ComponentProps<'a'>['href']
 	icon?: LucideIcon
 	badge?: BadgeTypes
 	newTab?: boolean
+	navType?: NavItemNavType
 	items?: NavItem[]
+	dynamicItems?: () => NavItem[]
 }
 
 export const navItems: NavGroup[] = [
@@ -67,8 +72,7 @@ export const navItems: NavGroup[] = [
 				icon: History,
 			},
 			{
-				title: 'Scores Cards',
-				href: '#',
+				title: 'Score Cards',
 				icon: NotebookTabs,
 				items: [
 					{
@@ -82,9 +86,17 @@ export const navItems: NavGroup[] = [
 						icon: Album,
 					},
 					{
-						title: 'Inscription BO',
-						href: '/scorecards/inscription-bo',
+						id: 'scorecards-back-office',
+						title: 'Back Office',
+						navType: 'wrapped',
 						icon: BookDown,
+						items: [
+							{
+								title: 'Inscription BO',
+								href: '/scorecards/inscription-bo',
+								icon: BookDown,
+							},
+						],
 					},
 				],
 			},

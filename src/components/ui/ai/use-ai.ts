@@ -1,34 +1,17 @@
 'use client'
 
 import { useChat } from '@tanstack/ai-react'
-import { type Atom, atom, useAtom, useAtomValue } from 'jotai'
-import { useHydrateAtoms } from 'jotai/utils'
 import React from 'react'
 import { toast } from 'sonner'
 import {
 	type PromptInputMessage,
 	usePromptInputController,
 } from '../ai-elements/prompt-input'
-import { MODELS } from './models'
-
-type ModelId = (typeof MODELS)[number]['id']
-
-type ModelInfo = {
-	readonly id: string
-	readonly name: string
-	readonly chef: string
-	readonly cost: string
-	readonly chefSlug: string
-	providers: ReadonlyArray<string>
-}
-
-/* ─── Atoms ─── */
-
-const modelAtom = atom<ModelId>(MODELS[2].id)
-const webSearchAtom = atom<boolean>(false)
-const modelSelectorOpenAtom = atom<boolean>(false)
-const artifactAtom = atom<boolean>(false)
-const modelsAtom = atom<ReadonlyArray<ModelInfo>>(MODELS)
+import {
+	type AiUiInitialState,
+	type ModelId,
+	useAiUiStore,
+} from './ai-ui-store'
 
 interface AIChatInterfaceProps extends React.PropsWithChildren {
 	/**
@@ -41,13 +24,7 @@ interface AIChatInterfaceProps extends React.PropsWithChildren {
 	 * See https://ai-sdk.dev/cookbook/next/use-shared-chat-context.
 	 */
 	chat: Parameters<typeof useChat>[0]
-	initialState?: Partial<{
-		model: ModelId
-		webSearch: boolean
-		modelSelectorOpen: boolean
-		artifact: boolean
-		models: ReadonlyArray<ModelInfo>
-	}>
+	initialState?: AiUiInitialState
 	suggestions?: {
 		suggestion: string
 		onClick?: (
@@ -74,37 +51,8 @@ export function useAi({
 	download = 'pdf',
 }: AIChatInterfaceProps) {
 	const { attachments, textInput: input } = usePromptInputController()
-
-	// Hydrate atoms synchronously BEFORE reading them so SSR and the client's
-	// first render see the same values. Without this, the module-global default
-	// store on the server can hold a value left over from a prior render that
-	// differs from the client bundle's fresh atom defaults — producing a
-	// hydration mismatch on the model name (and any other seeded atom).
-	// useHydrateAtoms is a no-op on subsequent renders, so the memoized empty
-	// dependency list is intentional.
-	const hydrationMap = React.useMemo(() => {
-		const map = new Map<Atom<unknown>, unknown>()
-		if (initialState?.model !== undefined)
-			map.set(modelAtom, initialState.model)
-		if (initialState?.webSearch !== undefined)
-			map.set(webSearchAtom, initialState.webSearch)
-		if (initialState?.modelSelectorOpen !== undefined)
-			map.set(modelSelectorOpenAtom, initialState.modelSelectorOpen)
-		if (initialState?.artifact !== undefined)
-			map.set(artifactAtom, initialState.artifact)
-		if (initialState?.models !== undefined)
-			map.set(modelsAtom, initialState.models)
-		return map
-	}, [])
-	useHydrateAtoms(hydrationMap as never)
-
-	const [model, setModelAtom] = useAtom(modelAtom)
-	const [webSearch, setWebSearchAtom] = useAtom(webSearchAtom)
-	const [modelSelectorOpen, setModelSelectorOpenAtom] = useAtom(
-		modelSelectorOpenAtom,
-	)
-	const [artifact, setArtifactAtom] = useAtom(artifactAtom)
-	const models = useAtomValue(modelsAtom)
+	const { state: ui, dispatch } = useAiUiStore(initialState)
+	const { model, webSearch, artifact, modelSelectorOpen, models } = ui
 
 	// Per-request body (model / webSearch) flows through the `body` option;
 	// `@tanstack/ai-react` re-reads it when it changes, so each send carries the
@@ -115,10 +63,8 @@ export function useAi({
 	const { sendMessage, ...ai } = useChat({ ...chat, body })
 
 	const reset = React.useCallback(() => {
-		// Artifact is a layout preference and stays open across sends.
-		setWebSearchAtom(false)
-		setModelSelectorOpenAtom(false)
-	}, [setWebSearchAtom, setModelSelectorOpenAtom])
+		dispatch({ type: 'reset' })
+	}, [dispatch])
 
 	const handleSubmit = React.useCallback(
 		(message: PromptInputMessage) => {
@@ -140,24 +86,25 @@ export function useAi({
 	)
 
 	const changeModel = React.useCallback(
-		(next: ModelId) => setModelAtom(next),
-		[setModelAtom],
+		(next: ModelId) => dispatch({ type: 'setModel', model: next }),
+		[dispatch],
 	)
 	const toggleWebSearch = React.useCallback(
-		() => setWebSearchAtom((prev) => !prev),
-		[setWebSearchAtom],
+		() => dispatch({ type: 'toggleWebSearch' }),
+		[dispatch],
 	)
 	const toggleArtifact = React.useCallback(
-		() => setArtifactAtom((prev) => !prev),
-		[setArtifactAtom],
+		() => dispatch({ type: 'toggleArtifact' }),
+		[dispatch],
 	)
 	const setArtifact = React.useCallback(
-		(next: boolean) => setArtifactAtom(next),
-		[setArtifactAtom],
+		(next: boolean) => dispatch({ type: 'setArtifact', artifact: next }),
+		[dispatch],
 	)
 	const setModelSelectorOpen = React.useCallback(
-		(next: boolean) => setModelSelectorOpenAtom(next),
-		[setModelSelectorOpenAtom],
+		(next: boolean) =>
+			dispatch({ type: 'setModelSelectorOpen', open: next }),
+		[dispatch],
 	)
 
 	return {
@@ -183,4 +130,4 @@ export function useAi({
 	}
 }
 
-export { artifactAtom, modelAtom, modelSelectorOpenAtom, webSearchAtom }
+export type { AiUiInitialState, AiUiState, ModelId } from './ai-ui-store'
