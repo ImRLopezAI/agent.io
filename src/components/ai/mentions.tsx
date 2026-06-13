@@ -691,7 +691,7 @@ const MentionEditorInner = forwardRef<
 						data-slot='input-group-control'
 						aria-placeholder={placeholder}
 						className={cn(
-							'relative z-[1] max-h-48 min-h-[1.5em] w-full overflow-y-auto whitespace-pre-wrap break-words border-0 bg-transparent text-left text-sm shadow-none outline-none ring-0 focus-visible:ring-0',
+							'relative z-1 max-h-48 min-h-[1.5em] w-full overflow-y-auto whitespace-pre-wrap break-words border-0 bg-transparent text-left text-sm shadow-none outline-none ring-0 focus-visible:ring-0',
 							className,
 						)}
 						onInput={handleInput}

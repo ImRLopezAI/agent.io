@@ -46,7 +46,7 @@ function DrawerOverlay({
 		<DrawerPrimitive.Backdrop
 			data-slot='drawer-overlay'
 			className={cn(
-				'data-closed:fade-out-0 data-open:fade-in-0 fixed inset-0 isolate z-[100] min-h-dvh bg-black/20 opacity-[calc(1-var(--drawer-swipe-progress))] duration-200 data-closed:animate-out data-open:animate-in data-ending-style:opacity-0 data-starting-style:opacity-0 data-swiping:duration-0 supports-[-webkit-touch-callout:none]:absolute supports-backdrop-filter:backdrop-blur-xs dark:bg-black/70',
+				'fixed inset-0 min-h-dvh bg-black opacity-[calc(var(--backdrop-opacity)*(1-var(--drawer-swipe-progress)))] transition-opacity duration-200 ease-out [--backdrop-opacity:0.2] data-ending-style:opacity-0 data-starting-style:opacity-0 data-swiping:duration-0 supports-[-webkit-touch-callout:none]:absolute supports-backdrop-filter:backdrop-blur-sm dark:[--backdrop-opacity:0.7]',
 				className,
 			)}
 			{...props}
@@ -71,7 +71,7 @@ function DrawerContent({
 			<DrawerPrimitive.Viewport
 				data-slot='drawer-viewport'
 				className={cn(
-					'fixed inset-0 z-[100] flex',
+					'fixed inset-0 z-50 flex',
 					direction === 'bottom' && 'items-end justify-center',
 					direction === 'top' && 'items-start justify-center',
 					direction === 'left' && 'items-stretch justify-start',
@@ -82,15 +82,15 @@ function DrawerContent({
 					data-slot='drawer-content'
 					data-direction={direction}
 					className={cn(
-						'group/drawer-content flex min-h-0 flex-col bg-background text-sm outline-none ring-1 ring-foreground/10 transition-transform duration-200 ease-out data-swiping:select-none data-ending-style:duration-200 data-swiping:duration-0',
+						'group/drawer-content pointer-events-auto flex min-h-0 flex-col bg-background text-sm outline-none ring-1 ring-foreground/10 transition-transform duration-200 ease-out data-swiping:select-none data-ending-style:duration-200 data-swiping:duration-0',
 						direction === 'bottom' &&
-							'max-h-[calc(86dvh+2rem)] w-full rounded-t-xl border-t pb-[calc(env(safe-area-inset-bottom,0px)+2rem)] [transform:translateY(var(--drawer-swipe-movement-y))] data-ending-style:translate-y-full data-starting-style:translate-y-full',
+							'transform-[translateY(var(--drawer-swipe-movement-y))] max-h-[calc(86dvh+2rem)] w-full rounded-t-xl border-t pb-[calc(env(safe-area-inset-bottom,0)+2rem)] data-ending-style:translate-y-full data-starting-style:translate-y-full',
 						direction === 'top' &&
-							'max-h-[calc(86dvh+2rem)] w-full rounded-b-xl border-b pt-[env(safe-area-inset-top,0px)] [transform:translateY(var(--drawer-swipe-movement-y))] data-ending-style:-translate-y-full data-starting-style:-translate-y-full',
+							'transform-[translateY(var(--drawer-swipe-movement-y))] max-h-[calc(86dvh+2rem)] w-full rounded-b-xl border-b pt-[env(safe-area-inset-top,0px)] data-ending-style:-translate-y-full data-starting-style:-translate-y-full',
 						direction === 'left' &&
-							'h-dvh w-[min(28rem,calc(100vw-3rem))] rounded-r-xl border-r [transform:translateX(var(--drawer-swipe-movement-x))] data-ending-style:-translate-x-full data-starting-style:-translate-x-full',
+							'transform-[translateX(var(--drawer-swipe-movement-x))] h-dvh w-[min(28rem,calc(100vw-3rem))] rounded-r-xl border-r data-ending-style:-translate-x-full data-starting-style:-translate-x-full',
 						direction === 'right' &&
-							'h-dvh w-[min(28rem,calc(100vw-3rem))] rounded-l-xl border-l [transform:translateX(var(--drawer-swipe-movement-x))] data-ending-style:translate-x-full data-starting-style:translate-x-full',
+							'transform-[translateX(var(--drawer-swipe-movement-x))] h-dvh w-[min(28rem,calc(100vw-3rem))] rounded-l-xl border-l data-ending-style:translate-x-full data-starting-style:translate-x-full',
 						className,
 					)}
 					{...props}

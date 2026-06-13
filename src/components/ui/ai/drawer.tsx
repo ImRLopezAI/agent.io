@@ -6,7 +6,6 @@ import {
 	DrawerTitle,
 	DrawerTrigger,
 } from '../drawer'
-import { PromptInputProvider } from '../ai-elements/prompt-input'
 import { ChatIteration } from './chat'
 import { ChatConversation } from './conversation'
 import type { useAi } from './use-ai'
@@ -25,14 +24,14 @@ export function AiChatDrawer({
 	...props
 }: ChatDrawerProps) {
 	return (
-		<Drawer direction={direction}>
+		<Drawer direction={direction} >
 			<DrawerTrigger {...props} />
 			<DrawerContent className='flex size-full max-h-[90vh]'>
 				<DrawerHeader className='flex flex-row items-center space-x-4 border-b px-4 py-2'>
 					<AiRobotixLogo className='size-12' />
 					<DrawerTitle>{label}</DrawerTitle>
 				</DrawerHeader>
-				<div className='no-scrollbar mx-auto flex h-[68%] w-[95%] flex-1 overflow-auto'>
+				<div className='no-scrollbar mx-auto flex min-h-0 w-[95%] flex-1 overflow-auto'>
 					<ChatConversation {...handler} />
 				</div>
 				<DrawerFooter className='mx-auto w-[95%] px-0'>
