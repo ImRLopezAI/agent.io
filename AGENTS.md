@@ -1,3 +1,10 @@
+<!-- CodeGraph:start -->
+## MCP Call
+
+Before any tool calling about the code base use the CodeGraph MCP to the MCP already loaded in the tool and it already indexed the code base completely.
+
+<!-- CodeGraph:end -->
+
 <!-- intent-skills:start -->
 ## Skill Loading
 
@@ -18,13 +25,6 @@ dont use useEffect to fetch data, use the `useQuery` hook to fetch the data.
 ## Design Guidelines Skills
 This skills are used to review the design of the feature and to hand off the design to the designer and create better designs and works specially together as plugin.
 
-- `accessibility-review`
-- `design-critique`
-- `design-handoff`
-- `design-system`
-- `research-synthesis`
-- `user-research`
-- `ux-copy`
 
 Have in mind this
 AI Slop Web Design Guide:

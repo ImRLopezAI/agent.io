@@ -111,6 +111,7 @@
     "@tiptap/react": "3.26.0",
     "@tiptap/starter-kit": "3.26.0",
     "@tiptap/suggestion": "3.26.0",
+    "@types/json-schema": "^7.0.15",
     "@upstash/redis": "1.38.0",
     "@workos-inc/authkit-react": "^0.16.1",
     "@workos-inc/widgets": "^1.14.0",
