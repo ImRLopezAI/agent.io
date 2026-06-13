@@ -42,7 +42,9 @@ import {
 import { MODEL_GROUPS, MODELS } from './models'
 import type { useAi } from './use-ai'
 
-interface ChatIterationProps extends ReturnType<typeof useAi> {
+// `useAi`'s return is a discriminated union (TanStack's UseChatReturn), which
+// an `interface` cannot `extends`; use an intersection type alias instead.
+type ChatIterationProps = ReturnType<typeof useAi> & {
 	modelSelectorVariant?: 'dropdown' | 'modal'
 }
 
@@ -91,7 +93,11 @@ export function ChatIteration(props: ChatIterationProps) {
 							</PromptInputButton>
 							<ModelsSelections
 								model={props.model}
-								onSelectModel={(modelId) => props.changeModel(modelId)}
+								onSelectModel={(modelId) =>
+									props.changeModel(
+										modelId as Parameters<typeof props.changeModel>[0],
+									)
+								}
 								variant={props.modelSelectorVariant ?? 'modal'}
 								open={props.modelSelectorOpen}
 								onOpenChange={props.setModelSelectorOpen}

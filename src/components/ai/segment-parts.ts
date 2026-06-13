@@ -128,6 +128,7 @@ export function dedupeStepsByToolCallId(
 interface AnyPart {
 	type: string
 	text?: string
+	content?: string
 	[key: string]: unknown
 }
 
@@ -220,9 +221,9 @@ export function segmentParts(parts: ReadonlyArray<AnyPart>): Segment[] {
 				// it onto the agent segment so the renderer can show it inside the
 				// collapsible (above the tool rows). Previously dropped — see Bug
 				// in `segmentParts` comment history.
-				openAgent.text += part.text ?? ''
+				openAgent.text += part.content ?? part.text ?? ''
 			} else if (type === 'reasoning') {
-				openAgent.reasoning += part.text ?? ''
+				openAgent.reasoning += part.content ?? part.text ?? ''
 			}
 			// Skip raw `tool-*` parts (Bug B1 fix): they are preserved on the
 			// message for model-history reconstruction but the chat surface only
@@ -241,7 +242,7 @@ export function segmentParts(parts: ReadonlyArray<AnyPart>): Segment[] {
 
 		// Top-level part outside any agent run.
 		if (type === 'text') {
-			const t = part.text ?? ''
+			const t = part.content ?? part.text ?? ''
 			if (!t) continue
 			if (textRunStartIdx === -1) textRunStartIdx = i
 			textRun += t
@@ -250,7 +251,7 @@ export function segmentParts(parts: ReadonlyArray<AnyPart>): Segment[] {
 
 		if (type === 'reasoning') {
 			flushText()
-			const t = part.text ?? ''
+			const t = part.content ?? part.text ?? ''
 			segments.push({ kind: 'reasoning', key: `reasoning-${i}`, text: t })
 			continue
 		}

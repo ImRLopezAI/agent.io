@@ -1,16 +1,14 @@
 'use client'
 
 import { MODELS } from '@server/ai/constants'
+import { fetchServerSentEvents } from '@tanstack/ai-react'
 import { useAi } from '@ui/ai/use-ai'
-import { DefaultChatTransport } from 'ai'
 import { ChatPrompt } from './chat'
 import { ChatMessages } from './messages'
 export function Ai() {
 	const handler = useAi({
 		chat: {
-			transport: new DefaultChatTransport({
-				api: '/api/chat',
-			}),
+			connection: fetchServerSentEvents('/api/chat'),
 		},
 		initialState: {
 			model: 'anthropic/claude-haiku-4.5',

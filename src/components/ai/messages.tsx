@@ -114,7 +114,7 @@ export function ChatMessages({
 	messages,
 	status,
 	error,
-	regenerate,
+	reload,
 	addToolApprovalResponse,
 }: ChatConversationProps) {
 	const visibleMessages = useMemo(
@@ -152,7 +152,9 @@ export function ChatMessages({
 	const lastMessage = visibleMessages.at(-1)
 	const lastAssistantSegments = useMemo(() => {
 		if (lastMessage?.role !== 'assistant') return []
-		return segmentParts(lastMessage.parts as MessagePart[])
+		return segmentParts(
+			lastMessage.parts as unknown as Parameters<typeof segmentParts>[0],
+		)
 	}, [lastMessage])
 
 	const showPendingShimmer = status === 'submitted' || status === 'streaming'
@@ -193,7 +195,7 @@ export function ChatMessages({
 							<MessageContent variant='error'>
 								<MessageResponse>{error.message}</MessageResponse>
 								<MessageActions>
-									<MessageAction label='Retry' onClick={() => regenerate()}>
+									<MessageAction label='Retry' onClick={() => reload()}>
 										<RefreshCcwIcon className='size-3' />
 									</MessageAction>
 								</MessageActions>
@@ -298,7 +300,10 @@ const MessageItem = memo(function MessageItem({
 	parts,
 	isStreaming,
 }: MessageItemProps) {
-	const segments = useMemo(() => segmentParts(parts), [parts])
+	const segments = useMemo(
+		() => segmentParts(parts as unknown as Parameters<typeof segmentParts>[0]),
+		[parts],
+	)
 
 	return (
 		<MessageBranch defaultBranch={0}>

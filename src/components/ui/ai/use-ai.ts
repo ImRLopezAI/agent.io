@@ -1,7 +1,6 @@
 'use client'
 
-import { useChat } from '@ai-sdk/react'
-import { lastAssistantMessageIsCompleteWithApprovalResponses } from 'ai'
+import { useChat } from '@tanstack/ai-react'
 import { type Atom, atom, useAtom, useAtomValue } from 'jotai'
 import { useHydrateAtoms } from 'jotai/utils'
 import React from 'react'
@@ -107,14 +106,13 @@ export function useAi({
 	const [artifact, setArtifactAtom] = useAtom(artifactAtom)
 	const models = useAtomValue(modelsAtom)
 
-	// `sendAutomaticallyWhen` resumes the agent loop once the user has
-	// responded to a tool-approval-request (Approve / Deny). Without it the
-	// AI SDK collects the response but never POSTs again, so the tool never
-	// runs. See https://ai-sdk.dev/docs/ai-sdk-ui/chatbot-tool-usage#tool-execution-approval.
-	const { sendMessage, ...ai } = useChat({
-		...chat,
-		sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
-	})
+	// Per-request body (model / webSearch) flows through the `body` option;
+	// `@tanstack/ai-react` re-reads it when it changes, so each send carries the
+	// current selection. TanStack auto-resumes the agent loop after
+	// `addToolApprovalResponse`, so no `sendAutomaticallyWhen` equivalent is
+	// needed.
+	const body = React.useMemo(() => ({ model, webSearch }), [model, webSearch])
+	const { sendMessage, ...ai } = useChat({ ...chat, body })
 
 	const reset = React.useCallback(() => {
 		// Artifact is a layout preference and stays open across sends.
@@ -132,21 +130,13 @@ export function useAi({
 				return
 			}
 
-			sendMessage(
-				{
-					text: message.text || 'Sent with attachments',
-					files: message.files,
-				},
-				{
-					body: {
-						model,
-						webSearch,
-					},
-				},
-			)
+			// Text path migrated. Attachment file -> ContentPart mapping is a
+			// follow-up (needs the upload/source format); body (model/webSearch)
+			// rides the useChat `body` option.
+			sendMessage(message.text || 'Sent with attachments')
 			reset()
 		},
-		[sendMessage, model, webSearch, reset],
+		[sendMessage, reset],
 	)
 
 	const changeModel = React.useCallback(

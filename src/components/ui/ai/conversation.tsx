@@ -1,4 +1,4 @@
-import type { ChatRequestOptions, ChatStatus, UIMessage } from 'ai'
+import type { UIMessage } from '@tanstack/ai-react'
 import { CopyIcon, RefreshCcwIcon } from 'lucide-react'
 import { useMemo } from 'react'
 import {
@@ -24,22 +24,16 @@ import { Spinner } from '../spinner'
 
 interface ChatConversationProps {
 	messages: UIMessage[]
-	status: ChatStatus
+	isLoading: boolean
 	error?: Error
-	regenerate: (
-		props?:
-			| ({
-					messageId?: string | undefined
-			  } & ChatRequestOptions)
-			| undefined,
-	) => Promise<void>
+	reload: () => Promise<void>
 }
 
 export function ChatConversation({
 	messages,
-	status,
+	isLoading,
 	error,
-	regenerate,
+	reload,
 }: ChatConversationProps) {
 	const visibleMessages = useMemo(
 		() => messages.filter((message) => message.role !== 'system'),
@@ -58,7 +52,7 @@ export function ChatConversation({
 											return (
 												<Message key={`${id}-${part.type}`} from={role}>
 													<MessageContent>
-														<MessageResponse>{part.text}</MessageResponse>
+														<MessageResponse>{part.content}</MessageResponse>
 													</MessageContent>
 													{role === 'assistant' &&
 														partIndex === parts.length - 1 && (
@@ -68,7 +62,7 @@ export function ChatConversation({
 																</MessageAction>
 																<MessageAction
 																	onClick={() =>
-																		navigator.clipboard.writeText(part.text)
+																		navigator.clipboard.writeText(part.content)
 																	}
 																	label='Copy'
 																>
@@ -78,19 +72,19 @@ export function ChatConversation({
 														)}
 												</Message>
 											)
-										case 'reasoning':
+										case 'thinking':
 											return (
 												<Reasoning
 													key={`${id}-${part.type}`}
 													className='w-full'
 													isStreaming={
-														status === 'streaming' &&
+														isLoading &&
 														partIndex === parts.length - 1 &&
 														id === visibleMessages.at(-1)?.id
 													}
 												>
 													<ReasoningTrigger />
-													<ReasoningContent>{part.text}</ReasoningContent>
+													<ReasoningContent>{part.content}</ReasoningContent>
 												</Reasoning>
 											)
 										default:
@@ -101,7 +95,7 @@ export function ChatConversation({
 						</MessageBranchContent>
 					</MessageBranch>
 				))}
-				{status === 'streaming' && (
+				{isLoading && (
 					<Message from='assistant'>
 						<MessageContent variant='flat' className='items-start'>
 							<Spinner />
@@ -113,7 +107,7 @@ export function ChatConversation({
 						<MessageContent variant='error'>
 							<MessageResponse>{error.message}</MessageResponse>
 							<MessageActions>
-								<MessageAction label='Retry' onClick={() => regenerate()}>
+								<MessageAction label='Retry' onClick={() => reload()}>
 									<RefreshCcwIcon className='size-3' />
 								</MessageAction>
 							</MessageActions>
