@@ -1,12 +1,31 @@
 ---
 title: "refactor: TanStack AI orchestration + Vercel AI SDK removal"
 type: refactor
-status: active
+status: partially-executed
 date: 2026-06-13
 origin: docs/plans/2026-06-13-002-refactor-migrate-vercel-ai-to-tanstack-plan.md
 ---
 
 # refactor: TanStack AI orchestration + Vercel AI SDK removal
+
+> **EXECUTION UPDATE (2026-06-13).** During execution we confirmed the
+> orchestration (`routing.ts` sub-agents) was **dead scaffolding** — the
+> sub-agents (db-doctor/renderer + their tools) were never defined or wired, and
+> the live handler ran zero tools. Decision: **delete the scaffolding** rather
+> than build it now.
+> - **Unit 1 (forwardSubAgentStream): DONE** — committed; kept as the reusable
+>   primitive for when real sub-agents are designed later.
+> - **Units 2, 3, 5, 6 (build + render orchestration): SUPERSEDED / DEFERRED** —
+>   there was no orchestration to migrate or render. Designing real db-doctor /
+>   renderer sub-agents is a future feature (own plan), built on
+>   `forward-subagent.ts`.
+> - **Units 4 + 7 (delete dead helpers + remove ai/@ai-sdk/react): DONE** — via
+>   the delete-scaffolding path. No app file imports the Vercel AI SDK; only
+>   `@ai-sdk/gateway` (connector) remains.
+>
+> Net effect: the Vercel-AI-SDK → @tanstack/ai migration is **complete**.
+> Remaining open items are *new features*, not migration debt: attachment
+> `file`→`ContentPart` mapping, and designing the sub-agents.
 
 > **Execution note for codex:rescue agents.** Verify TypeScript ONLY with
 > `node_modules/.bin/tsc --noEmit` — `npx tsc` resolves a stub package in this
