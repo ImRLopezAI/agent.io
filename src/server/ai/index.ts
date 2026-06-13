@@ -1,56 +1,50 @@
-import {
-	convertToModelMessages,
-	createUIMessageStream,
-	createUIMessageStreamResponse,
-	ToolLoopAgent,
-	type UIMessage,
-} from 'ai'
+import { chat, maxIterations, toServerSentEventsResponse } from '@tanstack/ai'
+import type { UIMessage } from '@tanstack/ai'
 
 import type { Models } from './constants'
+import { gatewayText } from './gateway'
 
+/**
+ * Chat request handler — drives the Vercel AI Gateway through `@tanstack/ai`'s
+ * `chat()` and streams AG-UI Server-Sent Events back to the client.
+ *
+ * Replaces the previous `ToolLoopAgent` + `createUIMessageStream` path. The
+ * agent loop, tool execution, and message handling are owned by `chat()`; the
+ * gateway adapter (`gatewayText`) is the transport.
+ */
 export async function agentRequestHandler(req: Request) {
 	const {
 		messages,
-		model = 'google/gemini-3-flash',
+		model = 'anthropic/claude-haiku-4.5',
 	}: {
-		messages: UIMessage[]
+		messages: Array<UIMessage>
 		model?: Models
 	} = await req.json()
 
-	const stream = createUIMessageStream({
-		execute: async ({ writer }) => {
-			const orchestrator = new ToolLoopAgent({
-				id: 'orchestrator',
-				instructions: 'You are a helpful assistant.',
-				model: 'anthropic/claude-haiku-4.5',
-				tools: {},
-			})
+	// Bridge the request's AbortSignal to an AbortController for chat() + the
+	// SSE response (both accept an AbortController, not a raw signal).
+	const abortController = new AbortController()
+	if (req.signal.aborted) {
+		abortController.abort()
+	} else {
+		req.signal.addEventListener('abort', () => abortController.abort(), {
+			once: true,
+		})
+	}
 
-			const result = await orchestrator.stream({
-				messages: await convertToModelMessages(messages, {
-					ignoreIncompleteToolCalls: true,
-				}),
-				abortSignal: req.signal,
-			})
-
-			writer.merge(
-				result.toUIMessageStream({
-					sendStart: false,
-					sendFinish: false,
-				}) as unknown as Parameters<typeof writer.merge>[0],
-			)
-		},
-		onError: (error) => {
-			console.error('[ontology] agent stream error', error)
-			return error instanceof Error ? error.message : 'Unknown stream error'
-		},
+	const stream = chat({
+		adapter: gatewayText(model),
+		systemPrompts: ['You are a helpful assistant.'],
+		messages,
+		agentLoopStrategy: maxIterations(10),
+		abortController,
 	})
 
-	return createUIMessageStreamResponse({
-		stream,
+	return toServerSentEventsResponse(stream, {
 		headers: {
 			'x-sunday-agent': 'orchestrator',
 			'x-model': model,
 		},
+		abortController,
 	})
 }
