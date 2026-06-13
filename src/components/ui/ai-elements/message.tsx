@@ -4,6 +4,7 @@ import { cjk } from '@streamdown/cjk'
 import { code } from '@streamdown/code'
 import { math } from '@streamdown/math'
 import { mermaid } from '@streamdown/mermaid'
+import type { UIMessage } from '@tanstack/ai-react'
 import { Button } from '@ui/button'
 import { ButtonGroup, ButtonGroupText } from '@ui/button-group'
 import {
@@ -12,7 +13,6 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from '@ui/tooltip'
-import type { UIMessage } from 'ai'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 import type { ComponentProps, HTMLAttributes, ReactElement } from 'react'

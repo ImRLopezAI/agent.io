@@ -6,7 +6,6 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from '@ui/collapsible'
-import type { DynamicToolUIPart, ToolUIPart } from 'ai'
 import {
 	CheckCircleIcon,
 	ChevronDownIcon,
@@ -19,6 +18,7 @@ import type { ComponentProps, ReactNode } from 'react'
 import { isValidElement } from 'react'
 import { cn } from '#/lib/utils'
 
+import type { DynamicToolUIPart, ToolUIPart } from './ai-compat-types'
 import { CodeBlock } from './code-block'
 
 export type ToolProps = ComponentProps<typeof Collapsible>

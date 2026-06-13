@@ -2,7 +2,6 @@
 
 import { Button } from '@ui/button'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@ui/hover-card'
-import type { FileUIPart, SourceDocumentUIPart } from 'ai'
 import {
 	FileTextIcon,
 	GlobeIcon,
@@ -15,6 +14,8 @@ import {
 import type { ComponentProps, HTMLAttributes, ReactNode } from 'react'
 import { createContext, useCallback, useContext, useMemo } from 'react'
 import { cn } from '#/lib/utils'
+
+import type { FileUIPart, SourceDocumentUIPart } from './ai-compat-types'
 
 // ============================================================================
 // Types

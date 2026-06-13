@@ -1,4 +1,7 @@
-import type { TextStreamPart, ToolSet } from 'ai'
+import type {
+	TextStreamPart,
+	ToolSet,
+} from '#/components/ui/ai-elements/ai-compat-types'
 
 /**
  * Transform chunks like [**,bold,**] to [**bold**] make the md deserializer

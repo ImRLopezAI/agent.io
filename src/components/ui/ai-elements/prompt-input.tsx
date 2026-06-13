@@ -31,7 +31,6 @@ import {
 } from '@ui/select'
 import { Spinner } from '@ui/spinner'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@ui/tooltip'
-import type { ChatStatus, FileUIPart, SourceDocumentUIPart } from 'ai'
 import {
 	CornerDownLeftIcon,
 	ImageIcon,
@@ -65,6 +64,12 @@ import {
 	useState,
 } from 'react'
 import { cn } from '#/lib/utils'
+
+import type {
+	ChatStatus,
+	FileUIPart,
+	SourceDocumentUIPart,
+} from './ai-compat-types'
 
 type DropdownMenuItemClickEvent = Parameters<
 	NonNullable<ComponentProps<typeof DropdownMenuItem>['onClick']>

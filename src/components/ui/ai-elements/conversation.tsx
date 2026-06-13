@@ -1,7 +1,7 @@
 'use client'
 
+import type { UIMessage } from '@tanstack/ai-react'
 import { Button } from '@ui/button'
-import type { UIMessage } from 'ai'
 import { ArrowDownIcon, DownloadIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
 import { useCallback } from 'react'
@@ -103,7 +103,10 @@ export const ConversationScrollButton = ({
 const getMessageText = (message: UIMessage): string => {
 	let text = ''
 	for (const part of message.parts) {
-		if (part.type === 'text') text += part.text
+		if (part.type === 'text') {
+			text +=
+				'content' in part ? part.content : (part as { text?: string }).text
+		}
 	}
 	return text
 }
