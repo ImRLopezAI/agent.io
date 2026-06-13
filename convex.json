@@ -1,0 +1,11 @@
+{
+	"$schema": "./node_modules/convex/schemas/convex.schema.json",
+	"aiFiles": {
+		"skills": {
+			"agents": ["claude-code", "codex", "cursor"]
+		}
+	},
+	"codegen": {
+		"staticDataModel": true
+	}
+}
