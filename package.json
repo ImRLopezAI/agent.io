@@ -144,7 +144,7 @@
 		"radix-ui": "^1.4.3",
 		"react": "19.2.7",
 		"react-day-picker": "^10.0.1",
-		"react-dom": "19.2.6",
+		"react-dom": "19.2.7",
 		"react-hook-form": "^7.76.0",
 		"react-hotkeys-hook": "^5.3.2",
 		"react-jsx-parser": "^2.4.1",
@@ -181,6 +181,7 @@
 		"@vitejs/plugin-rsc": "0.5.27",
 		"dotenv-cli": "11.0.0",
 		"jsdom": "^29.1.1",
+		"pngjs": "^7.0.0",
 		"typescript": "6.0.3",
 		"vite": "^8.0.16",
 		"vitest": "^4.1.8"

@@ -25,7 +25,7 @@ export function AiChatDrawer({
 	return (
 		<Drawer direction={direction}>
 			<DrawerTrigger {...props} />
-			<DrawerContent className='flex size-full max-h-[80vh]'>
+			<DrawerContent className='flex size-full max-h-[90vh]'>
 				<DrawerHeader className='flex flex-row items-center space-x-4 border-b px-4 py-2'>
 					<img
 						src='/apple-touch-icon.png'

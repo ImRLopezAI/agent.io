@@ -58,18 +58,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 				name: 'color-scheme',
 				content: 'light dark',
 			},
-			{
-				title: 'Greenfield CRM',
-				description: 'Greenfield CRM is an operator-first sales workspace for managing accounts, contacts, deals, conversations, email, tasks, calendars, reports, automation, and team workflows.',
-			},
-			{
-				property: 'og:title',
-				content: 'Greenfield CRM',
-			},
-			{
-				property: 'og:description',
-				content: 'Greenfield CRM is an operator-first sales workspace for managing accounts, contacts, deals, conversations, email, tasks, calendars, reports, automation, and team workflows.',
-			},
 		],
 		links: [
 			{
@@ -79,19 +67,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 			{
 				rel: 'stylesheet',
 				href: inter,
-			},
-			{
-				rel: 'preconnect',
-				href: 'https://fonts.googleapis.com',
-			},
-			{
-				rel: 'preconnect',
-				href: 'https://fonts.gstatic.com',
-				crossOrigin: 'anonymous',
-			},
-			{
-				rel: 'stylesheet',
-				href: 'https://fonts.googleapis.com/css2?family=Funnel+Sans:ital,wght@0,300..800;1,300..800&family=Geist:wght@100..900&display=swap',
 			},
 		],
 	}),

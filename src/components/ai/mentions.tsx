@@ -113,14 +113,7 @@ export const MENTION_CONFIGS: MentionConfig[] = [
 		label: 'Tools',
 		icon: Hammer,
 		className: 'bg-blue-400/30 ',
-		options: [
-			...flattenAgentTools(AGENTS),
-			{
-				id: 'internal-search',
-				label: 'Internal Search',
-				description: 'Search the internal search index',
-			},
-		],
+		options: flattenAgentTools(AGENTS)
 	},
 ]
 

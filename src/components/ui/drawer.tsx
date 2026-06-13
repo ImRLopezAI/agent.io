@@ -46,7 +46,7 @@ function DrawerOverlay({
 		<DrawerPrimitive.Backdrop
 			data-slot='drawer-overlay'
 			className={cn(
-				'data-closed:fade-out-0 data-open:fade-in-0 fixed inset-0 min-h-dvh bg-black/10 opacity-[calc(1-var(--drawer-swipe-progress))] duration-200 data-closed:animate-out data-open:animate-in data-ending-style:opacity-0 data-starting-style:opacity-0 data-swiping:duration-0 supports-[-webkit-touch-callout:none]:absolute supports-backdrop-filter:backdrop-blur-xs',
+				'data-closed:fade-out-0 data-open:fade-in-0 fixed inset-0 isolate z-[100] min-h-dvh bg-black/20 opacity-[calc(1-var(--drawer-swipe-progress))] duration-200 data-closed:animate-out data-open:animate-in data-ending-style:opacity-0 data-starting-style:opacity-0 data-swiping:duration-0 supports-[-webkit-touch-callout:none]:absolute supports-backdrop-filter:backdrop-blur-xs dark:bg-black/70',
 				className,
 			)}
 			{...props}
@@ -71,7 +71,7 @@ function DrawerContent({
 			<DrawerPrimitive.Viewport
 				data-slot='drawer-viewport'
 				className={cn(
-					'fixed inset-0 flex',
+					'fixed inset-0 z-[100] flex',
 					direction === 'bottom' && 'items-end justify-center',
 					direction === 'top' && 'items-start justify-center',
 					direction === 'left' && 'items-stretch justify-start',
