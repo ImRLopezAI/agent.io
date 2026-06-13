@@ -1,14 +1,8 @@
 {
 	"include": ["**/*.ts", "**/*.tsx"],
-	"exclude": [
-		"docs/references/**",
-		"node_modules",
-		"tweakcn",
-		"src/lib/mock/entity-tdd/**",
-		"src/lib/mock/tdd/**"
-	],
+	"exclude": ["docs/references/**", "node_modules"],
 	"compilerOptions": {
-		"target": "ES2022",
+		"target": "es2024",
 		"jsx": "react-jsx",
 		"module": "ESNext",
 		"paths": {
