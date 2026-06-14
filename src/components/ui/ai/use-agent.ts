@@ -25,7 +25,7 @@ export function useAgent({ transport, ...rest }: UseAgentProps) {
 	}, [transport, contextRef])
 
 	const connection = useMemo(
-		() => fetchServerSentEvents('/api/agent', resolvedOptions),
+		() => fetchServerSentEvents('/api/agents', resolvedOptions),
 		[resolvedOptions],
 	)
 

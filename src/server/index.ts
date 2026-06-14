@@ -2,7 +2,7 @@ import { logger } from 'hono/logger'
 import { requestId } from 'hono/request-id'
 import { Hono } from 'hono/tiny'
 import { agentRequestHandler } from './ai'
-import { createRpcContext, handler as rpcHandler } from './rpc'
+import { createRpcContext, rpcHandler } from './rpc'
 
 const BODY_PARSER_METHODS = [
 	'arrayBuffer',

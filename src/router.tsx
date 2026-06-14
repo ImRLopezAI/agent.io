@@ -28,7 +28,7 @@ export function getRouter() {
 	// 		sendDefaultPii: true,
 	// 	})
 	// }
-	setupRouterSsrQueryIntegration({ router, queryClient: context.queryClient })
+	setupRouterSsrQueryIntegration({ router, queryClient: context.rpcClient })
 
 	return router
 }

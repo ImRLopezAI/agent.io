@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
 import { requireAuthMiddleware } from '#/server/auth/middlewares'
+import { createHead } from './_shell/modules/utils/metadata'
 
 export const Route = createFileRoute('/_shell')({
 	component: Outlet,
@@ -16,23 +17,22 @@ export const Route = createFileRoute('/_shell')({
 			auth,
 		}
 	},
-	head: (opts) => {
-		const title = `${opts.match.fullPath.split('/').join(' ').toUpperCase() || 'Greenfield CRM'} - Greenfield CRM`
-		return {
-			meta: [
-				{
-					title,
-					description: 'Greenfield CRM is an operator-first sales workspace for managing accounts, contacts, deals, conversations, email, tasks, calendars, reports, automation, and team workflows.',
-				},
-				{
-					property: 'og:title',
-					content: title,
-				},
-				{
-					property: 'og:description',
-					content: 'Greenfield CRM is an operator-first sales workspace for managing accounts, contacts, deals, conversations, email, tasks, calendars, reports, automation, and team workflows.',
-				},
-			],
-		}
-	}
+	head: createHead({
+		title: {
+			template: '%s - Agent.io',
+			default: 'Agent.io',
+		},
+		description: 'Agent.io is a platform for building and managing AI agents for your business this agent could be used to automate tasks, customer service, and managing your business.',
+		authors: [
+			{
+				name: 'AI Robotix ',
+				url: 'https://airobotix.net',
+			},
+			{
+				name: 'Angel Lopez',
+				url: 'https://imrlopez.dev',
+			}
+		],
+		robots: 'index, follow',
+	}),
 })

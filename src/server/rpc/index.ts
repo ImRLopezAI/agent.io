@@ -4,15 +4,17 @@ import { onError } from '@orpc/server'
 import { CompressionPlugin } from '@orpc/server/fetch'
 import { BatchHandlerPlugin, ResponseHeadersPlugin } from '@orpc/server/plugins'
 import { ZodToJsonSchemaConverter } from '@orpc/zod/zod4'
-import { createRPCRouter, createRpcContext, type RpcContext } from './init'
+import { createRpcContext, os, type RpcContext } from './init'
 import { healthRouter } from './routes/health.router'
+import { workOsRouter } from './routes/work-os.router'
 
-const rpcRouter = createRPCRouter({
+const router = os.router({
 	health: healthRouter,
+	workOs: workOsRouter,
 })
-export type RPCRouter = typeof rpcRouter
+export type AppRouter = typeof router
 
-const handler = new OpenAPIHandler(rpcRouter, {
+const rpcHandler = new OpenAPIHandler(router, {
 	interceptors: [
 		onError((error) => {
 			console.error(error)
@@ -41,13 +43,9 @@ const handler = new OpenAPIHandler(rpcRouter, {
 						},
 					},
 				},
-				// Note: Sunday uses Clerk cookie-based auth, not Bearer tokens.
-				// Do NOT add global `security` here — it causes the OpenAPI UI
-				// to send an empty `Authorization: Bearer` header, which Clerk
-				// rejects before it can fall back to the valid session cookie.
 			},
 		}),
 	],
 })
 
-export { createRpcContext, handler, rpcRouter }
+export { createRpcContext, rpcHandler, router }

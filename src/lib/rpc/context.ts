@@ -2,7 +2,8 @@ import { api } from '@convex/api'
 import { ConvexQueryClient } from '@convex-dev/react-query'
 import { QueryClient } from '@tanstack/react-query'
 import { cache } from 'react'
-
+import { queryClient } from './query'
+import { $api } from './client'
 const CONVEX_URL = import.meta.env.VITE_CONVEX_URL
 if (!CONVEX_URL) {
 	throw new Error('VITE_CONVEX_URL is not defined')
@@ -25,5 +26,7 @@ export const getContext = cache(() => {
 		$cvx: api,
 		queryClient: cvxQueryClient,
 		cvx: convexQueryClient,
+		rpcClient: queryClient,
+		$rpc: $api,
 	} as const
 })

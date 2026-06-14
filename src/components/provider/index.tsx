@@ -5,14 +5,17 @@ import { AuthKitProvider } from '@workos/authkit-tanstack-react-start/client'
 import { NuqsAdapter } from 'nuqs/adapters/react'
 import BaseProviders from './base'
 import { ConvexProviderWithAuthKit } from './convex'
+import { QueryClientProvider } from '@tanstack/react-query'
 
 interface ProvidersProps extends React.PropsWithChildren {
 	cvx: ReturnType<typeof getContext>['cvx']
 	queryClient: ReturnType<typeof getContext>['queryClient']
+	rpcClient: ReturnType<typeof getContext>['rpcClient']
 }
 export function Providers(props: ProvidersProps) {
 	return (
 		<AuthKitProvider>
+			<QueryClientProvider client={props.rpcClient}>
 			<NuqsAdapter>
 				<ConvexProviderWithAuthKit {...props}>
 					<BaseProviders>
@@ -26,6 +29,7 @@ export function Providers(props: ProvidersProps) {
 					</BaseProviders>
 				</ConvexProviderWithAuthKit>
 			</NuqsAdapter>
+			</QueryClientProvider>
 		</AuthKitProvider>
 	)
 }

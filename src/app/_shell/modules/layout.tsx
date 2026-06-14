@@ -1,6 +1,5 @@
 
 import {
-  Outlet,
   useLocation,
   useRouter,
 } from '@tanstack/react-router'
@@ -10,13 +9,13 @@ import {
   SidebarMenuItem,
   SidebarProvider,
 } from '@ui/sidebar'
-import { SiteHeader } from '@/components/layout/header'
+import { SiteHeader } from './components/header'
 import { AppSidebar } from '@/components/layout/sidebar/app-sidebar'
 import { navItems } from '@/components/layout/sidebar/items'
 import { Logo } from './components/logo'
 import { Link } from '@tanstack/react-router'
 
-export default function BaseLayout() {
+export default function BaseLayout(props: React.PropsWithChildren) {
   const { pathname } = useLocation()
   const router = useRouter()
   return (
@@ -51,7 +50,7 @@ export default function BaseLayout() {
         <SidebarInset>
           <SiteHeader />
           <div className='@container/main min-h-0 flex-1 p-4 xl:group-data-[theme-content-layout=centered]/layout:container xl:group-data-[theme-content-layout=centered]/layout:mx-auto'>
-            <Outlet />
+            {props.children}
           </div>
         </SidebarInset>
       </AppSidebar>

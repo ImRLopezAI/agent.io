@@ -11,12 +11,14 @@
 import { Route as rootRouteImport } from './app/__root'
 import { Route as AuthRouteImport } from './app/auth'
 import { Route as ShellRouteImport } from './app/_shell'
+import { Route as AuthSignUpRouteImport } from './app/auth/sign-up'
 import { Route as AuthSignInRouteImport } from './app/auth/sign-in'
 import { Route as AuthLogoutRouteImport } from './app/auth/logout'
 import { Route as AuthCallbackRouteImport } from './app/auth/callback'
 import { Route as ApiSplatRouteImport } from './app/api.$'
-import { Route as ShellCrewRouteImport } from './app/_shell/_crew'
+import { Route as ShellBaseRouteImport } from './app/_shell/_base'
 import { Route as ShellAdminRouteImport } from './app/_shell/_admin'
+import { Route as ShellBaseIndexRouteImport } from './app/_shell/_base/index'
 import { Route as ShellAdminSettingsRouteImport } from './app/_shell/_admin/settings'
 
 const AuthRoute = AuthRouteImport.update({
@@ -27,6 +29,11 @@ const AuthRoute = AuthRouteImport.update({
 const ShellRoute = ShellRouteImport.update({
   id: '/_shell',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthSignUpRoute = AuthSignUpRouteImport.update({
+  id: '/sign-up',
+  path: '/sign-up',
+  getParentRoute: () => AuthRoute,
 } as any)
 const AuthSignInRoute = AuthSignInRouteImport.update({
   id: '/sign-in',
@@ -48,13 +55,18 @@ const ApiSplatRoute = ApiSplatRouteImport.update({
   path: '/api/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ShellCrewRoute = ShellCrewRouteImport.update({
-  id: '/_crew',
+const ShellBaseRoute = ShellBaseRouteImport.update({
+  id: '/_base',
   getParentRoute: () => ShellRoute,
 } as any)
 const ShellAdminRoute = ShellAdminRouteImport.update({
   id: '/_admin',
   getParentRoute: () => ShellRoute,
+} as any)
+const ShellBaseIndexRoute = ShellBaseIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ShellBaseRoute,
 } as any)
 const ShellAdminSettingsRoute = ShellAdminSettingsRouteImport.update({
   id: '/settings',
@@ -63,21 +75,23 @@ const ShellAdminSettingsRoute = ShellAdminSettingsRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof ShellCrewRoute
+  '/': typeof ShellBaseIndexRoute
   '/auth': typeof AuthRouteWithChildren
   '/api/$': typeof ApiSplatRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/logout': typeof AuthLogoutRoute
   '/auth/sign-in': typeof AuthSignInRoute
+  '/auth/sign-up': typeof AuthSignUpRoute
   '/settings': typeof ShellAdminSettingsRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof ShellCrewRoute
+  '/': typeof ShellBaseIndexRoute
   '/auth': typeof AuthRouteWithChildren
   '/api/$': typeof ApiSplatRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/logout': typeof AuthLogoutRoute
   '/auth/sign-in': typeof AuthSignInRoute
+  '/auth/sign-up': typeof AuthSignUpRoute
   '/settings': typeof ShellAdminSettingsRoute
 }
 export interface FileRoutesById {
@@ -85,12 +99,14 @@ export interface FileRoutesById {
   '/_shell': typeof ShellRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/_shell/_admin': typeof ShellAdminRouteWithChildren
-  '/_shell/_crew': typeof ShellCrewRoute
+  '/_shell/_base': typeof ShellBaseRouteWithChildren
   '/api/$': typeof ApiSplatRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/logout': typeof AuthLogoutRoute
   '/auth/sign-in': typeof AuthSignInRoute
+  '/auth/sign-up': typeof AuthSignUpRoute
   '/_shell/_admin/settings': typeof ShellAdminSettingsRoute
+  '/_shell/_base/': typeof ShellBaseIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +117,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/auth/logout'
     | '/auth/sign-in'
+    | '/auth/sign-up'
     | '/settings'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -110,18 +127,21 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/auth/logout'
     | '/auth/sign-in'
+    | '/auth/sign-up'
     | '/settings'
   id:
     | '__root__'
     | '/_shell'
     | '/auth'
     | '/_shell/_admin'
-    | '/_shell/_crew'
+    | '/_shell/_base'
     | '/api/$'
     | '/auth/callback'
     | '/auth/logout'
     | '/auth/sign-in'
+    | '/auth/sign-up'
     | '/_shell/_admin/settings'
+    | '/_shell/_base/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -145,6 +165,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof ShellRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/auth/sign-up': {
+      id: '/auth/sign-up'
+      path: '/sign-up'
+      fullPath: '/auth/sign-up'
+      preLoaderRoute: typeof AuthSignUpRouteImport
+      parentRoute: typeof AuthRoute
     }
     '/auth/sign-in': {
       id: '/auth/sign-in'
@@ -174,11 +201,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_shell/_crew': {
-      id: '/_shell/_crew'
+    '/_shell/_base': {
+      id: '/_shell/_base'
       path: ''
       fullPath: '/'
-      preLoaderRoute: typeof ShellCrewRouteImport
+      preLoaderRoute: typeof ShellBaseRouteImport
       parentRoute: typeof ShellRoute
     }
     '/_shell/_admin': {
@@ -187,6 +214,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof ShellAdminRouteImport
       parentRoute: typeof ShellRoute
+    }
+    '/_shell/_base/': {
+      id: '/_shell/_base/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof ShellBaseIndexRouteImport
+      parentRoute: typeof ShellBaseRoute
     }
     '/_shell/_admin/settings': {
       id: '/_shell/_admin/settings'
@@ -210,14 +244,26 @@ const ShellAdminRouteWithChildren = ShellAdminRoute._addFileChildren(
   ShellAdminRouteChildren,
 )
 
+interface ShellBaseRouteChildren {
+  ShellBaseIndexRoute: typeof ShellBaseIndexRoute
+}
+
+const ShellBaseRouteChildren: ShellBaseRouteChildren = {
+  ShellBaseIndexRoute: ShellBaseIndexRoute,
+}
+
+const ShellBaseRouteWithChildren = ShellBaseRoute._addFileChildren(
+  ShellBaseRouteChildren,
+)
+
 interface ShellRouteChildren {
   ShellAdminRoute: typeof ShellAdminRouteWithChildren
-  ShellCrewRoute: typeof ShellCrewRoute
+  ShellBaseRoute: typeof ShellBaseRouteWithChildren
 }
 
 const ShellRouteChildren: ShellRouteChildren = {
   ShellAdminRoute: ShellAdminRouteWithChildren,
-  ShellCrewRoute: ShellCrewRoute,
+  ShellBaseRoute: ShellBaseRouteWithChildren,
 }
 
 const ShellRouteWithChildren = ShellRoute._addFileChildren(ShellRouteChildren)
@@ -226,12 +272,14 @@ interface AuthRouteChildren {
   AuthCallbackRoute: typeof AuthCallbackRoute
   AuthLogoutRoute: typeof AuthLogoutRoute
   AuthSignInRoute: typeof AuthSignInRoute
+  AuthSignUpRoute: typeof AuthSignUpRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
   AuthCallbackRoute: AuthCallbackRoute,
   AuthLogoutRoute: AuthLogoutRoute,
   AuthSignInRoute: AuthSignInRoute,
+  AuthSignUpRoute: AuthSignUpRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)

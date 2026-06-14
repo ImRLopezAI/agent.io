@@ -1,7 +1,16 @@
-import { type AnyRouter, os, type Route } from '@orpc/server'
+import { implement } from '@orpc/server'
 import type { ResponseHeadersPluginContext } from '@orpc/server/plugins'
+import { env } from '@/lib/env'
+import { contract } from './contracts'
 import { cvx } from '@server/convex/service'
 import { getAuth } from '@workos/authkit-tanstack-react-start'
+import { WorkOS } from '@workos-inc/node'
+
+const workOs = new WorkOS({
+	apiKey: env.WORKOS_API_KEY,
+	clientId: env.WORKOS_CLIENT_ID,
+})
+
 export type RpcContext = ResponseHeadersPluginContext & {
 	headers: Headers
 }
@@ -11,14 +20,13 @@ export interface RpcContextType {
 	resHeaders: Headers
 	session: Awaited<ReturnType<typeof getAuth>>
 	cvx: typeof cvx
+	workOs: WorkOS
 }
 
 /**
- * Sync builder for RPC context. The caller is responsible for resolving the
- * session via `getSessionFromRequest(request)` (from `@server/auth/native`)
- * and passing it in. Keeping this sync lets it run at module load with a
- * `null` session for the standalone `caller`, while per-request callers
- * (proxy middleware, Hono RPC handler) pass real sessions.
+ * Builds the per-request RPC context. `getAuth()` reads the request's
+ * AsyncLocalStorage, so this must run inside a request (the Hono handler and
+ * the lazy server caller in `lib/rpc/client.ts` both do).
  */
 export async function createRpcContext(input: {
 	headers: Headers
@@ -30,91 +38,37 @@ export async function createRpcContext(input: {
 		resHeaders: input.resHeaders ?? new Headers(),
 		session,
 		cvx,
+		workOs,
 	}
 }
 
-const rpc = os.$context<RpcContextType>().errors({
-	BAD_REQUEST: {
-		message: 'The request payload is invalid.',
-		status: 400,
-	},
-	UNAUTHORIZED: {
-		message: 'You must be logged in to access this resource.',
-		status: 401,
-	},
-	NOT_FOUND: {
-		message: 'The requested resource was not found.',
-		status: 404,
-	},
-	CONFLICT: {
-		message: 'The requested action conflicts with current resource state.',
-		status: 409,
-	},
-	FORBIDDEN: {
-		message: 'You do not have permission to access this resource.',
-		status: 403,
-	},
-	NO_ACTIVE_ORGANIZATION: {
-		message:
-			'No active organization on the session. Pick an organization first.',
-		status: 403,
-	},
-	NO_ADMIN_ROLE: {
-		message: 'You must be an admin to access this resource.',
-		status: 403,
-	},
-	NO_ORGANIZATION: {
-		message: 'Your organization is not configured to access this resource.',
-		status: 403,
-	},
+/**
+ * Contract-first implementer. `os` is the public base; the `*Os` variants layer
+ * auth middleware on top. Implement a procedure by walking to its contract path
+ * (e.g. `os.health`, `organizationOs.workOs.organization.getOrganization`) and
+ * calling `.handler(...)`. The router is assembled in `./index.ts`.
+ */
+export const os = implement(contract).$context<RpcContextType>()
+
+/** Requires an authenticated session; adds `user` to context. */
+export const auth = os.use(async ({ context, next, errors }) => {
+	const session = context.session
+	if (!session.user) throw errors.UNAUTHORIZED()
+	return next({
+		context: { ...context, session, user: session.user },
+	})
 })
 
-export const publicProcedure = rpc
+/** Requires the authenticated user to be an admin. */
+export const admin = auth.use(async ({ context, next, errors }) => {
+	const role = context.session.role ?? ''
+	if (role !== 'admin') throw errors.NO_ADMIN_ROLE()
+	return next({})
+})
 
-export const protectedProcedure = publicProcedure.use(
-	async ({ context, next, errors }) => {
-		const session = context.session
-		if (!session.user) throw errors.UNAUTHORIZED()
-		return await next({
-			context: { ...context, session, user: session.user },
-		})
-	},
-)
-
-export const adminProcedure = protectedProcedure.use(
-	async ({ context, next, errors }) => {
-		const role = context.session.role ?? ''
-		if (role !== 'admin') throw errors.NO_ADMIN_ROLE()
-		return await next({ context: { ...context, user: context.user } })
-	},
-)
-
-export const organizationProcedure = protectedProcedure.use(
-	async ({ context, next, errors }) => {
-		const organizationId = context.session.organizationId
-		if (!organizationId) throw errors.NO_ACTIVE_ORGANIZATION()
-		return await next({ context: { ...context, organizationId } })
-	},
-)
-
-export function createRPCRouter<T extends AnyRouter>(
-	routes: T,
-	defaultOpenApi?: Omit<Partial<Route>, 'method' | 'path'>,
-): T {
-	// biome-ignore lint/suspicious/noExplicitAny: Allows any for flexible route definitions, but can be improved with better typing in the future
-	const routesWithOpenApi: Record<string, any> = {}
-
-	for (const [key, procedure] of Object.entries(routes)) {
-		if (
-			defaultOpenApi &&
-			typeof procedure === 'object' &&
-			'route' in procedure
-		) {
-			routesWithOpenApi[key] = procedure.route(defaultOpenApi)
-		} else {
-			routesWithOpenApi[key] = procedure
-		}
-	}
-
-	return rpc.router(routesWithOpenApi) as T
-}
+/** Requires an active organization on the session; adds `organizationId`. */
+export const org = auth.use(async ({ context, next, errors }) => {
+	const organizationId = context.session.organizationId
+	if (!organizationId) throw errors.NO_ACTIVE_ORGANIZATION()
+	return next({ context: { ...context, organizationId } })
+})

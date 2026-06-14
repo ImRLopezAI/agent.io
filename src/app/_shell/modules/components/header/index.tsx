@@ -12,8 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { useSidebar } from '@/components/ui/sidebar'
 import { Menu } from './navigation'
-import { OrganizationSwitcher } from '@workos-inc/widgets'
-import { useRouteContext } from '@tanstack/react-router'
+import { UserButton } from '../auth/user/user-button'
 function HeaderAiAssistant() {
 	const { handler } = useAgent({
 		transport: {
@@ -38,9 +37,6 @@ function HeaderAiAssistant() {
 
 export function SiteHeader() {
 	const { toggleSidebar } = useSidebar()
-	const { auth } = useRouteContext({
-		from: '/_shell'
-	})
 	return (
 		<header className='sticky top-0 z-50 flex h-(--header-height) shrink-0 items-center gap-2 border-b bg-background/40 backdrop-blur-md transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) md:rounded-tl-xl md:rounded-tr-xl'>
 			<div className='flex w-full items-center gap-1 px-4 lg:gap-2'>
@@ -56,9 +52,7 @@ export function SiteHeader() {
 					<Search />
 					<AnimatedThemeToggler />
 					<Separator orientation='vertical' />
-					<OrganizationSwitcher authToken={auth.accessToken} switchToOrganization={({organizationId}) => {
-						console.log(organizationId)
-					}} />
+					<UserButton size='icon' />
 				</div>
 			</div>
 		</header>

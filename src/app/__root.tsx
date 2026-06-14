@@ -70,7 +70,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 			},
 		],
 	}),
-	shellComponent: RootDocument,
+	shellComponent: RootDocument
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
@@ -86,7 +86,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				<HeadContent />
 			</head>
 			<body>
-				<Providers cvx={ctx.cvx} queryClient={ctx.queryClient}>
+				<Providers cvx={ctx.cvx} queryClient={ctx.queryClient} rpcClient={ctx.rpcClient}>
 					{children}
 					<TanStackDevtools
 						config={{
