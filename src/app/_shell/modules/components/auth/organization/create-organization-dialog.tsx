@@ -4,10 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { createOrgInput } from '@server/rpc/contracts/work-os.contract'
 import { useMutation } from '@tanstack/react-query'
 import { useAuth } from '@workos/authkit-tanstack-react-start/client'
-import type { Organization } from '@workos-inc/node'
 import { Briefcase } from 'lucide-react'
 import { toast } from 'sonner'
-import type { z } from 'zod'
 import { mapOrpcError } from '@/app/_shell/modules/utils/map-orpc-error'
 import { useOnOrgChanged } from '@/app/_shell/modules/utils/use-on-org-changed'
 import {
@@ -23,8 +21,6 @@ import {
 import { useCreateForm } from '@/components/ui/form'
 import { $api } from '@/lib/rpc/client'
 
-/** Create-form values — derived from the contract input schema (no drift). */
-type CreateOrgInput = z.infer<typeof createOrgInput>
 
 /** Props for the `CreateOrganizationDialog` component. */
 export type CreateOrganizationDialogProps = {
@@ -49,17 +45,15 @@ export function CreateOrganizationDialog({
 	const onOrgChanged = useOnOrgChanged()
 	const create = useMutation($api.workOs.organization.create.mutationOptions())
 
-	const [Form] = useCreateForm<CreateOrgInput>(
+	const [Form] = useCreateForm(
 		() => ({
 			resolver: zodResolver(createOrgInput),
 			defaultValues: { name: '' },
 			onSubmit: async (values, f) => {
 				try {
-					// `create` jsonifies to an opaque `{}` client-side; reattach the
-					// WorkOS `Organization` type to read the new org's id.
-					const org = (await create.mutateAsync(values)) as Organization
+					const { id } = await create.mutateAsync(values)
 					onOpenChange(false)
-					const res = await switchToOrganization(org.id)
+					const res = await switchToOrganization(id)
 					if (res?.error) {
 						toast.error(res.error)
 						return

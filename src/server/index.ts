@@ -1,7 +1,6 @@
 import { logger } from 'hono/logger'
 import { requestId } from 'hono/request-id'
 import { Hono } from 'hono/tiny'
-import { agentRequestHandler } from './ai'
 import { createRpcContext, rpcHandler } from './rpc'
 
 const BODY_PARSER_METHODS = [
@@ -20,29 +19,6 @@ export const app = new Hono()
 
 app.use(requestId())
 app.use(logger())
-
-if (process.env.NODE_ENV !== 'production') {
-	app.on(['GET', 'POST'], '/api/dev/seed', async (c) => {
-		try {
-			return c.json({ success: true })
-		} catch (error) {
-			console.error('[dev seed] error', error)
-			return c.json(
-				{
-					success: false,
-					error: error instanceof Error ? error.message : 'Seed failed',
-				},
-				500,
-			)
-		}
-	})
-}
-
-app.on('POST', ['/api/agents', '/api/chat'], async (c) => {
-	const request = c.req.raw
-	return await agentRequestHandler(request)
-})
-
 
 app.use('/api/rpc/*', async (c, next) => {
 	try {

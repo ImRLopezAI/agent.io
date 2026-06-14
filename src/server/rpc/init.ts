@@ -1,6 +1,5 @@
 import { implement, ORPCError } from '@orpc/server'
 import type { ResponseHeadersPluginContext } from '@orpc/server/plugins'
-import { cvx } from '@server/convex/service'
 import { getAuth } from '@workos/authkit-tanstack-react-start'
 import { workOs } from '@/lib/work-os'
 import { contract } from './contracts'
@@ -12,7 +11,6 @@ export interface RpcContextType {
 	headers: Headers
 	resHeaders: Headers
 	session: Awaited<ReturnType<typeof getAuth>>
-	cvx: typeof cvx
 	workOs: typeof workOs
 }
 
@@ -30,7 +28,6 @@ export async function createRpcContext(input: {
 		headers: input.headers,
 		resHeaders: input.resHeaders ?? new Headers(),
 		session,
-		cvx,
 		workOs,
 	}
 }

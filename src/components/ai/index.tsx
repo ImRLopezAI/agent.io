@@ -6,11 +6,15 @@ import { useAi } from '@ui/ai/use-ai'
 import { AiChatProvider } from './context'
 import { ChatPrompt } from './chat'
 import { ChatMessages } from './messages'
+const CHAT_URL = `${import.meta.env.VITE_CONVEX_SITE_URL}/api/chat`
+if (!CHAT_URL) {
+	throw new Error('VITE_CONVEX_SITE_URL is not defined')
+}
 
 export function Ai() {
 	const handler = useAi({
 		chat: {
-			connection: fetchServerSentEvents('/api/chat'),
+			connection: fetchServerSentEvents(CHAT_URL),
 		},
 		initialState: {
 			model: 'anthropic/claude-haiku-4.5',

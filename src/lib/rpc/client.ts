@@ -5,25 +5,13 @@ import type { JsonifiedClient } from '@orpc/openapi-client'
 import { OpenAPILink } from '@orpc/openapi-client/fetch'
 import { createRouterClient } from '@orpc/server'
 import { createTanstackQueryUtils } from '@orpc/tanstack-query'
-// Pure contract (zod + types only). Importing this subpath does NOT evaluate
-// `@server/rpc` (the handler/index), so no server code reaches the client.
+
 import { contract } from '@server/rpc/contracts'
 import { router } from '@server/rpc'
 import { createRpcContext } from '@server/rpc/init'
 import { createIsomorphicFn } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
 
-/**
- * Isomorphic RPC client.
- *
- * - server: a direct in-process caller over the implemented `router` (no HTTP),
- *   with a lazy context resolved per request.
- * - client: an `OpenAPILink` bound to the pure `contract`. Because the browser
- *   branch references only the contract (never the implementation `router`),
- *   the bundler strips `router`/`createRpcContext` from the client bundle — so
- *   no server code (convex/redis/authkit) ships to the browser, while OpenAPI
- *   semantics and end-to-end types are preserved.
- */
 export const getRPCClient = createIsomorphicFn()
 	.server(() =>
 		createRouterClient(router, {
