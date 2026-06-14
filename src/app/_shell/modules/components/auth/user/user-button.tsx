@@ -2,7 +2,6 @@
 
 import { Link } from "@tanstack/react-router"
 import { useAuth } from "@workos/authkit-tanstack-react-start/client"
-
 import {
   ChevronsUpDown,
   LogIn,
@@ -15,6 +14,7 @@ import {
   type ReactElement,
   type ReactNode
 } from "react"
+import { useSetAtom } from "jotai"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@lib/utils"
 import { UserAvatar } from "./user-avatar"
+import { UserProfileDialog, userProfileOpenAtom } from "./user-profile"
 import { UserView } from "./user-view"
 
 /** Auth states a `UserButton` link can be visible in. */
@@ -103,6 +104,7 @@ export function UserButton({
   hideSettings = false
 }: UserButtonProps) {
   const { user, loading, signOut } = useAuth()
+  const openProfile = useSetAtom(userProfileOpenAtom)
 
   const userLinks = links?.flatMap((link, index) => {
     if (!isValidElement(link)) {
@@ -114,6 +116,7 @@ export function UserButton({
   })
 
   return (
+    <>
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(size === "icon" && "rounded-full")}
@@ -167,7 +170,7 @@ export function UserButton({
             {userLinks}
 
             {!hideSettings && (
-              <DropdownMenuItem render={<Link to="/settings" />}>
+              <DropdownMenuItem onClick={() => openProfile(true)}>
                 <Settings className="text-muted-foreground" />
                 Settings
               </DropdownMenuItem>
@@ -197,5 +200,8 @@ export function UserButton({
         )}
       </DropdownMenuContent>
     </DropdownMenu>
+
+    <UserProfileDialog />
+    </>
   )
 }

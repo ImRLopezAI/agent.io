@@ -1,10 +1,21 @@
 import { AuthKit } from '@convex-dev/workos-authkit'
 import { components } from './_generated/api'
 import type { DataModel } from './_generated/dataModel'
+import { internal } from './_generated/api'
 
-export const authKit = new AuthKit<DataModel>(components.workOSAuthKit, {})
+export const authKit = new AuthKit<DataModel>(components.workOSAuthKit, {
+  additionalEventTypes: ['organization.created', 'organization.updated', 'organization.deleted'],
+})
 
 /** Run once after enabling webhooks: `bunx convex run auth:backfillUsers` */
 export const { backfillUsers } = authKit.utils()
 
-export const { authKitEvent } = authKit.events({})
+export const { authKitEvent } = authKit.events({
+  'organization.created': async (ctx, event) => {
+		await ctx.scheduler.runAfter(
+			0,
+			internal.workos.ensureCustomerRoleOnOrg,
+			{ organizationId: event.data.id },
+		)
+	},
+})

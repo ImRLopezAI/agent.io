@@ -12,6 +12,7 @@ import type * as auth from "../auth.js";
 import type * as http from "../http.js";
 import type * as resend from "../resend.js";
 import type * as utils from "../utils.js";
+import type * as workos from "../workos.js";
 
 import type {
   ApiFromModules,
@@ -24,6 +25,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   resend: typeof resend;
   utils: typeof utils;
+  workos: typeof workos;
 }>;
 
 /**

@@ -11,6 +11,7 @@ export const Route = createFileRoute('/_shell')({
 		const { auth } = context
 		if (!auth.user) throw redirect({ to: '/auth/sign-in' })
 		const { accessToken, user } = auth
+	  
 		return {
 			userId: user.id,
 			token: accessToken,

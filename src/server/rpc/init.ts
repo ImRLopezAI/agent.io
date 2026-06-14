@@ -1,16 +1,9 @@
 import { implement } from '@orpc/server'
 import type { ResponseHeadersPluginContext } from '@orpc/server/plugins'
-import { env } from '@/lib/env'
 import { contract } from './contracts'
 import { cvx } from '@server/convex/service'
 import { getAuth } from '@workos/authkit-tanstack-react-start'
-import { WorkOS } from '@workos-inc/node'
-
-const workOs = new WorkOS({
-	apiKey: env.WORKOS_API_KEY,
-	clientId: env.WORKOS_CLIENT_ID,
-})
-
+import { workOs } from '@/lib/work-os'
 export type RpcContext = ResponseHeadersPluginContext & {
 	headers: Headers
 }
@@ -20,7 +13,7 @@ export interface RpcContextType {
 	resHeaders: Headers
 	session: Awaited<ReturnType<typeof getAuth>>
 	cvx: typeof cvx
-	workOs: WorkOS
+	workOs: typeof workOs
 }
 
 /**
