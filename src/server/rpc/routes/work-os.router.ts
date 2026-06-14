@@ -160,6 +160,18 @@ export const workOsRouter = os.workOs.router({
 				return toInvitationRow(invitation)
 			},
 		),
+		listMine: auth.workOs.invitations.listMine.handler(async ({ context }) => {
+			const { data } = await context.workOs.userManagement.listInvitations({
+				email: context.user.email,
+			})
+			return data.map((i) => ({
+				id: i.id,
+				organizationId: i.organizationId,
+				state: i.state,
+				expiresAt: i.expiresAt,
+				acceptUrl: i.acceptInvitationUrl,
+			}))
+		}),
 	},
 	roles: {
 		list: org.workOs.roles.list.handler(async ({ context }) => {

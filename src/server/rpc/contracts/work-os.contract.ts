@@ -48,6 +48,16 @@ export const invitationRowSchema = z.object({
 })
 export type InvitationRow = z.infer<typeof invitationRowSchema>
 
+/** An invitation addressed to the current user (to join some org). */
+export const myInvitationRowSchema = z.object({
+	id: z.string(),
+	organizationId: z.string().nullable(),
+	state: z.enum(['pending', 'accepted', 'expired', 'revoked']),
+	expiresAt: z.string(),
+	acceptUrl: z.string(),
+})
+export type MyInvitationRow = z.infer<typeof myInvitationRowSchema>
+
 /** An org role available for assignment. */
 export const orgRoleSchema = z.object({
 	id: z.string(),
@@ -190,6 +200,14 @@ export const workOsContract = {
 			})
 			.input(resendInvitationInput)
 			.output(invitationRowSchema),
+		listMine: base
+			.route({
+				method: 'GET',
+				path: '/workos/invitations/mine',
+				tags: ['WorkOS', 'Invitations'],
+				summary: "List the current user's invitations to join organizations",
+			})
+			.output(z.array(myInvitationRowSchema)),
 	},
 	roles: {
 		list: base
