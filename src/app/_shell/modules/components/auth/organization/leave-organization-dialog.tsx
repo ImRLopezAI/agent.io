@@ -1,104 +1,100 @@
-"use client"
+'use client'
 
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { useAuth } from '@workos/authkit-tanstack-react-start/client'
+import type { Organization } from '@workos-inc/node'
+import { LogOut } from 'lucide-react'
+import { mapOrpcError } from '@/app/_shell/modules/utils/map-orpc-error'
+import { useOrgDialogs } from '@/app/_shell/modules/utils/org-dialogs.atoms'
+import { useOnOrgChanged } from '@/app/_shell/modules/utils/use-on-org-changed'
+import { useOrgOpts } from '@/app/_shell/modules/utils/use-org-opts'
 import {
-  type OrganizationAuthClient,
-  useAuth,
-  useAuthPlugin,
-  useLeaveOrganization
-} from "@better-auth-ui/react"
-import type { Organization } from "better-auth/client"
-import { LogOut } from "lucide-react"
-import { toast } from "sonner"
+	AlertDialog,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogMedia,
+	AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Spinner } from '@/components/ui/spinner'
+import { $api } from '@/lib/rpc/client'
+import { landAfterLeavingActiveOrg } from './org-landing'
+import { OrganizationView } from './organization-view'
 
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogMedia,
-  AlertDialogTitle
-} from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Spinner } from "@/components/ui/spinner"
-import { organizationPlugin } from "@/lib/auth/organization-plugin"
-import { OrganizationView } from "./organization-view"
+/**
+ * Confirm dialog for leaving the ACTIVE organization (DORMANT — wired but not
+ * surfaced). `leave` takes no input — the server deletes the caller's own
+ * membership in the active org. On success we reconcile and land the user per
+ * decision 12 (switch to the next membership, else sign out). Open-state is the
+ * shared Jotai `org-dialogs` atom (`leaveOpen`).
+ */
+export function LeaveOrganizationDialog() {
+	const auth = useAuth()
+	const onOrgChanged = useOnOrgChanged()
+	const { organization } = useOrgOpts()
+	const [dialogs, dispatch] = useOrgDialogs()
 
-export type LeaveOrganizationDialogProps = {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  organization: Organization
-}
+	const { data } = useQuery(organization.getActive())
+	const activeOrganization = data as Organization | undefined
 
-export function LeaveOrganizationDialog({
-  open,
-  onOpenChange,
-  organization
-}: LeaveOrganizationDialogProps) {
-  const { authClient, basePaths, localization, navigate } = useAuth()
-  const {
-    localization: organizationLocalization,
-    viewPaths: organizationPluginViewPaths
-  } = useAuthPlugin(organizationPlugin)
+	const { mutate: leaveOrg, isPending } = useMutation({
+		...$api.workOs.organization.leave.mutationOptions(),
+		onSuccess: async () => {
+			dispatch({ type: 'close', dialog: 'leave' })
+			await landAfterLeavingActiveOrg(auth, onOrgChanged)
+		},
+		onError: (error) => mapOrpcError(error),
+	})
 
-  const { mutate: leaveOrganization, isPending } = useLeaveOrganization(
-    authClient as OrganizationAuthClient,
-    {
-      onSuccess: () => {
-        onOpenChange(false)
-        toast.success(organizationLocalization.leftOrganization)
+	return (
+		<AlertDialog
+			open={dialogs.leaveOpen}
+			onOpenChange={(open) =>
+				dispatch({ type: open ? 'open' : 'close', dialog: 'leave' })
+			}
+		>
+			<AlertDialogContent>
+				<div className='flex flex-col gap-6'>
+					<AlertDialogHeader>
+						<AlertDialogMedia className='bg-destructive/10 text-destructive'>
+							<LogOut />
+						</AlertDialogMedia>
 
-        navigate({
-          to: `${basePaths.settings}/${organizationPluginViewPaths.settings.organizations}`,
-          replace: true
-        })
-      }
-    }
-  )
+						<AlertDialogTitle>Leave organization</AlertDialogTitle>
 
-  return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogMedia className="bg-destructive/10 text-destructive">
-            <LogOut />
-          </AlertDialogMedia>
+						<AlertDialogDescription>
+							Remove yourself from this organization. You will lose access to
+							its data.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
 
-          <AlertDialogTitle>
-            {organizationLocalization.leaveOrganization}
-          </AlertDialogTitle>
+					<Card>
+						<CardContent>
+							<OrganizationView
+								hideRole
+								organization={{ name: activeOrganization?.name }}
+							/>
+						</CardContent>
+					</Card>
 
-          <AlertDialogDescription>
-            {organizationLocalization.leaveOrganizationDescription}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
 
-        <Card>
-          <CardContent>
-            <OrganizationView organization={organization} hideRole />
-          </CardContent>
-        </Card>
-
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPending}>
-            {localization.settings.cancel}
-          </AlertDialogCancel>
-
-          <Button
-            variant="destructive"
-            disabled={isPending}
-            onClick={() =>
-              leaveOrganization({ organizationId: organization.id })
-            }
-          >
-            {isPending && <Spinner />}
-
-            {organizationLocalization.leaveOrganization}
-          </Button>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  )
+						<Button
+							variant='destructive'
+							disabled={isPending}
+							onClick={() => leaveOrg(undefined)}
+						>
+							{isPending && <Spinner />}
+							Leave organization
+						</Button>
+					</AlertDialogFooter>
+				</div>
+			</AlertDialogContent>
+		</AlertDialog>
+	)
 }

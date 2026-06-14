@@ -1,78 +1,41 @@
-"use client"
+'use client'
 
-import {
-  type OrganizationAuthClient,
-  useActiveOrganization,
-  useAuth,
-  useAuthPlugin,
-  useHasPermission
-} from "@better-auth-ui/react"
-import { useState } from "react"
-
-import { Button } from "@/components/ui/button"
-import { organizationPlugin } from "@/lib/auth/organization-plugin"
-import { DeleteOrganizationDialog } from "./delete-organization-dialog"
-import { DeleteOrganizationSkeleton } from "./delete-organization-skeleton"
+import { useOrgDialogs } from '@/app/_shell/modules/utils/org-dialogs.atoms'
+import { Button } from '@/components/ui/button'
+import { DeleteOrganizationDialog } from './delete-organization-dialog'
 
 /**
- * Danger-zone row to delete the active organization. Hidden for members without
- * the `organization:delete` permission.
+ * Danger-zone row to delete the active organization. Visibility is gated by the
+ * parent `OrganizationDangerZone` on the built-in `admin` role (decision 3), so
+ * this row no longer fetches a permission itself. The confirm dialog's
+ * open-state lives in the shared Jotai `org-dialogs` atom (`deleteOpen`).
+ *
+ * DORMANT (decision 11): wired but not surfaced in nav.
  */
 export function DeleteOrganization() {
-  const { authClient } = useAuth()
-  const { localization: organizationLocalization } =
-    useAuthPlugin(organizationPlugin)
+	const [, dispatch] = useOrgDialogs()
 
-  const { data: activeOrganization } = useActiveOrganization(
-    authClient as OrganizationAuthClient
-  )
+	return (
+		<div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
+			<div>
+				<p className='font-medium text-sm leading-tight'>Delete organization</p>
 
-  const { data: permission, isPending: permissionPending } = useHasPermission(
-    authClient as OrganizationAuthClient,
-    {
-      permissions: { organization: ["delete"] }
-    }
-  )
+				<p className='mt-0.5 text-muted-foreground text-xs'>
+					Permanently delete this organization and all of its data. This cannot
+					be undone.
+				</p>
+			</div>
 
-  const [confirmOpen, setConfirmOpen] = useState(false)
+			<Button
+				size='sm'
+				variant='outline'
+				className='text-destructive'
+				onClick={() => dispatch({ type: 'open', dialog: 'delete' })}
+			>
+				Delete organization
+			</Button>
 
-  if (permissionPending) {
-    return <DeleteOrganizationSkeleton />
-  }
-
-  if (!permission?.success) {
-    return null
-  }
-
-  return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <p className="text-sm font-medium leading-tight">
-          {organizationLocalization.deleteOrganization}
-        </p>
-
-        <p className="text-muted-foreground mt-0.5 text-xs">
-          {organizationLocalization.deleteOrganizationDescription}
-        </p>
-      </div>
-
-      <Button
-        disabled={!activeOrganization}
-        size="sm"
-        variant="outline"
-        className="text-destructive"
-        onClick={() => setConfirmOpen(true)}
-      >
-        {organizationLocalization.deleteOrganization}
-      </Button>
-
-      {activeOrganization && (
-        <DeleteOrganizationDialog
-          open={confirmOpen}
-          onOpenChange={setConfirmOpen}
-          organization={activeOrganization}
-        />
-      )}
-    </div>
-  )
+			<DeleteOrganizationDialog />
+		</div>
+	)
 }

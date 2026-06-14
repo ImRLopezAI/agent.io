@@ -1,124 +1,68 @@
-"use client"
+'use client'
 
-import type { OrganizationView } from "@better-auth-ui/core/plugins"
-import {
-  type OrganizationAuthClient,
-  useActiveOrganization,
-  useAuth,
-  useAuthenticate,
-  useAuthPlugin
-} from "@better-auth-ui/react"
-import { Settings as SettingsIcon, User2 as UserIcon } from "lucide-react"
-import { useEffect, useMemo } from "react"
+import { cn } from '@lib/utils'
+import { Navigate, useRouteContext } from '@tanstack/react-router'
+import { Settings as SettingsIcon, User2 as UserIcon } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { OrganizationPeople } from './organization-people'
+import { OrganizationSettings } from './organization-settings'
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { organizationPlugin } from "@/lib/auth/organization-plugin"
-import { cn } from "@lib/utils"
-import { OrganizationPeople } from "./organization-people"
-import { OrganizationSettings } from "./organization-settings"
+/** The two views of the organization management shell. */
+export type OrganizationView = 'settings' | 'people'
 
 export type OrganizationProps = {
-  className?: string
-  hideNav?: boolean
-  path?: string
-  /** @remarks `OrganizationView` */
-  view?: OrganizationView
+	className?: string
+	hideNav?: boolean
+	/** Which tab to open initially. Defaults to `settings`. */
+	view?: OrganizationView
 }
 
 /**
- * Organization management shell: tabs for profile / danger zone and for
- * people (members / invitations). Path segments come from
- * `useAuthPlugin(organizationPlugin).viewPaths.organization`.
+ * Organization management shell: tabs for settings (profile + danger zone) and
+ * people (members + invitations).
+ *
+ * Gating source is the `/_shell` route-context session (decision 4): with no
+ * active organization there is nothing to manage, so we redirect to the
+ * organizations list. The server enforces every read/mutation regardless
+ * (defense in depth).
  */
 export function Organization({
-  className,
-  hideNav,
-  path,
-  view
+	className,
+	hideNav,
+	view = 'settings',
 }: OrganizationProps) {
-  if (!view && !path) {
-    throw new Error("[Better Auth UI] Either `view` or `path` must be provided")
-  }
+	const { auth } = useRouteContext({ from: '/_shell' })
 
-  const { authClient, basePaths, localization, navigate, Link } = useAuth()
-  useAuthenticate(authClient)
+	if (!auth.organizationId) {
+		return <Navigate to='/' replace />
+	}
 
-  const {
-    localization: organizationLocalization,
-    viewPaths: organizationViewPaths,
-    slug
-  } = useAuthPlugin(organizationPlugin)
+	return (
+		<Tabs
+			defaultValue={view}
+			className={cn('w-full gap-4 md:gap-6', className)}
+		>
+			<div className={cn(hideNav && 'hidden')}>
+				<TabsList aria-label='Settings'>
+					<TabsTrigger value='settings' className='gap-1'>
+						<SettingsIcon className='text-muted-foreground' />
+						Settings
+					</TabsTrigger>
 
-  const { data: activeOrganization, isPending } = useActiveOrganization(
-    authClient as OrganizationAuthClient
-  )
+					<TabsTrigger value='people' className='gap-1'>
+						<UserIcon className='text-muted-foreground' />
+						People
+					</TabsTrigger>
+				</TabsList>
+			</div>
 
-  useEffect(() => {
-    if (!isPending && !activeOrganization) {
-      navigate({
-        to: `${basePaths.settings}/${organizationViewPaths.settings?.organizations}`,
-        replace: true
-      })
-    }
-  }, [
-    basePaths.settings,
-    isPending,
-    navigate,
-    organizationViewPaths.settings?.organizations,
-    activeOrganization
-  ])
+			<TabsContent value='settings' tabIndex={-1}>
+				<OrganizationSettings />
+			</TabsContent>
 
-  const currentView = useMemo(() => {
-    if (view) return view
-
-    const match = Object.entries(organizationViewPaths.organization).find(
-      ([, segment]) => segment === path
-    )
-
-    return match?.[0] as OrganizationView | undefined
-  }, [view, path, organizationViewPaths.organization])
-
-  if (!currentView) {
-    const validPaths = Object.values(organizationViewPaths.organization).join(
-      ", "
-    )
-    throw new Error(
-      `[Better Auth UI] Unknown organization path "${path}". Valid paths are: ${validPaths}`
-    )
-  }
-
-  if (!isPending && !activeOrganization) {
-    return null
-  }
-
-  return (
-    <Tabs
-      value={currentView}
-      className={cn("w-full gap-4 md:gap-6", className)}
-    >
-      <div className={cn(hideNav && "hidden")}>
-        <TabsList aria-label={localization.settings.settings}>
-          <TabsTrigger value="settings" render={<Link href={
-                                  slug
-                                    ? `${basePaths.organization}/${slug}/${organizationViewPaths.organization.settings}`
-                                    : `${basePaths.organization}/${organizationViewPaths.organization.settings}`
-                                } className="gap-1" />}><SettingsIcon className="text-muted-foreground" />{localization.settings.settings}</TabsTrigger>
-
-          <TabsTrigger value="people" render={<Link href={
-                                  slug
-                                    ? `${basePaths.organization}/${slug}/${organizationViewPaths.organization.people}`
-                                    : `${basePaths.organization}/${organizationViewPaths.organization.people}`
-                                } className="gap-1" />}><UserIcon className="text-muted-foreground" />{organizationLocalization.people}</TabsTrigger>
-        </TabsList>
-      </div>
-
-      <TabsContent value="settings" tabIndex={-1}>
-        <OrganizationSettings />
-      </TabsContent>
-
-      <TabsContent value="people" tabIndex={-1}>
-        <OrganizationPeople />
-      </TabsContent>
-    </Tabs>
-  )
+			<TabsContent value='people' tabIndex={-1}>
+				<OrganizationPeople />
+			</TabsContent>
+		</Tabs>
+	)
 }

@@ -1,69 +1,49 @@
-"use client"
+'use client'
 
-import {
-  type OrganizationAuthClient,
-  useAuth,
-  useHasPermission
-} from "@better-auth-ui/react"
-import type { ComponentProps } from "react"
-
-import { Card, CardContent } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { cn } from "@lib/utils"
-import { DeleteOrganization } from "./delete-organization"
-import { DeleteOrganizationSkeleton } from "./delete-organization-skeleton"
-import { LeaveOrganization } from "./leave-organization"
+import { cn } from '@lib/utils'
+import { useRouteContext } from '@tanstack/react-router'
+import type { ComponentProps } from 'react'
+import { Card, CardContent } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
+import { DeleteOrganization } from './delete-organization'
+import { LeaveOrganization } from './leave-organization'
 
 export type OrganizationDangerZoneProps = {
-  className?: string
+	className?: string
 }
 
 /**
- * Danger zone heading with `LeaveOrganization` and `DeleteOrganization`
- * for the active organization in a single card.
- *
- * Resolves the `organization:delete` permission before rendering anything to
- * avoid flashing `LeaveOrganization` (and a stray separator) before the
- * delete row appears or disappears.
+ * Danger zone for the active organization: a `LeaveOrganization` row available
+ * to any member, and a `DeleteOrganization` row gated on the built-in `admin`
+ * role. Gating is read synchronously from the `/_shell` route-context session
+ * (decision 3/4) — no async permission fetch, so no skeleton flash.
  */
 export function OrganizationDangerZone({
-  className,
-  ...props
-}: OrganizationDangerZoneProps & ComponentProps<"div">) {
-  const { authClient, localization } = useAuth()
+	className,
+	...props
+}: OrganizationDangerZoneProps & ComponentProps<'div'>) {
+	const { auth } = useRouteContext({ from: '/_shell' })
+	const canDelete = auth.role === 'admin'
 
-  const { data: deletePermission, isPending: deletePermissionPending } =
-    useHasPermission(authClient as OrganizationAuthClient, {
-      permissions: { organization: ["delete"] }
-    })
+	return (
+		<div className={cn('flex w-full flex-col', className)} {...props}>
+			<h2 className='mb-3 font-semibold text-destructive text-sm'>
+				Danger zone
+			</h2>
 
-  const canDelete = !!deletePermission?.success
+			<Card>
+				<CardContent>
+					<LeaveOrganization />
 
-  return (
-    <div className={cn("flex w-full flex-col", className)} {...props}>
-      <h2 className="mb-3 text-sm font-semibold text-destructive">
-        {localization.settings.dangerZone}
-      </h2>
+					{canDelete && (
+						<>
+							<Separator className='my-4' />
 
-      <Card>
-        <CardContent>
-          {deletePermissionPending ? (
-            <DeleteOrganizationSkeleton />
-          ) : (
-            <>
-              <LeaveOrganization />
-
-              {canDelete && (
-                <>
-                  <Separator className="my-4" />
-
-                  <DeleteOrganization />
-                </>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  )
+							<DeleteOrganization />
+						</>
+					)}
+				</CardContent>
+			</Card>
+		</div>
+	)
 }

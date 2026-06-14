@@ -1,60 +1,40 @@
-"use client"
+'use client'
 
-import {
-  type OrganizationAuthClient,
-  useActiveOrganization,
-  useAuth,
-  useAuthPlugin
-} from "@better-auth-ui/react"
-import { useState } from "react"
-
-import { Button } from "@/components/ui/button"
-import { organizationPlugin } from "@/lib/auth/organization-plugin"
-import { LeaveOrganizationDialog } from "./leave-organization-dialog"
+import { useOrgDialogs } from '@/app/_shell/modules/utils/org-dialogs.atoms'
+import { Button } from '@/components/ui/button'
+import { LeaveOrganizationDialog } from './leave-organization-dialog'
 
 /**
- * Danger-zone row to leave the active organization.
+ * Danger-zone row to leave the active organization, available to any member.
+ * The confirm dialog's open-state lives in the shared Jotai `org-dialogs` atom
+ * (`leaveOpen`).
+ *
+ * DORMANT (decision 11): wired but not surfaced in nav.
  */
 export function LeaveOrganization() {
-  const { authClient } = useAuth()
-  const { localization: organizationLocalization } =
-    useAuthPlugin(organizationPlugin)
+	const [, dispatch] = useOrgDialogs()
 
-  const { data: activeOrganization } = useActiveOrganization(
-    authClient as OrganizationAuthClient
-  )
+	return (
+		<div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
+			<div>
+				<p className='font-medium text-sm leading-tight'>Leave organization</p>
 
-  const [confirmOpen, setConfirmOpen] = useState(false)
+				<p className='mt-0.5 text-muted-foreground text-xs'>
+					Remove yourself from this organization. You will lose access to its
+					data.
+				</p>
+			</div>
 
-  return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <p className="text-sm font-medium leading-tight">
-          {organizationLocalization.leaveOrganization}
-        </p>
+			<Button
+				size='sm'
+				variant='outline'
+				className='text-destructive'
+				onClick={() => dispatch({ type: 'open', dialog: 'leave' })}
+			>
+				Leave organization
+			</Button>
 
-        <p className="text-muted-foreground mt-0.5 text-xs">
-          {organizationLocalization.leaveOrganizationDescription}
-        </p>
-      </div>
-
-      <Button
-        disabled={!activeOrganization}
-        size="sm"
-        variant="outline"
-        className="text-destructive"
-        onClick={() => setConfirmOpen(true)}
-      >
-        {organizationLocalization.leaveOrganization}
-      </Button>
-
-      {activeOrganization && (
-        <LeaveOrganizationDialog
-          open={confirmOpen}
-          onOpenChange={setConfirmOpen}
-          organization={activeOrganization}
-        />
-      )}
-    </div>
-  )
+			<LeaveOrganizationDialog />
+		</div>
+	)
 }

@@ -1,133 +1,118 @@
-"use client"
+'use client'
 
-import {
-  type OrganizationAuthClient,
-  useActiveOrganization,
-  useAuth,
-  useAuthPlugin,
-  useUpdateOrganization
-} from "@better-auth-ui/react"
-import { type SyntheticEvent, useEffect, useState } from "react"
-import { toast } from "sonner"
+import { zodResolver } from '@hookform/resolvers/zod'
+import { cn } from '@lib/utils'
+import { updateOrgInput } from '@server/rpc/contracts/work-os.contract'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { useRouteContext } from '@tanstack/react-router'
+import type { Organization } from '@workos-inc/node'
+import type { z } from 'zod'
+import { mapOrpcError } from '@/app/_shell/modules/utils/map-orpc-error'
+import { useOrgOpts } from '@/app/_shell/modules/utils/use-org-opts'
+import { Card, CardContent } from '@/components/ui/card'
+import { useCreateForm } from '@/components/ui/form'
+import { Skeleton } from '@/components/ui/skeleton'
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Field, FieldError } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Spinner } from "@/components/ui/spinner"
-import { organizationPlugin } from "@/lib/auth/organization-plugin"
-import { cn } from "@lib/utils"
-import { ChangeOrganizationLogo } from "./change-organization-logo"
-import { SlugField } from "./slug-field"
+/** Profile-form values — derived from the contract input schema (no drift). */
+type UpdateOrgInput = z.infer<typeof updateOrgInput>
 
 export type OrganizationProfileProps = {
-  className?: string
+	className?: string
 }
 
 /**
- * Profile card for the active organization: logo (when enabled), display name, and slug.
+ * Profile card for the active organization: name only.
+ *
+ * Logo and slug were removed in the WorkOS migration (no backing fields). The
+ * name form reuses the contract's `updateOrgInput` schema as its zod resolver
+ * (single source of truth) and submits the optimistic `organization.update`
+ * mutation from `useOrgOpts` — the active-org query reflects the new name
+ * immediately and rolls back on failure. The active org name is read from the
+ * `organization.getActive` query.
+ *
+ * Editing the org name is an org-management mutation, so the whole card is gated
+ * on the built-in `admin` role (decision 3) read from the `/_shell` route
+ * context — non-admins see nothing here. The server enforces the same regardless.
  */
 export function OrganizationProfile({ className }: OrganizationProfileProps) {
-  const { authClient, localization } = useAuth()
-  const { localization: organizationLocalization } =
-    useAuthPlugin(organizationPlugin)
+	const { auth } = useRouteContext({ from: '/_shell' })
+	const { organization } = useOrgOpts()
 
-  const { data: activeOrganization } = useActiveOrganization(
-    authClient as OrganizationAuthClient
-  )
+	// `z.custom<Organization>()` jsonifies to an opaque `{}` on the client, so the
+	// WorkOS `Organization` type is reattached here (same pattern as the
+	// optimistic `organization.update` cache writes in `useOrgOpts`).
+	const { data } = useQuery(organization.getActive())
+	const activeOrganization = data as Organization | undefined
+	const update = useMutation(organization.update())
 
-  const [slug, setSlug] = useState(activeOrganization?.slug ?? "")
+	const [Form] = useCreateForm<UpdateOrgInput>(
+		() => ({
+			resolver: zodResolver(updateOrgInput),
+			// `values` (not `defaultValues`) so the form re-syncs once the active
+			// org name resolves from the query (react-hook-form re-applies `values`).
+			values: { name: activeOrganization?.name ?? '' },
+			onSubmit: async (values, f) => {
+				try {
+					await update.mutateAsync(values)
+				} catch (e) {
+					mapOrpcError(e, f)
+				}
+			},
+		}),
+		[activeOrganization?.name, update.mutateAsync],
+	)
 
-  useEffect(() => {
-    setSlug(activeOrganization?.slug ?? "")
-  }, [activeOrganization?.slug])
+	if (auth.role !== 'admin') return null
 
-  const { mutate: commitOrganizationUpdate, isPending } = useUpdateOrganization(
-    authClient as OrganizationAuthClient,
-    {
-      onSuccess: () =>
-        toast.success(organizationLocalization.organizationUpdatedSuccess)
-    }
-  )
+	return (
+		<div>
+			<h2 className={cn('mb-3 font-semibold text-sm')}>Organization profile</h2>
 
-  function handleSubmit(e: SyntheticEvent<HTMLFormElement>) {
-    e.preventDefault()
-    if (!activeOrganization) return
+			<Card className={className}>
+				<CardContent>
+					{activeOrganization ? (
+						<Form>
+							{() => (
+								<div className='flex flex-col gap-4'>
+									<Form.Field
+										name='name'
+										render={({ field }) => (
+											<Form.Item>
+												<Form.Label>Name</Form.Label>
 
-    const formData = new FormData(e.currentTarget)
-    const name = formData.get("name") as string
+												<Form.Control
+													render={
+														<Form.Input
+															autoComplete='organization'
+															placeholder='Acme Inc.'
+															{...field}
+														/>
+													}
+												/>
 
-    commitOrganizationUpdate({
-      data: { name, slug }
-    })
-  }
+												<Form.Message />
+											</Form.Item>
+										)}
+									/>
 
-  const nameInputId = `${activeOrganization?.id ?? "org"}-name`
-  const slugInputId = `${activeOrganization?.id ?? "org"}-slug`
+									<Form.Submit className='mt-1 w-fit' size='sm'>
+										Save changes
+									</Form.Submit>
+								</div>
+							)}
+						</Form>
+					) : (
+						<div className='flex flex-col gap-4'>
+							<div className='flex flex-col gap-2'>
+								<Skeleton className='h-4 w-16 rounded-md' />
+								<Skeleton className='h-8 w-full rounded-md' />
+							</div>
 
-  return (
-    <div>
-      <h2 className={cn("mb-3 text-sm font-semibold")}>
-        {organizationLocalization.organizationProfile}
-      </h2>
-
-      <Card className={className}>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <ChangeOrganizationLogo />
-
-            <Field>
-              <Label htmlFor={nameInputId}>
-                {organizationLocalization.name}
-              </Label>
-
-              {activeOrganization ? (
-                <Input
-                  key={activeOrganization.id}
-                  id={nameInputId}
-                  name="name"
-                  defaultValue={activeOrganization.name}
-                  autoComplete="organization"
-                  placeholder={organizationLocalization.namePlaceholder}
-                  disabled={isPending}
-                />
-              ) : (
-                <Skeleton className="h-8 w-full rounded-md" />
-              )}
-
-              <FieldError />
-            </Field>
-
-            {activeOrganization ? (
-              <SlugField
-                id={slugInputId}
-                value={slug}
-                onChange={setSlug}
-                currentSlug={activeOrganization.slug}
-                disabled={isPending}
-              />
-            ) : (
-              <Field>
-                <Label>{organizationLocalization.slug}</Label>
-                <Skeleton className="h-8 w-full rounded-md" />
-              </Field>
-            )}
-
-            <Button
-              type="submit"
-              disabled={isPending || !activeOrganization}
-              size="sm"
-              className="mt-1 w-fit"
-            >
-              {isPending && <Spinner />}
-
-              {localization.settings.saveChanges}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
-  )
+							<Skeleton className='mt-1 h-8 w-28 rounded-md' />
+						</div>
+					)}
+				</CardContent>
+			</Card>
+		</div>
+	)
 }

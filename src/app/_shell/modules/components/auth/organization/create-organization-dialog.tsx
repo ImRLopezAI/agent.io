@@ -1,139 +1,128 @@
-"use client"
+'use client'
 
+import { zodResolver } from '@hookform/resolvers/zod'
+import { createOrgInput } from '@server/rpc/contracts/work-os.contract'
+import { useMutation } from '@tanstack/react-query'
+import { useAuth } from '@workos/authkit-tanstack-react-start/client'
+import type { Organization } from '@workos-inc/node'
+import { Briefcase } from 'lucide-react'
+import { toast } from 'sonner'
+import type { z } from 'zod'
+import { mapOrpcError } from '@/app/_shell/modules/utils/map-orpc-error'
+import { useOnOrgChanged } from '@/app/_shell/modules/utils/use-on-org-changed'
 import {
-  type OrganizationAuthClient,
-  useAuth,
-  useAuthPlugin,
-  useCreateOrganization
-} from "@better-auth-ui/react"
-import { Briefcase } from "lucide-react"
-import { type SyntheticEvent, useEffect, useState } from "react"
+	AlertDialog,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogMedia,
+	AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { useCreateForm } from '@/components/ui/form'
+import { $api } from '@/lib/rpc/client'
 
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogMedia,
-  AlertDialogTitle
-} from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
-import { Field, FieldError } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Spinner } from "@/components/ui/spinner"
-import { organizationPlugin } from "@/lib/auth/organization-plugin"
-import { SlugField, sanitizeSlug } from "./slug-field"
+/** Create-form values — derived from the contract input schema (no drift). */
+type CreateOrgInput = z.infer<typeof createOrgInput>
 
 /** Props for the `CreateOrganizationDialog` component. */
 export type CreateOrganizationDialogProps = {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+	open: boolean
+	onOpenChange: (open: boolean) => void
 }
 
+/**
+ * DORMANT (decision 11): built and `$rpc`-wired, but its entry points are not
+ * mounted in nav. Name-only create form (slug removed in the WorkOS migration).
+ *
+ * Submit creates the org via the `organization.create` procedure, then runs the
+ * session-changing flow: switch the active org to the new one and reconcile
+ * (decision 10) so the new org becomes active immediately. Open-state is owned
+ * by the parent (the shared Jotai `org-dialogs` atom) and passed in as props.
+ */
 export function CreateOrganizationDialog({
-  open,
-  onOpenChange
+	open,
+	onOpenChange,
 }: CreateOrganizationDialogProps) {
-  const { authClient, localization } = useAuth()
-  const { localization: organizationLocalization } =
-    useAuthPlugin(organizationPlugin)
+	const { switchToOrganization } = useAuth()
+	const onOrgChanged = useOnOrgChanged()
+	const create = useMutation($api.workOs.organization.create.mutationOptions())
 
-  const [name, setName] = useState("")
-  const [slug, setSlug] = useState("")
-  const [nameError, setNameError] = useState<string>()
+	const [Form] = useCreateForm<CreateOrgInput>(
+		() => ({
+			resolver: zodResolver(createOrgInput),
+			defaultValues: { name: '' },
+			onSubmit: async (values, f) => {
+				try {
+					// `create` jsonifies to an opaque `{}` client-side; reattach the
+					// WorkOS `Organization` type to read the new org's id.
+					const org = (await create.mutateAsync(values)) as Organization
+					onOpenChange(false)
+					const res = await switchToOrganization(org.id)
+					if (res?.error) {
+						toast.error(res.error)
+						return
+					}
+					await onOrgChanged()
+				} catch (e) {
+					mapOrpcError(e, f)
+				}
+			},
+		}),
+		[create.mutateAsync, switchToOrganization, onOrgChanged, onOpenChange],
+	)
 
-  const { mutate: createOrganization, isPending: isCreating } =
-    useCreateOrganization(authClient as OrganizationAuthClient, {
-      onSuccess: () => onOpenChange(false)
-    })
+	return (
+		<AlertDialog open={open} onOpenChange={onOpenChange}>
+			<AlertDialogContent>
+				<Form>
+					{() => (
+						<div className='flex flex-col gap-6'>
+							<AlertDialogHeader>
+								<AlertDialogMedia>
+									<Briefcase />
+								</AlertDialogMedia>
 
-  const handleSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    createOrganization({ name, slug })
-  }
+								<AlertDialogTitle>Create organization</AlertDialogTitle>
 
-  useEffect(() => {
-    if (!open) {
-      setSlug("")
-      setName("")
-      setNameError(undefined)
-    }
-  }, [open])
+								<AlertDialogDescription>
+									Create a new organization. You will become its first member.
+								</AlertDialogDescription>
+							</AlertDialogHeader>
 
-  useEffect(() => {
-    setSlug(sanitizeSlug(name))
-  }, [name])
+							<div className='flex flex-col gap-4'>
+								<Form.Field
+									name='name'
+									render={({ field }) => (
+										<Form.Item>
+											<Form.Label>Name</Form.Label>
 
-  return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          <AlertDialogHeader>
-            <AlertDialogMedia>
-              <Briefcase />
-            </AlertDialogMedia>
+											<Form.Control
+												render={
+													<Form.Input
+														autoFocus
+														placeholder='Acme Inc.'
+														{...field}
+													/>
+												}
+											/>
 
-            <AlertDialogTitle>
-              {organizationLocalization.createOrganization}
-            </AlertDialogTitle>
+											<Form.Message />
+										</Form.Item>
+									)}
+								/>
+							</div>
 
-            <AlertDialogDescription>
-              {organizationLocalization.organizationsDescription}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
+							<AlertDialogFooter>
+								<AlertDialogCancel type='button'>Cancel</AlertDialogCancel>
 
-          <div className="flex flex-col gap-4">
-            <Field data-invalid={!!nameError}>
-              <Label htmlFor="create-organization-name">
-                {organizationLocalization.name}
-              </Label>
-
-              <Input
-                id="create-organization-name"
-                name="name"
-                autoFocus
-                required
-                placeholder={organizationLocalization.namePlaceholder}
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value)
-                  setNameError(undefined)
-                }}
-                onInvalid={(e) => {
-                  e.preventDefault()
-                  setNameError(localization.auth.fieldRequired)
-                }}
-                aria-invalid={!!nameError}
-                disabled={isCreating}
-              />
-
-              <FieldError>{nameError}</FieldError>
-            </Field>
-
-            <SlugField
-              id="create-organization-slug"
-              value={slug}
-              onChange={setSlug}
-              disabled={isCreating}
-            />
-          </div>
-
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isCreating}>
-              {localization.settings.cancel}
-            </AlertDialogCancel>
-
-            <Button type="submit" disabled={isCreating}>
-              {isCreating && <Spinner />}
-
-              {organizationLocalization.createOrganization}
-            </Button>
-          </AlertDialogFooter>
-        </form>
-      </AlertDialogContent>
-    </AlertDialog>
-  )
+								<Form.Submit>Create organization</Form.Submit>
+							</AlertDialogFooter>
+						</div>
+					)}
+				</Form>
+			</AlertDialogContent>
+		</AlertDialog>
+	)
 }
