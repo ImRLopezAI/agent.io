@@ -1,213 +1,176 @@
-"use client"
+'use client'
 
+import { cn } from '@lib/utils'
+import { useQuery } from '@tanstack/react-query'
+import { useRouteContext } from '@tanstack/react-router'
+import { useAuth } from '@workos/authkit-tanstack-react-start/client'
+import { ChevronsUpDown, PlusCircle } from 'lucide-react'
+import { type ReactNode, useState } from 'react'
+import { toast } from 'sonner'
+import { useOrgDialogs } from '@/app/_shell/modules/utils/org-dialogs.atoms'
+import { useOnOrgChanged } from '@/app/_shell/modules/utils/use-on-org-changed'
+import { useOrgOpts } from '@/app/_shell/modules/utils/use-org-opts'
+import { Button } from '@/components/ui/button'
 import {
-  type OrganizationAuthClient,
-  useActiveOrganization,
-  useAuth,
-  useAuthPlugin,
-  useListOrganizations,
-  useSession,
-  useSetActiveOrganization
-} from "@better-auth-ui/react"
-import type { Organization } from "better-auth/client"
-import {
-  ChevronsUpDown,
-  PlusCircle,
-  Settings as SettingsIcon
-} from "lucide-react"
-import { type ReactNode, useState } from "react"
-
-import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu"
-import { organizationPlugin } from "@/lib/auth/organization-plugin"
-import { cn } from "@lib/utils"
-import { UserView } from "../user/user-view"
-import { CreateOrganizationDialog } from "./create-organization-dialog"
-import { OrganizationView } from "./organization-view"
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { UserView } from '../user/user-view'
+import { CreateOrganizationDialog } from './create-organization-dialog'
+import { OrganizationView } from './organization-view'
 
 /** Props for the `OrganizationSwitcher` component. */
 export type OrganizationSwitcherProps = {
-  className?: string
-  align?: "center" | "end" | "start"
-  side?: "top" | "right" | "bottom" | "left"
-  sideOffset?: number
-  trigger?: ReactNode
-  hideCreate?: boolean
-  hidePersonal?: boolean
-  hideSettings?: boolean
-  hideSlug?: boolean
-  setActive?: (organization: Organization | null) => void
+	className?: string
+	align?: 'center' | 'end' | 'start'
+	side?: 'top' | 'right' | 'bottom' | 'left'
+	sideOffset?: number
+	trigger?: ReactNode
+	hideCreate?: boolean
+	hidePersonal?: boolean
 }
 
 /**
- * Renders an organizations dropdown with a trigger button,
- * header summary, and a menu of organizations to switch to.
+ * Renders an organizations dropdown with a trigger button, header summary, and a
+ * menu of organizations to switch to. Data comes from `listMyMemberships`; the
+ * active org/role from the `/_shell` route context. Selecting an org runs the
+ * session-changing reconciliation flow: `switchToOrganization` →
+ * `onOrgChanged()` (router invalidate + query invalidate).
  */
 export function OrganizationSwitcher({
-  className,
-  align,
-  side,
-  sideOffset,
-  hideCreate,
-  hidePersonal,
-  hideSettings,
-  hideSlug = true,
-  setActive,
-  trigger
+	className,
+	align,
+	side,
+	sideOffset,
+	hideCreate,
+	hidePersonal,
+	trigger,
 }: OrganizationSwitcherProps) {
-  const { authClient, navigate, basePaths, localization, viewPaths, Link } =
-    useAuth()
-  const { data: session, isPending: sessionPending } = useSession(authClient)
-  const {
-    localization: organizationLocalization,
-    viewPaths: organizationViewPaths,
-    slug
-  } = useAuthPlugin(organizationPlugin)
+	const { auth } = useRouteContext({ from: '/_shell' })
+	const { switchToOrganization } = useAuth()
+	const onOrgChanged = useOnOrgChanged()
+	const { organization } = useOrgOpts()
+	const [dialogs, dispatch] = useOrgDialogs()
 
-  const { data: activeOrganization, isPending: activeOrganizationPending } =
-    useActiveOrganization(authClient as OrganizationAuthClient)
+	const { data: memberships, isPending } = useQuery(
+		organization.listMyMemberships(),
+	)
 
-  const { data: organizations, isPending: organizationsPending } =
-    useListOrganizations(authClient as OrganizationAuthClient)
+	const [dropdownOpen, setDropdownOpen] = useState(false)
 
-  const { mutate: setActiveOrganization } = useSetActiveOrganization(
-    authClient as OrganizationAuthClient
-  )
+	const activeMembership = memberships?.find(
+		(membership) => membership.organizationId === auth.organizationId,
+	)
+	const otherMemberships =
+		memberships?.filter(
+			(membership) => membership.organizationId !== auth.organizationId,
+		) ?? []
 
-  const isPending =
-    sessionPending ||
-    (!!session && (organizationsPending || activeOrganizationPending))
+	const hasOtherEntries =
+		otherMemberships.length > 0 || (!!activeMembership && !hidePersonal)
 
-  const [createOpen, setCreateOpen] = useState(false)
-  const [dropdownOpen, setDropdownOpen] = useState(false)
+	async function switchOrg(organizationId: string) {
+		setDropdownOpen(false)
 
-  const otherOrganizations =
-    organizations?.filter(
-      (organization) => organization.id !== activeOrganization?.id
-    ) ?? []
+		const res = await switchToOrganization(organizationId)
+		if (res?.error) {
+			toast.error(res.error)
+			return
+		}
+		await onOrgChanged()
+	}
 
-  const hasOtherEntries =
-    otherOrganizations.length > 0 || (!!activeOrganization && !hidePersonal)
+	return (
+		<>
+			<DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+				{trigger ? (
+					<DropdownMenuTrigger>{trigger}</DropdownMenuTrigger>
+				) : (
+					<DropdownMenuTrigger
+						render={
+							<Button
+								variant='ghost'
+								className={cn('h-auto px-2 py-2 text-left', className)}
+								disabled={!auth.user || isPending}
+							/>
+						}
+					>
+						{isPending ? (
+							<OrganizationView isPending hideRole />
+						) : activeMembership ? (
+							<OrganizationView
+								hideRole
+								organization={{ name: activeMembership.organizationName }}
+							/>
+						) : auth.user && !hidePersonal ? (
+							<UserView hideSubtitle />
+						) : (
+							<OrganizationView hideRole organization={{ name: 'Personal' }} />
+						)}
+						<ChevronsUpDown className='size-4 shrink-0 text-muted-foreground' />
+					</DropdownMenuTrigger>
+				)}
 
-  function handleSetActive(organization: Organization | null) {
-    setDropdownOpen(false)
+				<DropdownMenuContent
+					align={align}
+					side={side}
+					sideOffset={sideOffset}
+					className='min-w-64 max-w-svw'
+				>
+					{activeMembership ? (
+						<div className='flex items-center justify-between gap-4 px-2 py-2'>
+							<OrganizationView
+								hideRole
+								organization={{ name: activeMembership.organizationName }}
+							/>
+						</div>
+					) : !isPending && auth.user && !hidePersonal ? (
+						<div className='flex items-center justify-between gap-4 px-2 py-2'>
+							<UserView hideSubtitle />
+						</div>
+					) : null}
 
-    if (setActive) {
-      setActive(organization)
-    } else if (slug !== undefined) {
-      navigate({
-        to: organization
-          ? `${basePaths.organization}/${organization.slug}/${organizationViewPaths.organization.settings}`
-          : `${basePaths.settings}/${viewPaths.settings.account}`
-      })
-    } else {
-      setActiveOrganization({ organizationId: organization?.id ?? null })
-    }
-  }
+					<DropdownMenuSeparator />
 
-  return (
-    <>
-      <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
-        {trigger ? (
-          <DropdownMenuTrigger>{trigger}</DropdownMenuTrigger>
-        ) : (
-          <DropdownMenuTrigger render={<Button variant="ghost" className={cn("h-auto px-2 py-2 text-left", className)} disabled={!session || isPending} />}>{isPending ? (
-                                      <OrganizationView isPending hideRole hideSlug={hideSlug} />
-                                    ) : activeOrganization ? (
-                                      <OrganizationView hideRole hideSlug={hideSlug} />
-                                    ) : session && !hidePersonal ? (
-                                      <UserView hideSubtitle={hideSlug} />
-                                    ) : (
-                                      <OrganizationView
-                                        hideRole
-                                        hideSlug={hideSlug}
-                                        organization={{ name: organizationLocalization.organization }}
-                                      />
-                                    )}<ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" /></DropdownMenuTrigger>
-        )}
+					{otherMemberships.map((membership) => (
+						<DropdownMenuItem
+							key={membership.organizationId}
+							onSelect={() => switchOrg(membership.organizationId)}
+						>
+							<OrganizationView
+								hideRole
+								organization={{ name: membership.organizationName }}
+							/>
+						</DropdownMenuItem>
+					))}
 
-        <DropdownMenuContent
-          align={align}
-          side={side}
-          sideOffset={sideOffset}
-          className="min-w-64 max-w-svw"
-        >
-          {activeOrganization ? (
-            <div className="flex items-center justify-between gap-4 px-2 py-2">
-              <OrganizationView
-                hideRole
-                hideSlug={hideSlug}
-                organization={activeOrganization}
-              />
+					{!hideCreate && (
+						<>
+							{hasOtherEntries && <DropdownMenuSeparator />}
 
-              {!hideSettings && (
-                <Button variant="outline" size="sm" render={<Link href={
-                                                    slug
-                                                      ? `${basePaths.organization}/${slug}/${organizationViewPaths.organization.settings}`
-                                                      : `${basePaths.organization}/${organizationViewPaths.organization.settings}`
-                                                  } />} nativeButton={false}><SettingsIcon className="text-muted-foreground" />{organizationLocalization.manage}</Button>
-              )}
-            </div>
-          ) : !isPending && session?.user && !hidePersonal ? (
-            <div className="flex items-center justify-between gap-4 px-2 py-2">
-              <UserView hideSubtitle={hideSlug} />
+							<DropdownMenuItem
+								onSelect={() => {
+									setDropdownOpen(false)
+									dispatch({ type: 'open', dialog: 'create' })
+								}}
+							>
+								<PlusCircle className='text-muted-foreground' />
+								Create organization
+							</DropdownMenuItem>
+						</>
+					)}
+				</DropdownMenuContent>
+			</DropdownMenu>
 
-              {!hideSettings && (
-                <Button variant="outline" size="sm" render={<Link href={`${basePaths.settings}/${viewPaths.settings.account}`} />} nativeButton={false}><SettingsIcon className="text-muted-foreground" />{localization.settings.settings}</Button>
-              )}
-            </div>
-          ) : null}
-
-          <DropdownMenuSeparator />
-
-          {!!activeOrganization && !hidePersonal && (
-            <DropdownMenuItem onSelect={() => handleSetActive(null)}>
-              <UserView hideSubtitle={hideSlug} />
-            </DropdownMenuItem>
-          )}
-
-          {otherOrganizations.map((organization) => (
-            <DropdownMenuItem
-              key={organization.id}
-              onSelect={() => handleSetActive(organization)}
-            >
-              <OrganizationView
-                hideRole
-                hideSlug={hideSlug}
-                organization={organization}
-              />
-            </DropdownMenuItem>
-          ))}
-
-          {!hideCreate && (
-            <>
-              {hasOtherEntries && <DropdownMenuSeparator />}
-
-              <DropdownMenuItem
-                onSelect={() => {
-                  setDropdownOpen(false)
-                  setCreateOpen(true)
-                }}
-              >
-                <PlusCircle className="text-muted-foreground" />
-
-                {organizationLocalization.createOrganization}
-              </DropdownMenuItem>
-            </>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <CreateOrganizationDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-      />
-    </>
-  )
+			<CreateOrganizationDialog
+				open={dialogs.createOpen}
+				onOpenChange={(open) =>
+					dispatch({ type: open ? 'open' : 'close', dialog: 'create' })
+				}
+			/>
+		</>
+	)
 }

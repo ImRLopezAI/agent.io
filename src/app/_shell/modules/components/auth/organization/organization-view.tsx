@@ -1,115 +1,72 @@
-"use client"
+'use client'
 
-import {
-  type OrganizationAuthClient,
-  useActiveOrganization,
-  useAuth,
-  useAuthPlugin,
-  useListOrganizationMembers,
-  useSession
-} from "@better-auth-ui/react"
-import type { Organization } from "better-auth/client"
-import type { ComponentProps } from "react"
+import { cn } from '@lib/utils'
+import { useRouteContext } from '@tanstack/react-router'
+import type { ComponentProps } from 'react'
+import { Badge } from '@/components/ui/badge'
+import { OrganizationViewSkeleton } from './organization-view-skeleton'
 
-import { Badge } from "@/components/ui/badge"
-import { organizationPlugin } from "@/lib/auth/organization-plugin"
-import { cn } from "@lib/utils"
-import {
-  OrganizationLogo,
-  type OrganizationLogoSize
-} from "./organization-logo"
-import { OrganizationViewSkeleton } from "./organization-view-skeleton"
+/**
+ * Minimal org shape this view renders. Sourced from a `MyMembership`
+ * (`organizationName` + `roleSlug`) in the switcher/list, or from route context
+ * for the active org. Logo and slug were removed in the WorkOS migration — there
+ * are no backing fields — so this is just a name plus an optional role badge.
+ */
+export type OrganizationViewData = {
+	name?: string
+	/** Role slug to surface as a badge when `hideRole` is false. */
+	role?: string
+}
 
 export type OrganizationViewProps = {
-  className?: string
-  isPending?: boolean
-  size?: OrganizationLogoSize
-  hideRole?: boolean
-  hideSlug?: boolean
-  organization?: Partial<Organization>
+	className?: string
+	isPending?: boolean
+	hideRole?: boolean
+	organization?: OrganizationViewData
 }
 
 /**
- * Compact organization row: logo, primary name, secondary slug — analogous to `UserView`.
+ * Compact organization row: primary name and an optional role badge —
+ * analogous to `UserView`.
+ *
+ * When no `organization` is passed, falls back to the active organization from
+ * the `/_shell` route context (name resolved by the caller; here we surface the
+ * session `role`). Reads session scalars only — no fetch.
  */
 export function OrganizationView({
-  className,
-  isPending,
-  size = "md",
-  hideSlug,
-  hideRole,
-  organization,
-  ...props
-}: OrganizationViewProps & ComponentProps<"div">) {
-  const { authClient } = useAuth()
-  const { roles } = useAuthPlugin(organizationPlugin)
+	className,
+	isPending,
+	hideRole,
+	organization,
+	...props
+}: OrganizationViewProps & ComponentProps<'div'>) {
+	const { auth } = useRouteContext({ from: '/_shell' })
 
-  const { data: session } = useSession(authClient)
+	const name = organization?.name
+	const role = organization?.role ?? auth.role
 
-  const { data: activeOrganization, isPending: activeOrganizationPending } =
-    useActiveOrganization(authClient as OrganizationAuthClient, {
-      enabled: !organization && !isPending
-    })
+	if (isPending) {
+		return <OrganizationViewSkeleton className={className} {...props} />
+	}
 
-  const resolvedOrganization = organization ?? activeOrganization
+	return (
+		<div
+			className={cn('flex min-w-0 items-center gap-2', className)}
+			{...props}
+		>
+			<div className='flex min-w-0 flex-col'>
+				<div className='flex min-w-0 items-center gap-2'>
+					<p className='truncate font-medium text-foreground text-sm leading-tight'>
+						{name}
+					</p>
 
-  const { data: membersList, isPending: membersPending } =
-    useListOrganizationMembers(authClient as OrganizationAuthClient, {
-      query: {
-        organizationId: resolvedOrganization?.id
-      },
-      enabled: !!resolvedOrganization?.id && !hideRole
-    })
-
-  const membership = membersList?.members?.find(
-    (member) => member.userId === session?.user.id
-  )
-
-  if (
-    isPending ||
-    (!organization && activeOrganizationPending) ||
-    (!hideRole && !!resolvedOrganization?.id && membersPending)
-  ) {
-    return (
-      <OrganizationViewSkeleton
-        className={className}
-        hideSlug={hideSlug}
-        size={size}
-        {...props}
-      />
-    )
-  }
-
-  return (
-    <div
-      className={cn("flex min-w-0 items-center gap-2", className)}
-      {...props}
-    >
-      <OrganizationLogo
-        organization={resolvedOrganization}
-        className={size === "sm" ? "size-5" : undefined}
-        size={size === "lg" ? "md" : "sm"}
-      />
-
-      <div className="flex min-w-0 flex-col">
-        <div className="flex min-w-0 items-center gap-2">
-          <p className="truncate text-sm font-medium leading-tight text-foreground">
-            {resolvedOrganization?.name}
-          </p>
-
-          {!hideRole && !!membership && (
-            <Badge variant="secondary" className="-my-0.5 shrink-0">
-              {roles?.[membership.role] ?? membership.role}
-            </Badge>
-          )}
-        </div>
-
-        {!hideSlug && (
-          <p className="truncate overflow-x-hidden text-muted-foreground text-xs font-mono leading-tight">
-            {resolvedOrganization?.slug}
-          </p>
-        )}
-      </div>
-    </div>
-  )
+					{!hideRole && !!role && (
+						<Badge variant='secondary' className='-my-0.5 shrink-0'>
+							{role}
+						</Badge>
+					)}
+				</div>
+			</div>
+		</div>
+	)
 }
