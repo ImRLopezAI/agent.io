@@ -24,19 +24,6 @@ import { useCreateForm } from '@/components/ui/form'
 type InviteMemberInput = z.infer<typeof inviteMemberInput>
 
 /**
- * Props for `InviteMemberDialog`.
- *
- * Open-state is owned by the shared Jotai `org-dialogs` atom, so the dialog
- * needs no props. The optional `open`/`onOpenChange` are an accepted-but-ignored
- * compatibility shim for the not-yet-migrated Unit 6 call site
- * (`organization-invitations.tsx`); remove them when that unit lands.
- */
-export type InviteMemberDialogProps = {
-	open?: boolean
-	onOpenChange?: (open: boolean) => void
-}
-
-/**
  * The canonical `useCreateForm` reference slice (Unit 5).
  *
  * Email + role-select invite form. The zod resolver reuses the contract's
@@ -51,7 +38,7 @@ export type InviteMemberDialogProps = {
  * defaultValues, onSubmit }), [deps])` → render-prop `<Form>{() => (...)}</Form>`
  * with `Form.Field` render callbacks wiring the field into `Form.*` controls.
  */
-export function InviteMemberDialog(_props: InviteMemberDialogProps = {}) {
+export function InviteMemberDialog() {
 	const { invitations, roles } = useOrgOpts()
 	const [dialogs, dispatch] = useOrgDialogs()
 
