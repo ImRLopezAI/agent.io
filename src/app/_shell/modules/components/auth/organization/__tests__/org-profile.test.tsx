@@ -1,3 +1,4 @@
+import type { OrganizationDto } from '@server/rpc/contracts/work-os.contract'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import {
 	cleanup,
@@ -6,7 +7,6 @@ import {
 	screen,
 	waitFor,
 } from '@testing-library/react'
-import type { Organization } from '@workos-inc/node'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -45,7 +45,7 @@ vi.mock('@tanstack/react-router', () => ({
 	useRouteContext: () => routeContextMock.value,
 }))
 
-const ACTIVE_ORG = { id: 'org_A', name: 'Acme Inc' } as Organization
+const ACTIVE_ORG = { id: 'org_A', name: 'Acme Inc' } as OrganizationDto
 
 // `useOrgOpts`: `organization.getActive()` is a resolved query; `update()` is a
 // mutation whose `mutationFn` is the controllable `updateFnMock`.

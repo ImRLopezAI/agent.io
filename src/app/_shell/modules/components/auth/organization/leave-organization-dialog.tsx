@@ -2,7 +2,6 @@
 
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useAuth } from '@workos/authkit-tanstack-react-start/client'
-import type { Organization } from '@workos-inc/node'
 import { LogOut } from 'lucide-react'
 import { mapOrpcError } from '@/app/_shell/modules/utils/map-orpc-error'
 import { useOrgDialogs } from '@/app/_shell/modules/utils/org-dialogs.atoms'
@@ -38,8 +37,7 @@ export function LeaveOrganizationDialog() {
 	const { organization } = useOrgOpts()
 	const [dialogs, dispatch] = useOrgDialogs()
 
-	const { data } = useQuery(organization.getActive())
-	const activeOrganization = data as Organization | undefined
+	const { data: activeOrganization } = useQuery(organization.getActive())
 
 	const { mutate: leaveOrg, isPending } = useMutation({
 		...$api.workOs.organization.leave.mutationOptions(),

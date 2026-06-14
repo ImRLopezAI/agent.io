@@ -16,22 +16,42 @@ vi.mock('sonner', () => ({
 // `@/lib/rpc/client` is isomorphic: importing it eagerly evaluates the SERVER
 // branch (`@server/rpc` → WorkOS client construction), which throws without env
 // in the test runner. Stub `$api` with the minimal oRPC tanstack-query surface
-// the factories/hook use: `queryOptions(opts)` passes `opts` (incl. queryKey)
-// through, `mutationOptions()` returns a base options object. This keeps the
-// test in the client domain and exercises OUR optimistic + key logic.
-const proc = {
-	queryOptions: (opts: { queryKey?: unknown }) => ({ ...opts }),
-	mutationOptions: () => ({ mutationKey: ['stub'] }),
+// the factories/hook use. The active org is server-derived, so keys are the
+// procedure-native `queryKey()` (org-INDEPENDENT): `queryKey()` returns the
+// stable native key, `queryOptions()` passes opts through, `mutationOptions()`
+// returns a base options object. This keeps the test in the client domain and
+// exercises OUR optimistic + native-key logic.
+function makeProc(path: string[]) {
+	const queryKey = [path, { type: 'query' }]
+	return {
+		queryKey: () => queryKey,
+		queryOptions: (opts?: { queryKey?: unknown }) => ({ queryKey, ...opts }),
+		mutationOptions: () => ({ mutationKey: ['stub'] }),
+	}
 }
+
 const apiStub = {
 	workOs: {
-		members: { list: proc, updateRole: proc, remove: proc },
-		invitations: { list: proc, send: proc, revoke: proc, resend: proc },
-		roles: { list: proc },
+		members: {
+			list: makeProc(['workOs', 'members', 'list']),
+			updateRole: makeProc(['workOs', 'members', 'updateRole']),
+			remove: makeProc(['workOs', 'members', 'remove']),
+		},
+		invitations: {
+			list: makeProc(['workOs', 'invitations', 'list']),
+			send: makeProc(['workOs', 'invitations', 'send']),
+			revoke: makeProc(['workOs', 'invitations', 'revoke']),
+			resend: makeProc(['workOs', 'invitations', 'resend']),
+		},
+		roles: { list: makeProc(['workOs', 'roles', 'list']) },
 		organization: {
-			getActive: proc,
-			listMyMemberships: proc,
-			update: proc,
+			getActive: makeProc(['workOs', 'organization', 'getActive']),
+			listMyMemberships: makeProc([
+				'workOs',
+				'organization',
+				'listMyMemberships',
+			]),
+			update: makeProc(['workOs', 'organization', 'update']),
 		},
 	},
 }
@@ -39,17 +59,6 @@ const apiStub = {
 vi.mock('@/lib/rpc/client', () => ({ $api: apiStub }))
 
 const $api = apiStub as unknown as typeof import('@/lib/rpc/client').$api
-
-// Route context is the only external dependency of `useOrgOpts`; stub it so the
-// hook can run under `renderHook` without a router. `useQueryClient` is provided
-// by a real QueryClient via the hoisted mock below.
-const routeContextMock = vi.hoisted(() => ({
-	value: { auth: { organizationId: 'org_A' as string | undefined } },
-}))
-
-vi.mock('@tanstack/react-router', () => ({
-	useRouteContext: () => routeContextMock.value,
-}))
 
 const qcMock = vi.hoisted(() => ({ client: null as QueryClient | null }))
 
@@ -61,7 +70,8 @@ vi.mock('@tanstack/react-query', async (importOriginal) => {
 	}
 })
 
-const membersKey = [['workOs', 'members', 'list', 'org_A'], { type: 'query' }]
+// The native members-list key the factories write to / invalidate.
+const membersKey = $api.workOs.members.list.queryKey()
 
 function makeMembers(): MemberRow[] {
 	return [
@@ -142,7 +152,7 @@ describe('org.mut-opts optimistic factories', () => {
 		expect(rolledBack).toHaveLength(2)
 	})
 
-	it('onSettled invalidates the org-scoped members key', async () => {
+	it('onSettled invalidates the native members key', async () => {
 		const opts = membersUpdateRoleOpts($api, qc, membersKey)
 		const spy = vi.spyOn(qc, 'invalidateQueries')
 
@@ -152,43 +162,47 @@ describe('org.mut-opts optimistic factories', () => {
 	})
 })
 
-describe('useOrgOpts org-aware query keys', () => {
+describe('useOrgOpts native query keys', () => {
 	beforeEach(() => {
 		qcMock.client = new QueryClient()
 	})
 
-	it('folds organizationId into the query KEY so org A and org B differ', async () => {
+	it('writes optimistically + invalidates the SAME key oRPC queryKey() returns', async () => {
 		const { useOrgOpts } = await import('../use-org-opts')
+		const qc = qcMock.client as QueryClient
 
-		routeContextMock.value = { auth: { organizationId: 'org_A' } }
-		const { result: a } = renderHook(() => useOrgOpts())
-		const keyA = a.current.members.list().queryKey
+		// The native key the members.list query reads from.
+		const nativeKey = $api.workOs.members.list.queryKey()
+		qc.setQueryData(nativeKey, makeMembers())
+		const invalidateSpy = vi.spyOn(qc, 'invalidateQueries')
 
-		routeContextMock.value = { auth: { organizationId: 'org_B' } }
-		const { result: b } = renderHook(() => useOrgOpts())
-		const keyB = b.current.members.list().queryKey
+		const { result } = renderHook(() => useOrgOpts())
 
-		expect(keyA).not.toEqual(keyB)
-		expect(keyA).toEqual([
-			['workOs', 'members', 'list', 'org_A'],
-			{ type: 'query' },
-		])
-		expect(keyB).toEqual([
-			['workOs', 'members', 'list', 'org_B'],
-			{ type: 'query' },
-		])
+		// The list query is keyed on the native procedure key.
+		expect(result.current.members.list().queryKey).toEqual(nativeKey)
+
+		const updateRole = result.current.members.updateRole()
+		await updateRole.onMutate({ membershipId: 'm1', roleSlug: 'admin' })
+
+		// setQueryData landed on the native key the query reads from.
+		expect(
+			qc
+				.getQueryData<MemberRow[]>(nativeKey)
+				?.find((r) => r.membershipId === 'm1')?.roleSlug,
+		).toBe('admin')
+
+		await updateRole.onSettled()
+
+		// invalidate targets that same native key.
+		expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: nativeKey })
 	})
 
-	it('keeps listMyMemberships NON-org-scoped (spans every org)', async () => {
+	it('keeps listMyMemberships on its own native key (spans every org)', async () => {
 		const { useOrgOpts } = await import('../use-org-opts')
 
-		routeContextMock.value = { auth: { organizationId: 'org_A' } }
 		const { result } = renderHook(() => useOrgOpts())
 		const key = result.current.organization.listMyMemberships().queryKey
 
-		expect(key).toEqual([
-			['workOs', 'organization', 'listMyMemberships'],
-			{ type: 'query' },
-		])
+		expect(key).toEqual($api.workOs.organization.listMyMemberships.queryKey())
 	})
 })

@@ -5,7 +5,6 @@ import { cn } from '@lib/utils'
 import { updateOrgInput } from '@server/rpc/contracts/work-os.contract'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useRouteContext } from '@tanstack/react-router'
-import type { Organization } from '@workos-inc/node'
 import type { z } from 'zod'
 import { mapOrpcError } from '@/app/_shell/modules/utils/map-orpc-error'
 import { useOrgOpts } from '@/app/_shell/modules/utils/use-org-opts'
@@ -38,11 +37,9 @@ export function OrganizationProfile({ className }: OrganizationProfileProps) {
 	const { auth } = useRouteContext({ from: '/_shell' })
 	const { organization } = useOrgOpts()
 
-	// `z.custom<Organization>()` jsonifies to an opaque `{}` on the client, so the
-	// WorkOS `Organization` type is reattached here (same pattern as the
-	// optimistic `organization.update` cache writes in `useOrgOpts`).
-	const { data } = useQuery(organization.getActive())
-	const activeOrganization = data as Organization | undefined
+	// `organization.getActive` now output-parses against `organizationSchema`, so
+	// `data` is typed `OrganizationDto | undefined` — no cast needed.
+	const { data: activeOrganization } = useQuery(organization.getActive())
 	const update = useMutation(organization.update())
 
 	const [Form] = useCreateForm<UpdateOrgInput>(

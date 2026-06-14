@@ -44,24 +44,42 @@ vi.mock('sonner', () => ({ toast: toastMock }))
 // (incl. queryKey) through; `mutationOptions` returns a bare options object
 // (no mutationFn → `mutate` resolves as success, so onMutate's optimistic write
 // + onSettled's invalidate run, which is exactly what we assert).
-const proc = vi.hoisted(() => ({
-	queryOptions: (opts: { queryKey?: unknown }) => ({
-		queryFn: () => Promise.resolve([]),
-		...opts,
-	}),
-	mutationOptions: () => ({ mutationKey: ['stub'] }),
-}))
-
-vi.mock('@/lib/rpc/client', () => ({
-	$api: {
-		workOs: {
-			members: { list: proc, updateRole: proc, remove: proc },
-			invitations: { list: proc, send: proc, revoke: proc, resend: proc },
-			roles: { list: proc },
-			organization: { getActive: proc, listMyMemberships: proc, update: proc },
+vi.mock('@/lib/rpc/client', () => {
+	// Each procedure gets its OWN native queryKey so the hook's keyless
+	// queryOptions()/queryKey() calls resolve to distinct cache entries
+	// (invitations.list and roles.list must not collide under one key).
+	const makeProc = (key: string) => ({
+		queryKey: () => [key],
+		queryOptions: () => ({
+			queryKey: [key],
+			queryFn: () => Promise.resolve([]),
+		}),
+		mutationOptions: () => ({ mutationKey: [key] }),
+	})
+	return {
+		$api: {
+			workOs: {
+				members: {
+					list: makeProc('members.list'),
+					updateRole: makeProc('members.updateRole'),
+					remove: makeProc('members.remove'),
+				},
+				invitations: {
+					list: makeProc('invitations.list'),
+					send: makeProc('invitations.send'),
+					revoke: makeProc('invitations.revoke'),
+					resend: makeProc('invitations.resend'),
+				},
+				roles: { list: makeProc('roles.list') },
+				organization: {
+					getActive: makeProc('organization.getActive'),
+					listMyMemberships: makeProc('organization.listMyMemberships'),
+					update: makeProc('organization.update'),
+				},
+			},
 		},
-	},
-}))
+	}
+})
 
 vi.mock('@tanstack/react-router', () => ({
 	useRouteContext: () => routeContextMock.value,
@@ -74,7 +92,8 @@ const { OrganizationInvitationRow } = await import(
 
 // --- fixtures ---
 
-const ORG_KEY = [['workOs', 'invitations', 'list', 'org_A'], { type: 'query' }]
+// The hook keys off oRPC's native per-procedure key (mocked via makeProc).
+const ORG_KEY = ['invitations.list']
 
 function invitation(over: Partial<InvitationRow> = {}): InvitationRow {
 	return {

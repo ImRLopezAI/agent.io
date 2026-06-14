@@ -17,8 +17,10 @@ import { mapOrpcError } from './map-orpc-error'
  *   onError   → rollback from `ctx.previous` + surface via `mapOrpcError`
  *   onSettled → invalidateQueries (refetch the authoritative list)
  *
- * The org-aware `key` is supplied by `useOrgOpts` so writes/invalidations land
- * on the per-org cache entry (the active orgId lives in the KEY, never input).
+ * The `key` is supplied by `useOrgOpts` from oRPC's native per-procedure
+ * `queryKey()`, so writes/invalidations land on the same cache entry the query
+ * reads from. The active org is server-derived (never in the key); cross-org
+ * correctness comes from invalidate-on-switch, not org-scoped keys.
  * `resend` is non-optimistic (fire + toast) — it does not change list shape.
  */
 

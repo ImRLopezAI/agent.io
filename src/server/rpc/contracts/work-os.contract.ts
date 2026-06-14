@@ -1,4 +1,3 @@
-import type { Organization, User } from '@workos-inc/node'
 import { z } from 'zod'
 import { base } from './base'
 
@@ -8,14 +7,40 @@ import { base } from './base'
  * `context.organizationId`). Reads are gated by the `org` middleware, mutations
  * by the `admin` middleware in the router.
  *
- * Output types that mirror a WorkOS SDK shape reuse a type-only import
- * (`Organization`) via `z.custom`, which carries the type to the client without
- * authoring a full schema and without pulling SDK runtime into the bundle.
- * Enriched/derived shapes get real zod schemas so OpenAPI has a populated body.
+ * Output types that mirror a WorkOS SDK shape author a REAL zod schema for the
+ * subset of fields the app uses. A schema (not `z.custom`) is required because
+ * `JsonifiedClient` collapses `z.custom` to `unknown` on the client — the type
+ * never reaches consumers. The WorkOS object is a superset of the schema, so it
+ * output-parses cleanly (extra fields are stripped). Schemas also give OpenAPI a
+ * populated body.
  *
  * Every mutation exports its named input schema for reuse as a `useCreateForm`
  * resolver on the client.
  */
+
+/** The active WorkOS organization (subset of fields the app uses). */
+export const organizationSchema = z.object({
+	id: z.string(),
+	name: z.string(),
+	createdAt: z.string(),
+	updatedAt: z.string(),
+	externalId: z.string().nullable(),
+	metadata: z.record(z.string(), z.string()),
+})
+export type OrganizationDto = z.infer<typeof organizationSchema>
+
+/** The current WorkOS user profile (subset of fields the app uses). */
+export const userSchema = z.object({
+	id: z.string(),
+	email: z.string(),
+	firstName: z.string().nullable(),
+	lastName: z.string().nullable(),
+	emailVerified: z.boolean(),
+	profilePictureUrl: z.string().nullable(),
+	createdAt: z.string(),
+	updatedAt: z.string(),
+})
+export type UserDto = z.infer<typeof userSchema>
 
 /** A membership of the current user, across every org they belong to. */
 export const myMembershipSchema = z.object({
@@ -96,7 +121,7 @@ export const workOsContract = {
 				tags: ['WorkOS', 'Organization'],
 				summary: 'Fetch the active organization',
 			})
-			.output(z.custom<Organization>()),
+			.output(organizationSchema),
 		listMyMemberships: base
 			.route({
 				method: 'GET',
@@ -113,7 +138,7 @@ export const workOsContract = {
 				summary: 'Update the active organization',
 			})
 			.input(updateOrgInput)
-			.output(z.custom<Organization>()),
+			.output(organizationSchema),
 		create: base
 			.route({
 				method: 'POST',
@@ -122,7 +147,7 @@ export const workOsContract = {
 				summary: 'Create an organization',
 			})
 			.input(createOrgInput)
-			.output(z.custom<Organization>()),
+			.output(organizationSchema),
 		remove: base
 			.route({
 				method: 'DELETE',
@@ -232,6 +257,6 @@ export const workOsContract = {
 				summary: 'Update the current user profile',
 			})
 			.input(updateProfileInput)
-			.output(z.custom<User>()),
+			.output(userSchema),
 	},
 } as const
