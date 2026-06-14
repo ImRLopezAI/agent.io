@@ -108,6 +108,46 @@ describe('landAfterLeavingActiveOrg (decision 12)', () => {
 		expect(toastMock.error).not.toHaveBeenCalled()
 	})
 
+	it('excludes the just-left org from a stale (eventually-consistent) read', async () => {
+		// WorkOS write is eventually consistent: the just-left org can still be
+		// returned. With leavingOrgId passed, it must be filtered out so we switch
+		// into a DIFFERENT org rather than back into the one we left.
+		listMyMembershipsCallMock.mockResolvedValue([
+			{ organizationId: 'org_A', organizationName: 'A', roleSlug: 'admin' },
+			{ organizationId: 'org_B', organizationName: 'B', roleSlug: 'member' },
+		])
+		const switchToOrganization = vi.fn().mockResolvedValue(undefined)
+		const signOut = vi.fn().mockResolvedValue(undefined)
+		const onOrgChanged = vi.fn().mockResolvedValue(undefined)
+
+		await landAfterLeavingActiveOrg(
+			{ switchToOrganization, signOut },
+			onOrgChanged,
+			'org_A',
+		)
+
+		expect(switchToOrganization).toHaveBeenCalledWith('org_B')
+		expect(signOut).not.toHaveBeenCalled()
+	})
+
+	it('signs out when the only remaining membership is the just-left org', async () => {
+		listMyMembershipsCallMock.mockResolvedValue([
+			{ organizationId: 'org_A', organizationName: 'A', roleSlug: 'admin' },
+		])
+		const switchToOrganization = vi.fn()
+		const signOut = vi.fn().mockResolvedValue(undefined)
+		const onOrgChanged = vi.fn().mockResolvedValue(undefined)
+
+		await landAfterLeavingActiveOrg(
+			{ switchToOrganization, signOut },
+			onOrgChanged,
+			'org_A',
+		)
+
+		expect(switchToOrganization).not.toHaveBeenCalled()
+		expect(signOut).toHaveBeenCalledTimes(1)
+	})
+
 	it('signs out when no memberships remain', async () => {
 		listMyMembershipsCallMock.mockResolvedValue([])
 		const switchToOrganization = vi.fn()

@@ -45,7 +45,11 @@ export function LeaveOrganizationDialog() {
 		...$api.workOs.organization.leave.mutationOptions(),
 		onSuccess: async () => {
 			dispatch({ type: 'close', dialog: 'leave' })
-			await landAfterLeavingActiveOrg(auth, onOrgChanged)
+			await landAfterLeavingActiveOrg(
+				auth,
+				onOrgChanged,
+				activeOrganization?.id,
+			)
 		},
 		onError: (error) => mapOrpcError(error),
 	})

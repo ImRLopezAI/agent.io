@@ -1,4 +1,4 @@
-import { implement } from '@orpc/server'
+import { implement, ORPCError } from '@orpc/server'
 import type { ResponseHeadersPluginContext } from '@orpc/server/plugins'
 import { cvx } from '@server/convex/service'
 import { getAuth } from '@workos/authkit-tanstack-react-start'
@@ -47,9 +47,25 @@ export const os = implement(contract).$context<RpcContextType>()
 export const auth = os.use(async ({ context, next, errors }) => {
 	const session = context.session
 	if (!session.user) throw errors.UNAUTHORIZED()
-	return next({
-		context: { ...context, session, user: session.user },
-	})
+	try {
+		return await next({
+			context: { ...context, session, user: session.user },
+		})
+	} catch (error) {
+		// Remap raw WorkOS SDK exceptions to the contract's typed errors so the
+		// client gets CONFLICT/NOT_FOUND/... instead of an opaque 500. Already-typed
+		// oRPC errors (our guards, auth gates) pass through unchanged.
+		if (error instanceof ORPCError) throw error
+		const status =
+			typeof (error as { status?: unknown })?.status === 'number'
+				? (error as { status: number }).status
+				: undefined
+		if (status === 404) throw errors.NOT_FOUND()
+		if (status === 409 || status === 422) throw errors.CONFLICT()
+		if (status === 401) throw errors.UNAUTHORIZED()
+		if (status === 403) throw errors.FORBIDDEN()
+		throw error
+	}
 })
 
 /** Requires the authenticated user to be an admin. */

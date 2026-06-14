@@ -45,7 +45,11 @@ export function DeleteOrganizationDialog() {
 		...$api.workOs.organization.remove.mutationOptions(),
 		onSuccess: async () => {
 			dispatch({ type: 'close', dialog: 'delete' })
-			await landAfterLeavingActiveOrg(auth, onOrgChanged)
+			await landAfterLeavingActiveOrg(
+				auth,
+				onOrgChanged,
+				activeOrganization?.id,
+			)
 		},
 		onError: (error) => mapOrpcError(error),
 	})

@@ -30,10 +30,17 @@ export type OrgLandingAuth = {
 export async function landAfterLeavingActiveOrg(
 	auth: OrgLandingAuth,
 	onOrgChanged: () => Promise<void>,
+	leavingOrgId?: string,
 ): Promise<void> {
 	await onOrgChanged()
 
-	const remaining = await $api.workOs.organization.listMyMemberships.call()
+	// WorkOS Management API writes are eventually consistent, so the org we just
+	// left/deleted can still appear in this read — exclude it explicitly, else we
+	// could switch back into the just-left org (or into a now-deleted one).
+	const all = await $api.workOs.organization.listMyMemberships.call()
+	const remaining = leavingOrgId
+		? all.filter((m) => m.organizationId !== leavingOrgId)
+		: all
 
 	if (remaining.length > 0) {
 		const res = await auth.switchToOrganization(remaining[0].organizationId)

@@ -37,10 +37,9 @@ export const workOsRouter = os.workOs.router({
 		),
 		listMyMemberships: auth.workOs.organization.listMyMemberships.handler(
 			async ({ context }) => {
-				const { data } =
-					await context.workOs.userManagement.listOrganizationMemberships({
-						userId: context.user.id,
-					})
+				const data = await context.workOs.userManagement
+					.listOrganizationMemberships({ userId: context.user.id })
+					.then((page) => page.autoPagination())
 				return data.map((m) => ({
 					organizationId: m.organizationId,
 					organizationName: m.organizationName,
@@ -90,8 +89,8 @@ export const workOsRouter = os.workOs.router({
 			const organizationId = context.organizationId
 			const [memberships, roles] = await Promise.all([
 				context.workOs.userManagement
-					.listOrganizationMemberships({ organizationId, limit: 100 })
-					.then((page) => page.data),
+					.listOrganizationMemberships({ organizationId })
+					.then((page) => page.autoPagination()),
 				context.workOs.organizations
 					.listOrganizationRoles({ organizationId })
 					.then((list) => list.data),
@@ -101,8 +100,16 @@ export const workOsRouter = os.workOs.router({
 			)
 		}),
 		updateRole: adminOrg.workOs.members.updateRole.handler(
-			async ({ context, input }) => {
+			async ({ context, input, errors }) => {
 				const organizationId = context.organizationId
+				// Re-check the target belongs to the active org BEFORE mutating —
+				// the SDK acts on a global membership id (cross-tenant IDOR otherwise).
+				const owned = await membershipInActiveOrg(
+					context.workOs,
+					input.membershipId,
+					organizationId,
+				)
+				if (!owned) throw errors.NOT_FOUND()
 				await context.workOs.userManagement.updateOrganizationMembership(
 					input.membershipId,
 					{ roleSlug: input.roleSlug },
@@ -119,7 +126,13 @@ export const workOsRouter = os.workOs.router({
 			},
 		),
 		remove: adminOrg.workOs.members.remove.handler(
-			async ({ context, input }) => {
+			async ({ context, input, errors }) => {
+				const owned = await membershipInActiveOrg(
+					context.workOs,
+					input.membershipId,
+					context.organizationId,
+				)
+				if (!owned) throw errors.NOT_FOUND()
 				await context.workOs.userManagement.deleteOrganizationMembership(
 					input.membershipId,
 				)
@@ -129,9 +142,9 @@ export const workOsRouter = os.workOs.router({
 	},
 	invitations: {
 		list: org.workOs.invitations.list.handler(async ({ context }) => {
-			const { data } = await context.workOs.userManagement.listInvitations({
-				organizationId: context.organizationId,
-			})
+			const data = await context.workOs.userManagement
+				.listInvitations({ organizationId: context.organizationId })
+				.then((page) => page.autoPagination())
 			return data.map(toInvitationRow)
 		}),
 		send: adminOrg.workOs.invitations.send.handler(
@@ -145,7 +158,13 @@ export const workOsRouter = os.workOs.router({
 			},
 		),
 		revoke: adminOrg.workOs.invitations.revoke.handler(
-			async ({ context, input }) => {
+			async ({ context, input, errors }) => {
+				const owned = await invitationInActiveOrg(
+					context.workOs,
+					input.invitationId,
+					context.organizationId,
+				)
+				if (!owned) throw errors.NOT_FOUND()
 				const invitation = await context.workOs.userManagement.revokeInvitation(
 					input.invitationId,
 				)
@@ -153,7 +172,13 @@ export const workOsRouter = os.workOs.router({
 			},
 		),
 		resend: adminOrg.workOs.invitations.resend.handler(
-			async ({ context, input }) => {
+			async ({ context, input, errors }) => {
+				const owned = await invitationInActiveOrg(
+					context.workOs,
+					input.invitationId,
+					context.organizationId,
+				)
+				if (!owned) throw errors.NOT_FOUND()
 				const invitation = await context.workOs.userManagement.resendInvitation(
 					input.invitationId,
 				)
@@ -161,9 +186,9 @@ export const workOsRouter = os.workOs.router({
 			},
 		),
 		listMine: auth.workOs.invitations.listMine.handler(async ({ context }) => {
-			const { data } = await context.workOs.userManagement.listInvitations({
-				email: context.user.email,
-			})
+			const data = await context.workOs.userManagement
+				.listInvitations({ email: context.user.email })
+				.then((page) => page.autoPagination())
 			return data.map((i) => ({
 				id: i.id,
 				organizationId: i.organizationId,
@@ -202,6 +227,46 @@ export const workOsRouter = os.workOs.router({
 		),
 	},
 })
+
+/**
+ * Returns the membership only if it belongs to the active org, else null.
+ * The WorkOS membership/invitation ids are GLOBAL — the SDK mutators act on
+ * whatever org owns the id — so org-scoped mutations MUST re-check ownership
+ * against `context.organizationId` before acting, or an admin of one org could
+ * tamper with another org's records (cross-tenant IDOR).
+ */
+async function membershipInActiveOrg(
+	workOs: {
+		userManagement: {
+			getOrganizationMembership: (id: string) => Promise<OrganizationMembership>
+		}
+	},
+	membershipId: string,
+	organizationId: string,
+): Promise<OrganizationMembership | null> {
+	const membership = await workOs.userManagement
+		.getOrganizationMembership(membershipId)
+		.catch(() => null)
+	return membership && membership.organizationId === organizationId
+		? membership
+		: null
+}
+
+/** Returns the invitation only if it belongs to the active org, else null. */
+async function invitationInActiveOrg(
+	workOs: {
+		userManagement: { getInvitation: (id: string) => Promise<Invitation> }
+	},
+	invitationId: string,
+	organizationId: string,
+): Promise<Invitation | null> {
+	const invitation = await workOs.userManagement
+		.getInvitation(invitationId)
+		.catch(() => null)
+	return invitation && invitation.organizationId === organizationId
+		? invitation
+		: null
+}
 
 /** Enriches a membership with the user profile + role display name. */
 async function enrichMember(

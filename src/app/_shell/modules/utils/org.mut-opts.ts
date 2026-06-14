@@ -111,13 +111,16 @@ export function invitationsSendOpts($rpc: Api, qc: QueryClient, key: QueryKey) {
 			])
 			return { previous } satisfies RollbackContext<InvitationRow[]>
 		},
+		// Rollback ONLY — the invite dialog owns user-facing surfacing via
+		// `mapOrpcError(e, form)` so a field-bound CONFLICT lands on the email
+		// field, not a duplicate toast. (Other list mutations have no call-site
+		// catch, so they surface here.)
 		onError: (
-			err: unknown,
+			_err: unknown,
 			_vars: unknown,
 			ctx: RollbackContext<InvitationRow[]> | undefined,
 		) => {
 			if (ctx) qc.setQueryData(key, ctx.previous)
-			mapOrpcError(err)
 		},
 		onSettled: () => qc.invalidateQueries({ queryKey: key }),
 	}
