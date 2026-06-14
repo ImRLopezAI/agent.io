@@ -190,6 +190,17 @@ export const workOsRouter = os.workOs.router({
 			)
 		}),
 	},
+	user: {
+		updateProfile: auth.workOs.user.updateProfile.handler(
+			async ({ context, input }) => {
+				return context.workOs.userManagement.updateUser({
+					userId: context.user.id,
+					firstName: input.firstName,
+					lastName: input.lastName,
+				})
+			},
+		),
+	},
 })
 
 /** Enriches a membership with the user profile + role display name. */

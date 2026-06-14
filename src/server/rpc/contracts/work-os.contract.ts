@@ -1,4 +1,4 @@
-import type { Organization } from '@workos-inc/node'
+import type { Organization, User } from '@workos-inc/node'
 import { z } from 'zod'
 import { base } from './base'
 
@@ -82,6 +82,10 @@ export const inviteMemberInput = z.object({
 })
 export const revokeInvitationInput = z.object({ invitationId: z.string() })
 export const resendInvitationInput = z.object({ invitationId: z.string() })
+export const updateProfileInput = z.object({
+	firstName: z.string().min(1),
+	lastName: z.string().min(1),
+})
 
 export const workOsContract = {
 	organization: {
@@ -218,5 +222,16 @@ export const workOsContract = {
 				summary: 'List roles available in the active organization',
 			})
 			.output(z.array(orgRoleSchema)),
+	},
+	user: {
+		updateProfile: base
+			.route({
+				method: 'PATCH',
+				path: '/workos/user',
+				tags: ['WorkOS', 'User'],
+				summary: 'Update the current user profile',
+			})
+			.input(updateProfileInput)
+			.output(z.custom<User>()),
 	},
 } as const
