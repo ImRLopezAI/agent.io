@@ -1,38 +1,50 @@
-"use client"
+'use client'
 
-import { useAuth } from "@better-auth-ui/react"
-import { cn } from "@lib/utils"
-import { ActiveSessions } from "./active-sessions"
-import { ChangePassword } from "./change-password"
-import { LinkedAccounts } from "./linked-accounts"
+import { cn } from '@lib/utils'
+import { useRouteContext } from '@tanstack/react-router'
+import { UserSecurity, UserSessions, WorkOsWidgets } from '@workos-inc/widgets'
+import '@radix-ui/themes/styles.css'
+import '@workos-inc/widgets/styles.css'
+import { useTheme } from 'next-themes'
 
 export type SecuritySettingsProps = {
-  className?: string
+	className?: string
 }
 
 /**
- * Renders the security settings layout including password management, linked accounts, and active sessions.
+ * Security settings — password, MFA, and active sessions.
  *
- * ChangePassword is rendered when password authentication is enabled; LinkedAccounts is rendered when social providers are present.
- * Each registered auth plugin may contribute `securityCards` (for example passkeys, delete-user).
+ * Migrated off the prior auth-UI template: these are security-sensitive flows, so they
+ * adopt WorkOS Widgets (decision 14) rather than hand-rolled `$rpc` forms.
+ * `UserSecurity` covers password + MFA; `UserSessions` covers the active-session
+ * list and revocation. Both need a WorkOS access token, read from the `/_shell`
+ * route context (same wiring as `user/user-profile.tsx`).
  *
- * @param className - Optional additional CSS class names for the outer container.
- * @returns The security settings container as a JSX element.
+ * Linked / connected accounts have no `UserSecurity` equivalent yet — see the
+ * TODO below.
  */
 export function SecuritySettings({ className }: SecuritySettingsProps) {
-  const { emailAndPassword, plugins, socialProviders } = useAuth()
+	const { auth } = useRouteContext({ from: '/_shell' })
+	const { resolvedTheme } = useTheme()
 
-  return (
-    <div className={cn("flex w-full flex-col gap-4 md:gap-6", className)}>
-      {emailAndPassword?.enabled && <ChangePassword />}
-      {!!socialProviders?.length && <LinkedAccounts />}
-      <ActiveSessions />
-      {plugins.flatMap(
-        (plugin) =>
-          plugin.securityCards?.map((Card, index) => (
-            <Card key={`${plugin.id}-${index.toString()}`} />
-          )) ?? []
-      )}
-    </div>
-  )
+	return (
+		<div className={cn('flex w-full flex-col gap-4 md:gap-6', className)}>
+			<WorkOsWidgets
+				theme={{ appearance: resolvedTheme === 'dark' ? 'dark' : 'light' }}
+			>
+				<div className='flex flex-col gap-4 md:gap-6'>
+					<UserSecurity authToken={auth.accessToken} className='z-100' />
+
+					<UserSessions
+						authToken={auth.accessToken}
+						currentSessionId={auth.sessionId ?? ''}
+						className='z-100'
+					/>
+
+					{/* TODO(settings): connected/linked accounts have no WorkOS Widget
+					    equivalent yet; surface them once a widget or `$rpc` flow exists. */}
+				</div>
+			</WorkOsWidgets>
+		</div>
+	)
 }

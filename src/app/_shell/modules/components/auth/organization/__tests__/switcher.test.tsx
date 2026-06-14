@@ -62,9 +62,10 @@ vi.mock('@/app/_shell/modules/utils/org-dialogs.atoms', () => ({
 	useOrgDialogs: () => [{ createOpen: false }, dialogsDispatchMock],
 }))
 
-// `CreateOrganizationDialog` is a dormant better-auth child (migrated in a later
-// unit). Stub it so importing `Organizations` does not pull the better-auth
-// chain into the test runner.
+// `CreateOrganizationDialog` is rendered (dormant) by `Organizations`. It is now
+// WorkOS-native, but eagerly imports `$api` from `@/lib/rpc/client`, which pulls
+// the server WorkOS client into the runner (it throws without real keys). Stub
+// it so this slice tests the switch flow in isolation.
 vi.mock(
 	'@/app/_shell/modules/components/auth/organization/create-organization-dialog',
 	() => ({ CreateOrganizationDialog: () => null }),

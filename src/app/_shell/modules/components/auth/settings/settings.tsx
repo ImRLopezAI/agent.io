@@ -1,106 +1,68 @@
-"use client"
+'use client'
 
-import type { SettingsView } from "@better-auth-ui/core"
-import { useAuth, useAuthenticate } from "@better-auth-ui/react"
-import { Shield, User2 } from "lucide-react"
-import { useMemo } from "react"
+import { cn } from '@lib/utils'
+import { Navigate, useRouteContext } from '@tanstack/react-router'
+import { Shield, User2 } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { AccountSettings } from './account/account-settings'
+import { SecuritySettings } from './security/security-settings'
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { cn } from "@lib/utils"
-import { AccountSettings } from "./account/account-settings"
-import { SecuritySettings } from "./security/security-settings"
+/** The two views of the account settings shell. */
+export type SettingsView = 'account' | 'security'
 
 export type SettingsProps = {
-  className?: string
-  path?: string
-  /** @remarks `SettingsView` */
-  view?: SettingsView
-  hideNav?: boolean
+	className?: string
+	/** Which tab to open initially. Defaults to `account`. */
+	view?: SettingsView
+	hideNav?: boolean
 }
 
 /**
- * Renders the settings UI and activates the appropriate settings view based on `view` or `path`.
+ * Account settings shell: tabs for the account (profile/name via `$rpc`) and
+ * security (password / MFA / sessions via WorkOS Widgets).
  *
- * @param className - Additional CSS class names applied to the root container
- * @param path - Route path used to resolve which settings view to activate when `view` is not provided
- * @param view - Explicit settings view to activate (for example, `"account"` or `"security"`)
- * @param hideNav - When `true`, hides the settings navigation tabs
- * @returns A JSX element rendering the settings layout and the selected settings panel
+ * Migrated off the prior auth-UI template — auth is read from the `/_shell`
+ * route context (decision 4); there is no auth-client, plugin, or
+ * localization here. With no authenticated user there is nothing to manage, so
+ * we redirect to sign-in (the `/_shell` gate already enforces this server-side).
  */
-export function Settings({ className, view, path, hideNav }: SettingsProps) {
-  const { authClient, basePaths, localization, viewPaths, plugins, Link } =
-    useAuth()
-  useAuthenticate(authClient)
+export function Settings({
+	className,
+	view = 'account',
+	hideNav,
+}: SettingsProps) {
+	const { auth } = useRouteContext({ from: '/_shell' })
 
-  if (!view && !path) {
-    throw new Error("[Better Auth UI] Either `view` or `path` must be provided")
-  }
+	if (!auth.user) {
+		return <Navigate to='/auth/sign-in' replace />
+	}
 
-  const currentView = useMemo(() => {
-    if (view) return view
-    if (!path) return undefined
+	return (
+		<Tabs
+			defaultValue={view}
+			className={cn('w-full gap-4 md:gap-6', className)}
+		>
+			<div className={cn(hideNav && 'hidden')}>
+				<TabsList aria-label='Settings'>
+					<TabsTrigger value='account' className='gap-1'>
+						<User2 className='text-muted-foreground' />
+						Account
+					</TabsTrigger>
 
-    const match = [
-      viewPaths.settings,
-      ...plugins.map((plugin) => plugin.viewPaths?.settings)
-    ]
-      .flatMap((source) => Object.entries(source ?? {}))
-      .find(([, segment]) => segment === path)
+					<TabsTrigger value='security' className='gap-1'>
+						<Shield className='text-muted-foreground' />
+						Security
+					</TabsTrigger>
+				</TabsList>
+			</div>
 
-    return match?.[0] as SettingsView | undefined
-  }, [view, path, viewPaths.settings, plugins])
+			<TabsContent value='account' tabIndex={-1}>
+				<AccountSettings />
+			</TabsContent>
 
-  if (!currentView) {
-    const validPaths = [
-      viewPaths.settings,
-      ...plugins.map((plugin) => plugin.viewPaths?.settings)
-    ]
-      .flatMap((source) => Object.values(source ?? {}))
-      .join(", ")
-    throw new Error(
-      `[Better Auth UI] Unknown settings path "${path}". Valid paths are: ${validPaths}`
-    )
-  }
-
-  return (
-    <Tabs
-      value={currentView}
-      className={cn("w-full gap-4 md:gap-6", className)}
-    >
-      <div className={cn(hideNav && "hidden")}>
-        <TabsList aria-label={localization.settings.settings}>
-          <TabsTrigger value="account" render={<Link href={`${basePaths.settings}/${viewPaths.settings.account}`} className="gap-1" />}><User2 className="text-muted-foreground" />{localization.settings.account}</TabsTrigger>
-
-          <TabsTrigger value="security" render={<Link href={`${basePaths.settings}/${viewPaths.settings.security}`} className="gap-1" />}><Shield className="text-muted-foreground" />{localization.settings.security}</TabsTrigger>
-
-          {plugins.flatMap(
-            (plugin) =>
-              plugin.settingsTabs?.map((settingsTab, index) => (
-                <TabsTrigger key={`${plugin.id}-${index.toString()}`} value={settingsTab.view} render={<Link href={`${basePaths.settings}/${plugin.viewPaths?.settings?.[settingsTab.view]}`} className="gap-1" />}>{settingsTab.label}</TabsTrigger>
-              )) ?? []
-          )}
-        </TabsList>
-      </div>
-
-      <TabsContent value="account" tabIndex={-1}>
-        <AccountSettings />
-      </TabsContent>
-
-      <TabsContent value="security" tabIndex={-1}>
-        <SecuritySettings />
-      </TabsContent>
-
-      {plugins.flatMap((plugin) =>
-        plugin.settingsTabs?.map((settingsTab, index) => (
-          <TabsContent
-            key={`${plugin.id}-${index.toString()}`}
-            value={settingsTab.view}
-            tabIndex={-1}
-          >
-            <settingsTab.component />
-          </TabsContent>
-        ))
-      )}
-    </Tabs>
-  )
+			<TabsContent value='security' tabIndex={-1}>
+				<SecuritySettings />
+			</TabsContent>
+		</Tabs>
+	)
 }
