@@ -27,14 +27,14 @@ import {
 	Field,
 	FieldDescription,
 	FieldError,
-	FieldGroup,
+	type FieldGroup,
 	FieldLabel,
 } from './field'
-import { Input } from './input'
+import type { Input } from './input'
 import { Popover, PopoverContent, PopoverTrigger } from './popover'
 import * as FormSelect from './select'
-import { Switch } from './switch'
-import { Textarea } from './textarea'
+import type { Switch } from './switch'
+import type { Textarea } from './textarea'
 
 // Props for the configuration of the Form component
 interface CreateFormProps<TFieldValues extends FieldValues = FieldValues>
@@ -365,7 +365,11 @@ function FormMessage({
 		return null
 	}
 
-	return <FieldError data-slot='form-message' id={formMessageId} {...props} />
+	return (
+		<FieldError data-slot='form-message' id={formMessageId} {...props}>
+			{body}
+		</FieldError>
+	)
 }
 
 interface FormSubmitProps<TFieldValues extends FieldValues = FieldValues>
@@ -487,6 +491,7 @@ const useFormField = () => {
 	}
 }
 
+export type { FormComponent, FormComponentStatics, FormProps }
 export {
 	ComboBox,
 	CustomFormContext,
@@ -501,4 +506,3 @@ export {
 	Select,
 	useCustomFormContext,
 }
-export type { FormComponent, FormComponentStatics, FormProps }

@@ -1,105 +1,118 @@
-"use client"
+'use client'
 
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
+
+import { useOrgDialogs } from '@/app/_shell/modules/utils/org-dialogs.atoms'
+import { useOrgOpts } from '@/app/_shell/modules/utils/use-org-opts'
 import {
-  type OrganizationAuthClient,
-  useAuth,
-  useAuthPlugin,
-  useRemoveMember
-} from "@better-auth-ui/react"
-import type { Member, User } from "better-auth/client"
-import { Trash2 } from "lucide-react"
-import { toast } from "sonner"
+	AlertDialog,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogMedia,
+	AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Spinner } from '@/components/ui/spinner'
+import { UserView } from '../user/user-view'
 
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogMedia,
-  AlertDialogTitle
-} from "@/components/ui/alert-dialog"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Spinner } from "@/components/ui/spinner"
-import { organizationPlugin } from "@/lib/auth/organization-plugin"
-import { UserView } from "../user/user-view"
+/**
+ * Confirm-and-remove dialog for a member. The target membership lives in the
+ * shared Jotai `org-dialogs` atom (`removeMembershipId`), set by the member
+ * row's remove button; the dialog reads the member out of the cached members
+ * list to render its preview. Confirm fires the optimistic `members.remove`
+ * mutation (the row is filtered out immediately, rolled back on failure); on
+ * success it toasts and clears the target.
+ */
+export function RemoveMemberDialog() {
+	const { members } = useOrgOpts()
+	const [dialogs, dispatch] = useOrgDialogs()
 
-export type RemoveMemberDialogProps = {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  member: Member & { user: Partial<User> }
-}
+	const close = () => dispatch({ type: 'remove-member', membershipId: null })
 
-export function RemoveMemberDialog({
-  open,
-  onOpenChange,
-  member
-}: RemoveMemberDialogProps) {
-  const { authClient, localization } = useAuth()
-  const { localization: organizationLocalization, roles } =
-    useAuthPlugin(organizationPlugin)
+	const { data: membersData } = useQuery(members.list())
+	const { mutate: removeMember, isPending } = useMutation({
+		...members.remove(),
+		onSuccess: () => {
+			toast.success('Member removed')
+			close()
+		},
+	})
 
-  const { mutate: removeMember, isPending } = useRemoveMember(
-    authClient as OrganizationAuthClient,
-    {
-      onSuccess: () => {
-        onOpenChange(false)
-        toast.success(organizationLocalization.memberRemoved)
-      }
-    }
-  )
+	const member = membersData?.find(
+		(m) => m.membershipId === dialogs.removeMembershipId,
+	)
 
-  return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogMedia className="bg-destructive/10 text-destructive">
-            <Trash2 />
-          </AlertDialogMedia>
+	return (
+		<AlertDialog
+			open={dialogs.removeMembershipId !== null}
+			onOpenChange={(open) => {
+				if (!open) close()
+			}}
+		>
+			<AlertDialogContent>
+				<AlertDialogHeader>
+					<AlertDialogMedia className='bg-destructive/10 text-destructive'>
+						<Trash2 />
+					</AlertDialogMedia>
 
-          <AlertDialogTitle>
-            {organizationLocalization.removeMember}
-          </AlertDialogTitle>
+					<AlertDialogTitle>Remove member</AlertDialogTitle>
 
-          <AlertDialogDescription>
-            {organizationLocalization.removeMemberWarning}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
+					<AlertDialogDescription>
+						This member will lose access to the organization. This action cannot
+						be undone.
+					</AlertDialogDescription>
+				</AlertDialogHeader>
 
-        <Card>
-          <CardContent className="flex flex-row items-center justify-between gap-2">
-            <UserView user={member.user} />
+				{member && (
+					<Card>
+						<CardContent className='flex flex-row items-center justify-between gap-2'>
+							<UserView
+								user={{
+									object: 'user',
+									id: member.userId,
+									email: member.email,
+									emailVerified: member.status === 'active',
+									profilePictureUrl: member.avatarUrl,
+									firstName: member.name,
+									lastName: null,
+									lastSignInAt: null,
+									locale: null,
+									createdAt: '',
+									updatedAt: '',
+									externalId: null,
+									metadata: {},
+								}}
+							/>
 
-            <Badge variant="outline">
-              {roles?.[member.role] ?? member.role}
-            </Badge>
-          </CardContent>
-        </Card>
+							<Badge variant='outline'>
+								{member.roleName ?? member.roleSlug}
+							</Badge>
+						</CardContent>
+					</Card>
+				)}
 
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPending}>
-            {localization.settings.cancel}
-          </AlertDialogCancel>
+				<AlertDialogFooter>
+					<AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
 
-          <Button
-            variant="destructive"
-            disabled={isPending}
-            onClick={() =>
-              removeMember({
-                memberIdOrEmail: member.id,
-                organizationId: member.organizationId
-              })
-            }
-          >
-            {isPending && <Spinner />}
-
-            {organizationLocalization.removeMember}
-          </Button>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  )
+					<Button
+						variant='destructive'
+						disabled={isPending || !member}
+						onClick={() =>
+							member && removeMember({ membershipId: member.membershipId })
+						}
+					>
+						{isPending && <Spinner />}
+						Remove member
+					</Button>
+				</AlertDialogFooter>
+			</AlertDialogContent>
+		</AlertDialog>
+	)
 }

@@ -1,153 +1,137 @@
-"use client"
+'use client'
 
-import {
-  type OrganizationAuthClient,
-  useAuth,
-  useAuthPlugin,
-  useHasPermission,
-  useSession,
-  useUpdateMemberRole
-} from "@better-auth-ui/react"
-import type { Member, Organization, User } from "better-auth/client"
-import { LogOut, Pencil, Trash2 } from "lucide-react"
-import { useState } from "react"
-import { toast } from "sonner"
+import type { MemberRow } from '@server/rpc/contracts/work-os.contract'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { useRouteContext } from '@tanstack/react-router'
+import type { User } from '@workos/authkit-tanstack-react-start'
+import { Pencil, Trash2 } from 'lucide-react'
 
-import { Button } from "@/components/ui/button"
+import { useOrgDialogs } from '@/app/_shell/modules/utils/org-dialogs.atoms'
+import { useOrgOpts } from '@/app/_shell/modules/utils/use-org-opts'
+import { Button } from '@/components/ui/button'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu"
-import { Spinner } from "@/components/ui/spinner"
-import { TableCell, TableRow } from "@/components/ui/table"
-import { organizationPlugin } from "@/lib/auth/organization-plugin"
-import { UserView } from "../user/user-view"
-import { LeaveOrganizationDialog } from "./leave-organization-dialog"
-import { OrganizationMemberRowSkeleton } from "./organization-member-row-skeleton"
-import { RemoveMemberDialog } from "./remove-member-dialog"
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Spinner } from '@/components/ui/spinner'
+import { TableCell, TableRow } from '@/components/ui/table'
+import { UserView } from '../user/user-view'
 
 export type OrganizationMemberRowProps = {
-  member: Member & { user: Partial<User> }
-  isOwner?: boolean
-  organization: Organization
+	member: MemberRow
 }
 
-export function OrganizationMemberRow({
-  member,
-  isOwner,
-  organization
-}: OrganizationMemberRowProps) {
-  const { authClient } = useAuth()
-  const { localization: organizationLocalization, roles } =
-    useAuthPlugin(organizationPlugin)
+/**
+ * Project a `MemberRow` onto the WorkOS `User` shape `UserView`/`UserAvatar`
+ * consume. The contract carries a single `name`; we surface it as `firstName`
+ * (with an empty `lastName`) so the existing display logic renders it. Only the
+ * fields the view reads are meaningful — the rest are inert placeholders.
+ */
+function toUserView(member: MemberRow): User {
+	return {
+		object: 'user',
+		id: member.userId,
+		email: member.email,
+		emailVerified: member.status === 'active',
+		profilePictureUrl: member.avatarUrl,
+		firstName: member.name,
+		lastName: null,
+		lastSignInAt: null,
+		locale: null,
+		createdAt: '',
+		updatedAt: '',
+		externalId: null,
+		metadata: {},
+	}
+}
 
-  const { data: session } = useSession(authClient)
+/**
+ * One member row: avatar + name/email (`UserView`), a role dropdown, and a
+ * remove control. The role/remove controls are admin-only — gated on the
+ * session `role` from route context — and the server enforces the same via the
+ * `admin` middleware. The role change is an optimistic `updateRole` mutation;
+ * remove opens the shared `RemoveMemberDialog` by recording the target
+ * membership in the Jotai `org-dialogs` atom.
+ */
+export function OrganizationMemberRow({ member }: OrganizationMemberRowProps) {
+	const { auth } = useRouteContext({ from: '/_shell' })
+	const { members, roles } = useOrgOpts()
+	const [, dispatch] = useOrgDialogs()
 
-  const { data: hasUpdatePermission, isPending: updatePermissionPending } =
-    useHasPermission(authClient as OrganizationAuthClient, {
-      permissions: { member: ["update"] }
-    })
+	const { data: roleOptions } = useQuery(roles.list())
+	const { mutate: updateRole, isPending: isUpdatingRole } = useMutation(
+		members.updateRole(),
+	)
 
-  const { data: hasDeletePermission, isPending: deletePermissionPending } =
-    useHasPermission(authClient as OrganizationAuthClient, {
-      permissions: { member: ["delete"] }
-    })
+	const isAdmin = auth.role === 'admin'
+	const isCurrentUser = auth.user?.id === member.userId
+	const roleLabel = member.roleName ?? member.roleSlug
 
-  const isPending = updatePermissionPending || deletePermissionPending
+	return (
+		<TableRow>
+			<TableCell>
+				<UserView user={toUserView(member)} />
+			</TableCell>
 
-  const { mutate: updateMemberRole, isPending: isUpdatingRole } =
-    useUpdateMemberRole(authClient as OrganizationAuthClient, {
-      onSuccess: () => toast.success(organizationLocalization.memberRoleUpdated)
-    })
+			<TableCell>{roleLabel}</TableCell>
 
-  const roleLabel = roles?.[member.role] ?? member.role
+			<TableCell>
+				<div className='flex items-center justify-end gap-1'>
+					{isAdmin && (
+						<DropdownMenu>
+							<DropdownMenuTrigger
+								render={
+									<Button
+										size='icon'
+										variant='ghost'
+										className='size-8'
+										disabled={isUpdatingRole}
+										aria-label='Change member role'
+									/>
+								}
+							>
+								{isUpdatingRole ? <Spinner /> : <Pencil />}
+							</DropdownMenuTrigger>
 
-  const assignableRoles = Object.entries(roles).filter(
-    ([key]) => isOwner || key !== "owner"
-  )
+							<DropdownMenuContent align='end'>
+								{roleOptions?.map((role) => (
+									<DropdownMenuItem
+										key={role.id}
+										disabled={member.roleSlug === role.slug}
+										onSelect={() =>
+											updateRole({
+												membershipId: member.membershipId,
+												roleSlug: role.slug,
+											})
+										}
+									>
+										{role.name}
+									</DropdownMenuItem>
+								))}
+							</DropdownMenuContent>
+						</DropdownMenu>
+					)}
 
-  const isCurrentUser = session?.user.id === member.userId
-
-  const [removeOpen, setRemoveOpen] = useState(false)
-  const [leaveOpen, setLeaveOpen] = useState(false)
-
-  if (isPending) {
-    return <OrganizationMemberRowSkeleton />
-  }
-
-  return (
-    <TableRow>
-      <TableCell>
-        <UserView user={member.user} />
-      </TableCell>
-
-      <TableCell>{roleLabel}</TableCell>
-
-      <TableCell>
-        <div className="flex items-center justify-end gap-1">
-          {hasUpdatePermission?.success && (
-            <DropdownMenu>
-              <DropdownMenuTrigger render={<Button size="icon" variant="ghost" className="size-8" disabled={isUpdatingRole} aria-label={organizationLocalization.changeMemberRole} />}>{isUpdatingRole ? <Spinner /> : <Pencil />}</DropdownMenuTrigger>
-
-              <DropdownMenuContent align="end">
-                {assignableRoles.map(([role, label]) => (
-                  <DropdownMenuItem
-                    key={role}
-                    disabled={member.role === role}
-                    onSelect={() =>
-                      updateMemberRole({ memberId: member.id, role })
-                    }
-                  >
-                    {label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-
-          {isCurrentUser ? (
-            <Button
-              size="icon"
-              variant="outline"
-              className="size-8 text-destructive"
-              aria-label={organizationLocalization.leaveOrganization}
-              onClick={() => setLeaveOpen(true)}
-            >
-              <LogOut />
-            </Button>
-          ) : (
-            hasDeletePermission?.success && (
-              <Button
-                size="icon"
-                variant="outline"
-                className="size-8 text-destructive"
-                aria-label={organizationLocalization.removeMember}
-                onClick={() => setRemoveOpen(true)}
-              >
-                <Trash2 />
-              </Button>
-            )
-          )}
-        </div>
-
-        {isCurrentUser && organization ? (
-          <LeaveOrganizationDialog
-            open={leaveOpen}
-            onOpenChange={setLeaveOpen}
-            organization={organization}
-          />
-        ) : (
-          hasDeletePermission?.success && (
-            <RemoveMemberDialog
-              open={removeOpen}
-              onOpenChange={setRemoveOpen}
-              member={member}
-            />
-          )
-        )}
-      </TableCell>
-    </TableRow>
-  )
+					{isAdmin && !isCurrentUser && (
+						<Button
+							size='icon'
+							variant='outline'
+							className='size-8 text-destructive'
+							aria-label='Remove member'
+							onClick={() =>
+								dispatch({
+									type: 'remove-member',
+									membershipId: member.membershipId,
+								})
+							}
+						>
+							<Trash2 />
+						</Button>
+					)}
+				</div>
+			</TableCell>
+		</TableRow>
+	)
 }

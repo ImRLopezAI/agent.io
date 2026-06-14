@@ -1,186 +1,166 @@
-"use client"
+'use client'
 
+import { zodResolver } from '@hookform/resolvers/zod'
+import { inviteMemberInput } from '@server/rpc/contracts/work-os.contract'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { UserPlus } from 'lucide-react'
+import type { z } from 'zod'
+import { mapOrpcError } from '@/app/_shell/modules/utils/map-orpc-error'
+import { useOrgDialogs } from '@/app/_shell/modules/utils/org-dialogs.atoms'
+import { useOrgOpts } from '@/app/_shell/modules/utils/use-org-opts'
 import {
-  type OrganizationAuthClient,
-  useAuth,
-  useAuthPlugin,
-  useInviteMember
-} from "@better-auth-ui/react"
-import { UserPlus } from "lucide-react"
-import { type SyntheticEvent, useEffect, useState } from "react"
-import { toast } from "sonner"
+	AlertDialog,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogMedia,
+	AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { useCreateForm } from '@/components/ui/form'
 
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogMedia,
-  AlertDialogTitle
-} from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
-import { Field, FieldError } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select"
-import { Spinner } from "@/components/ui/spinner"
-import { organizationPlugin } from "@/lib/auth/organization-plugin"
-
-/** Props for the `InviteMemberDialog` component. */
-export type InviteMemberDialogProps = {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}
-
-const pickDefaultRole = (keys: string[]) =>
-  keys.includes("member") ? "member" : (keys.at(-1) ?? "")
+/** Invite-form values — derived from the contract input schema (no drift). */
+type InviteMemberInput = z.infer<typeof inviteMemberInput>
 
 /**
- * Render a dialog for inviting a member to the organization.
+ * Props for `InviteMemberDialog`.
+ *
+ * Open-state is owned by the shared Jotai `org-dialogs` atom, so the dialog
+ * needs no props. The optional `open`/`onOpenChange` are an accepted-but-ignored
+ * compatibility shim for the not-yet-migrated Unit 6 call site
+ * (`organization-invitations.tsx`); remove them when that unit lands.
  */
-export function InviteMemberDialog({
-  open,
-  onOpenChange
-}: InviteMemberDialogProps) {
-  const { authClient, localization } = useAuth()
-  const { localization: organizationLocalization, roles } =
-    useAuthPlugin(organizationPlugin)
+export type InviteMemberDialogProps = {
+	open?: boolean
+	onOpenChange?: (open: boolean) => void
+}
 
-  const [role, setRole] = useState(() => pickDefaultRole(Object.keys(roles)))
-  const [emailError, setEmailError] = useState<string>()
+/**
+ * The canonical `useCreateForm` reference slice (Unit 5).
+ *
+ * Email + role-select invite form. The zod resolver reuses the contract's
+ * `inviteMemberInput` schema verbatim (single source of truth, so client
+ * validation can never drift from the server). Submit fires the optimistic
+ * `invitations.send` mutation; a duplicate is surfaced as a server `CONFLICT`
+ * which `mapOrpcError(e, form)` routes onto the `email` field. The dialog's
+ * open-state lives in the shared Jotai `org-dialogs` atom (decision: no local
+ * `useState` open flags).
+ *
+ * Unit 6/7 forms should mirror this shape: `useCreateForm(() => ({ resolver,
+ * defaultValues, onSubmit }), [deps])` → render-prop `<Form>{() => (...)}</Form>`
+ * with `Form.Field` render callbacks wiring the field into `Form.*` controls.
+ */
+export function InviteMemberDialog(_props: InviteMemberDialogProps = {}) {
+	const { invitations, roles } = useOrgOpts()
+	const [dialogs, dispatch] = useOrgDialogs()
 
-  useEffect(() => {
-    setRole((current) => {
-      const keys = Object.keys(roles)
-      return keys.includes(current) ? current : pickDefaultRole(keys)
-    })
-  }, [roles])
+	const { data: roleOptions } = useQuery(roles.list())
+	const send = useMutation(invitations.send())
 
-  useEffect(() => {
-    if (!open) setEmailError(undefined)
-  }, [open])
+	const close = () => dispatch({ type: 'close', dialog: 'invite' })
 
-  const { mutate: inviteMember, isPending: isInviting } = useInviteMember(
-    authClient as OrganizationAuthClient,
-    {
-      onSuccess: () => {
-        onOpenChange(false)
-        toast.success(organizationLocalization.inviteMemberSuccess)
-      }
-    }
-  )
+	const [Form] = useCreateForm<InviteMemberInput>(
+		() => ({
+			resolver: zodResolver(inviteMemberInput),
+			defaultValues: { email: '', roleSlug: 'member' },
+			onSubmit: async (values, f) => {
+				try {
+					await send.mutateAsync(values)
+					close()
+				} catch (e) {
+					mapOrpcError(e, f)
+				}
+			},
+		}),
+		[send.mutateAsync],
+	)
 
-  const isRoleValid = Object.keys(roles).includes(role)
+	return (
+		<AlertDialog
+			open={dialogs.inviteOpen}
+			onOpenChange={(open) =>
+				dispatch({ type: open ? 'open' : 'close', dialog: 'invite' })
+			}
+		>
+			<AlertDialogContent>
+				<Form>
+					{() => (
+						<div className='flex flex-col gap-6'>
+							<AlertDialogHeader>
+								<AlertDialogMedia>
+									<UserPlus />
+								</AlertDialogMedia>
 
-  const handleSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
-    e.preventDefault()
+								<AlertDialogTitle>Invite member</AlertDialogTitle>
 
-    if (!isRoleValid) return
+								<AlertDialogDescription>
+									Send an invitation to join this organization. They will get an
+									email with a link to accept.
+								</AlertDialogDescription>
+							</AlertDialogHeader>
 
-    const formData = new FormData(e.target as HTMLFormElement)
-    const email = formData.get("email") as string
+							<div className='flex flex-col gap-4'>
+								<Form.Field
+									name='email'
+									render={({ field }) => (
+										<Form.Item>
+											<Form.Label>Email</Form.Label>
 
-    inviteMember({
-      email: email.trim(),
-      role: role as Parameters<typeof inviteMember>[0]["role"]
-    })
-  }
+											<Form.Control
+												render={
+													<Form.Input
+														type='email'
+														autoFocus
+														placeholder='member@example.com'
+														{...field}
+													/>
+												}
+											/>
 
-  return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          <AlertDialogHeader>
-            <AlertDialogMedia>
-              <UserPlus />
-            </AlertDialogMedia>
+											<Form.Message />
+										</Form.Item>
+									)}
+								/>
 
-            <AlertDialogTitle>
-              {organizationLocalization.inviteMember}
-            </AlertDialogTitle>
+								<Form.Field
+									name='roleSlug'
+									render={({ field }) => (
+										<Form.Item>
+											<Form.Label>Role</Form.Label>
 
-            <AlertDialogDescription>
-              {organizationLocalization.inviteMemberDescription}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
+											<Form.Select
+												value={field.value}
+												onValueChange={field.onChange}
+											>
+												<Form.Select.Trigger className='w-full'>
+													<Form.Select.Value />
+												</Form.Select.Trigger>
 
-          <div className="flex flex-col gap-4">
-            <Field data-invalid={!!emailError}>
-              <Label htmlFor="invite-member-email">
-                {localization.auth.email}
-              </Label>
+												<Form.Select.Content>
+													{roleOptions?.map((role) => (
+														<Form.Select.Item key={role.id} value={role.slug}>
+															{role.name}
+														</Form.Select.Item>
+													))}
+												</Form.Select.Content>
+											</Form.Select>
 
-              <Input
-                id="invite-member-email"
-                name="email"
-                type="email"
-                autoFocus
-                required
-                placeholder={localization.auth.email}
-                disabled={isInviting}
-                onChange={() => setEmailError(undefined)}
-                onInvalid={(e) => {
-                  e.preventDefault()
-                  const el = e.target as HTMLInputElement
-                  const msg = el.validity.valueMissing
-                    ? localization.auth.fieldRequired
-                    : localization.auth.invalidEmail
-                  setEmailError(msg)
-                }}
-                aria-invalid={!!emailError}
-              />
+											<Form.Message />
+										</Form.Item>
+									)}
+								/>
+							</div>
 
-              <FieldError>{emailError}</FieldError>
-            </Field>
+							<AlertDialogFooter>
+								<AlertDialogCancel type='button'>Cancel</AlertDialogCancel>
 
-            <Field>
-              <Label htmlFor="invite-member-role">
-                {organizationLocalization.role}
-              </Label>
-
-              <Select
-                value={role}
-                onValueChange={setRole}
-                disabled={isInviting}
-              >
-                <SelectTrigger id="invite-member-role" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-
-                <SelectContent>
-                  {Object.entries(roles).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <FieldError />
-            </Field>
-          </div>
-
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isInviting}>
-              {localization.settings.cancel}
-            </AlertDialogCancel>
-
-            <Button type="submit" disabled={isInviting || !isRoleValid}>
-              {isInviting && <Spinner />}
-
-              {organizationLocalization.inviteMember}
-            </Button>
-          </AlertDialogFooter>
-        </form>
-      </AlertDialogContent>
-    </AlertDialog>
-  )
+								<Form.Submit>Invite</Form.Submit>
+							</AlertDialogFooter>
+						</div>
+					)}
+				</Form>
+			</AlertDialogContent>
+		</AlertDialog>
+	)
 }

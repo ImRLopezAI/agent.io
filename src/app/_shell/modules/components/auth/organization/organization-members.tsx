@@ -1,301 +1,286 @@
-"use client"
+'use client'
 
+import { cn } from '@lib/utils'
+import type { MemberRow } from '@server/rpc/contracts/work-os.contract'
+import { useQuery } from '@tanstack/react-query'
+import { useRouteContext } from '@tanstack/react-router'
+import { ChevronUp, Filter, Search, X } from 'lucide-react'
+import { type ComponentProps, type ReactNode, useMemo, useState } from 'react'
+import { useOrgDialogs } from '@/app/_shell/modules/utils/org-dialogs.atoms'
+import { useOrgOpts } from '@/app/_shell/modules/utils/use-org-opts'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import {
-  type OrganizationAuthClient,
-  useActiveOrganization,
-  useAuth,
-  useAuthPlugin,
-  useHasPermission,
-  useListOrganizationMembers,
-  useSession
-} from "@better-auth-ui/react"
-import type { Member } from "better-auth/client"
-import { ChevronUp, Filter, Search, X } from "lucide-react"
-import { type ComponentProps, type ReactNode, useMemo, useState } from "react"
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuRadioGroup,
+	DropdownMenuRadioItem,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+	InputGroup,
+	InputGroupAddon,
+	InputGroupInput,
+} from '@/components/ui/input-group'
+import {
+	Table,
+	TableBody,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from '@/components/ui/table'
+import { InviteMemberDialog } from './invite-member-dialog'
+import { OrganizationMemberRow } from './organization-member-row'
+import { OrganizationMemberRowSkeleton } from './organization-member-row-skeleton'
+import { RemoveMemberDialog } from './remove-member-dialog'
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu"
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput
-} from "@/components/ui/input-group"
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow
-} from "@/components/ui/table"
-import { organizationPlugin } from "@/lib/auth/organization-plugin"
-import { cn } from "@lib/utils"
-import { InviteMemberDialog } from "./invite-member-dialog"
-import { OrganizationMemberRow } from "./organization-member-row"
-import { OrganizationMemberRowSkeleton } from "./organization-member-row-skeleton"
-
-type SortDirection = "ascending" | "descending"
+type SortDirection = 'ascending' | 'descending'
 
 type SortDescriptor = {
-  column: string
-  direction: SortDirection
+	column: string
+	direction: SortDirection
 }
 
 /** Props for the `OrganizationMembers` component. */
 export type OrganizationMembersProps = {
-  className?: string
+	className?: string
+}
+
+/** Display label for a member, used for searching and sorting. */
+function memberLabel(member: MemberRow): string {
+	return member.name ?? member.email
 }
 
 /**
  * Organization members table with title, invite control, and per-row actions.
+ *
+ * Rows are the enriched `MemberRow` from `members.list()`. Search, role filter,
+ * and sort are purely local UI state (`useState`) and operate on the fetched
+ * list; only the invite dialog's open-state is shared (Jotai `org-dialogs`).
+ * Admin-only controls (the Invite button) are gated on the session `role` from
+ * route context — the server enforces the same via the `admin` middleware.
  */
 export function OrganizationMembers({
-  className,
-  ...props
-}: OrganizationMembersProps & ComponentProps<"div">) {
-  const { authClient } = useAuth()
-  const { localization: organizationLocalization, roles } =
-    useAuthPlugin(organizationPlugin)
+	className,
+	...props
+}: OrganizationMembersProps & ComponentProps<'div'>) {
+	const { auth } = useRouteContext({ from: '/_shell' })
+	const { members, roles } = useOrgOpts()
+	const [, dispatch] = useOrgDialogs()
 
-  const { data: session } = useSession(authClient)
-  const { data: activeOrganization, isPending: activeOrganizationPending } =
-    useActiveOrganization(authClient as OrganizationAuthClient)
-  const { data: membersData, isPending: membersPending } =
-    useListOrganizationMembers(authClient as OrganizationAuthClient)
+	const { data: membersData, isPending } = useQuery(members.list())
+	const { data: roleOptions } = useQuery(roles.list())
 
-  const { isPending: updatePermissionPending } = useHasPermission(
-    authClient as OrganizationAuthClient,
-    {
-      permissions: { member: ["update"] }
-    }
-  )
-  const { isPending: deletePermissionPending } = useHasPermission(
-    authClient as OrganizationAuthClient,
-    {
-      permissions: { member: ["delete"] }
-    }
-  )
+	const isAdmin = auth.role === 'admin'
 
-  const isPending =
-    activeOrganizationPending ||
-    membersPending ||
-    updatePermissionPending ||
-    deletePermissionPending
+	const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>()
+	const [roleFilter, setRoleFilter] = useState('all')
+	const [search, setSearch] = useState('')
 
-  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>()
-  const [roleFilter, setRoleFilter] = useState("all")
-  const [search, setSearch] = useState("")
+	const roleLabels = useMemo(() => {
+		const map = new Map<string, string>()
+		for (const role of roleOptions ?? []) map.set(role.slug, role.name)
+		return map
+	}, [roleOptions])
 
-  const filteredMembers = useMemo(() => {
-    return membersData?.members.filter(
-      (member) =>
-        (roleFilter === "all" || member.role === roleFilter) &&
-        (member.user.name.toLowerCase().includes(search.toLowerCase()) ||
-          member.user.email.toLowerCase().includes(search.toLowerCase()))
-    )
-  }, [search, membersData?.members, roleFilter])
+	const filteredMembers = useMemo(() => {
+		const term = search.toLowerCase()
+		return membersData?.filter(
+			(member) =>
+				(roleFilter === 'all' || member.roleSlug === roleFilter) &&
+				memberLabel(member).toLowerCase().includes(term),
+		)
+	}, [search, membersData, roleFilter])
 
-  const sortedMembers = useMemo(() => {
-    if (!sortDescriptor) return filteredMembers
-    if (!filteredMembers) return filteredMembers
+	const sortedMembers = useMemo(() => {
+		if (!sortDescriptor || !filteredMembers) return filteredMembers
 
-    return [...filteredMembers].sort((a, b) => {
-      const col = sortDescriptor.column as keyof Member | "user"
-      const first =
-        col === "user" ? a.user.name || a.user.email : String(a[col])
-      const second =
-        col === "user" ? b.user.name || b.user.email : String(b[col])
+		return [...filteredMembers].sort((a, b) => {
+			const first =
+				sortDescriptor.column === 'role'
+					? (a.roleName ?? a.roleSlug)
+					: memberLabel(a)
+			const second =
+				sortDescriptor.column === 'role'
+					? (b.roleName ?? b.roleSlug)
+					: memberLabel(b)
 
-      let cmp = first.localeCompare(second)
-      if (sortDescriptor.direction === "descending") {
-        cmp *= -1
-      }
+			let cmp = first.localeCompare(second)
+			if (sortDescriptor.direction === 'descending') cmp *= -1
+			return cmp
+		})
+	}, [sortDescriptor, filteredMembers])
 
-      return cmp
-    })
-  }, [sortDescriptor, filteredMembers])
+	function toggleSort(column: string) {
+		setSortDescriptor((current) => {
+			if (current?.column !== column) {
+				return { column, direction: 'ascending' }
+			}
+			if (current.direction === 'ascending') {
+				return { column, direction: 'descending' }
+			}
+			return undefined
+		})
+	}
 
-  const [inviteOpen, setInviteOpen] = useState(false)
+	return (
+		<div className={cn('flex flex-col gap-3', className)} {...props}>
+			<div className='flex items-end justify-between gap-3'>
+				<h3 className='truncate font-semibold text-sm'>Members</h3>
 
-  const isOwner = membersData?.members.some(
-    (member) => member.role === "owner" && member.userId === session?.user.id
-  )
+				{isAdmin && (
+					<Button
+						className='shrink-0'
+						size='sm'
+						disabled={isPending}
+						onClick={() => dispatch({ type: 'open', dialog: 'invite' })}
+					>
+						Invite member
+					</Button>
+				)}
+			</div>
 
-  function toggleSort(column: string) {
-    setSortDescriptor((current) => {
-      if (current?.column !== column) {
-        return { column, direction: "ascending" }
-      }
-      if (current.direction === "ascending") {
-        return { column, direction: "descending" }
-      }
-      return undefined
-    })
-  }
+			<div className='flex flex-col gap-4'>
+				<div className='flex items-center gap-3'>
+					<InputGroup className='min-w-0 sm:w-[220px]'>
+						<InputGroupInput
+							type='search'
+							value={search}
+							onChange={(e) => setSearch(e.target.value)}
+							aria-label='Search'
+							placeholder='Search'
+							disabled={isPending}
+						/>
 
-  return (
-    <div className={cn("flex flex-col gap-3", className)} {...props}>
-      <div className="flex items-end justify-between gap-3">
-        <h3 className="truncate text-sm font-semibold">
-          {organizationLocalization.members}
-        </h3>
+						<InputGroupAddon>
+							<Search className='text-muted-foreground' />
+						</InputGroupAddon>
+					</InputGroup>
 
-        <Button
-          className="shrink-0"
-          size="sm"
-          disabled={isPending}
-          onClick={() => setInviteOpen(true)}
-        >
-          {organizationLocalization.inviteMember}
-        </Button>
-      </div>
+					<DropdownMenu>
+						<DropdownMenuTrigger
+							render={
+								<Button size='sm' variant='outline' disabled={isPending} />
+							}
+						>
+							<Filter />
+							Role
+						</DropdownMenuTrigger>
 
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-3">
-          <InputGroup className="min-w-0 sm:w-[220px]">
-            <InputGroupInput
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              aria-label={organizationLocalization.search}
-              placeholder={organizationLocalization.search}
-              disabled={isPending}
-            />
+						<DropdownMenuContent align='start'>
+							<DropdownMenuRadioGroup
+								value={roleFilter}
+								onValueChange={setRoleFilter}
+							>
+								<DropdownMenuRadioItem value='all'>All</DropdownMenuRadioItem>
 
-            <InputGroupAddon>
-              <Search className="text-muted-foreground" />
-            </InputGroupAddon>
-          </InputGroup>
+								{roleOptions?.map((role) => (
+									<DropdownMenuRadioItem key={role.id} value={role.slug}>
+										{role.name}
+									</DropdownMenuRadioItem>
+								))}
+							</DropdownMenuRadioGroup>
+						</DropdownMenuContent>
+					</DropdownMenu>
+				</div>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger render={<Button size="sm" variant="outline" disabled={isPending} />}><Filter />{organizationLocalization.role}</DropdownMenuTrigger>
+				{roleFilter !== 'all' && (
+					<Badge variant='secondary' className='w-fit gap-1'>
+						Role:{' '}
+						<span className='capitalize'>
+							{roleLabels.get(roleFilter) ?? roleFilter}
+						</span>
+						<button
+							type='button'
+							aria-label='Clear'
+							className='inline-flex cursor-pointer items-center text-muted-foreground hover:text-foreground'
+							onClick={() => setRoleFilter('all')}
+						>
+							<X className='size-3' />
+						</button>
+					</Badge>
+				)}
 
-            <DropdownMenuContent align="start">
-              <DropdownMenuRadioGroup
-                value={roleFilter}
-                onValueChange={setRoleFilter}
-              >
-                <DropdownMenuRadioItem value="all">
-                  {organizationLocalization.all}
-                </DropdownMenuRadioItem>
+				<Card className='p-0'>
+					<Table aria-label='Members'>
+						<TableHeader>
+							<TableRow>
+								<SortableTableHead
+									sortDirection={
+										sortDescriptor?.column === 'user'
+											? sortDescriptor.direction
+											: undefined
+									}
+									onClick={() => toggleSort('user')}
+								>
+									Member
+								</SortableTableHead>
 
-                {Object.entries(roles).map(([role, label]) => (
-                  <DropdownMenuRadioItem key={role} value={role}>
-                    {label}
-                  </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+								<SortableTableHead
+									sortDirection={
+										sortDescriptor?.column === 'role'
+											? sortDescriptor.direction
+											: undefined
+									}
+									onClick={() => toggleSort('role')}
+								>
+									Role
+								</SortableTableHead>
 
-        {roleFilter !== "all" && (
-          <Badge variant="secondary" className="w-fit gap-1">
-            {organizationLocalization.role}:{" "}
-            <span className="capitalize">
-              {roles?.[roleFilter] ?? roleFilter}
-            </span>
-            <button
-              type="button"
-              aria-label={organizationLocalization.clear}
-              className="inline-flex cursor-pointer items-center text-muted-foreground hover:text-foreground"
-              onClick={() => setRoleFilter("all")}
-            >
-              <X className="size-3" />
-            </button>
-          </Badge>
-        )}
+								<TableHead className='text-end'>Actions</TableHead>
+							</TableRow>
+						</TableHeader>
 
-        <Card className="p-0">
-          <Table aria-label={organizationLocalization.members}>
-            <TableHeader>
-              <TableRow>
-                <SortableTableHead
-                  sortDirection={
-                    sortDescriptor?.column === "user"
-                      ? sortDescriptor.direction
-                      : undefined
-                  }
-                  onClick={() => toggleSort("user")}
-                >
-                  {organizationLocalization.member}
-                </SortableTableHead>
+						<TableBody>
+							{isPending ? (
+								<OrganizationMemberRowSkeleton />
+							) : (
+								sortedMembers?.map((member) => (
+									<OrganizationMemberRow
+										key={member.membershipId}
+										member={member}
+									/>
+								))
+							)}
+						</TableBody>
+					</Table>
+				</Card>
+			</div>
 
-                <SortableTableHead
-                  sortDirection={
-                    sortDescriptor?.column === "role"
-                      ? sortDescriptor.direction
-                      : undefined
-                  }
-                  onClick={() => toggleSort("role")}
-                >
-                  {organizationLocalization.role}
-                </SortableTableHead>
-
-                <TableHead className="text-end">
-                  {organizationLocalization.actions}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-
-            <TableBody>
-              {isPending ? (
-                <OrganizationMemberRowSkeleton />
-              ) : (
-                !!activeOrganization &&
-                sortedMembers?.map((member) => (
-                  <OrganizationMemberRow
-                    key={member.id}
-                    member={member}
-                    isOwner={isOwner}
-                    organization={activeOrganization}
-                  />
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </Card>
-      </div>
-
-      <InviteMemberDialog open={inviteOpen} onOpenChange={setInviteOpen} />
-    </div>
-  )
+			<InviteMemberDialog />
+			<RemoveMemberDialog />
+		</div>
+	)
 }
 
 function SortableTableHead({
-  children,
-  sortDirection,
-  onClick
+	children,
+	sortDirection,
+	onClick,
 }: {
-  children: ReactNode
-  sortDirection?: SortDirection
-  onClick: () => void
+	children: ReactNode
+	sortDirection?: SortDirection
+	onClick: () => void
 }) {
-  return (
-    <TableHead aria-sort={sortDirection ?? "none"}>
-      <button
-        type="button"
-        onClick={onClick}
-        className="flex w-full items-center gap-2 text-left font-medium"
-      >
-        {children}
+	return (
+		<TableHead aria-sort={sortDirection ?? 'none'}>
+			<button
+				type='button'
+				onClick={onClick}
+				className='flex w-full items-center gap-2 text-left font-medium'
+			>
+				{children}
 
-        {!!sortDirection && (
-          <ChevronUp
-            className={cn(
-              "size-3 transition-transform duration-100 ease-out",
-              sortDirection === "descending" ? "rotate-180" : ""
-            )}
-          />
-        )}
-      </button>
-    </TableHead>
-  )
+				{!!sortDirection && (
+					<ChevronUp
+						className={cn(
+							'size-3 transition-transform duration-100 ease-out',
+							sortDirection === 'descending' ? 'rotate-180' : '',
+						)}
+					/>
+				)}
+			</button>
+		</TableHead>
+	)
 }
