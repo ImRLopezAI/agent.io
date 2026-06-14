@@ -69,6 +69,21 @@ export const workOsRouter = os.workOs.router({
 			)
 			return { ok: true }
 		}),
+		leave: org.workOs.organization.leave.handler(
+			async ({ context, errors }) => {
+				const { data } =
+					await context.workOs.userManagement.listOrganizationMemberships({
+						organizationId: context.organizationId,
+						userId: context.user.id,
+					})
+				const membership = data[0]
+				if (!membership) throw errors.NOT_FOUND()
+				await context.workOs.userManagement.deleteOrganizationMembership(
+					membership.id,
+				)
+				return { ok: true }
+			},
+		),
 	},
 	members: {
 		list: org.workOs.members.list.handler(async ({ context }) => {

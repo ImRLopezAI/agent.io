@@ -117,6 +117,14 @@ export const workOsContract = {
 				summary: 'Delete the active organization',
 			})
 			.output(z.object({ ok: z.boolean() })),
+		leave: base
+			.route({
+				method: 'POST',
+				path: '/workos/org/leave',
+				tags: ['WorkOS', 'Organization'],
+				summary: 'Leave the active organization (delete own membership)',
+			})
+			.output(z.object({ ok: z.boolean() })),
 	},
 	members: {
 		list: base
