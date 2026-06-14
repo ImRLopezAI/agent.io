@@ -25,21 +25,21 @@ const rpcHandler = new OpenAPIHandler(router, {
 		new BatchHandlerPlugin(),
 		new CompressionPlugin(),
 		new OpenAPIReferencePlugin({
-			docsTitle: 'Sunday Operations API Docs',
+			docsTitle: 'Operations API Docs',
 			schemaConverters: [new ZodToJsonSchemaConverter()],
 			specGenerateOptions: {
 				info: {
-					title: 'Sunday Operations API',
+					title: 'Operations API',
 					version: '1.0.0',
 					description:
-						'API documentation for the Clerk-backed Sunday RPC surface that powers canonical department workflows.',
+						'API documentation for the WorkOS-backed RPC surface that powers organization and member workflows.',
 				},
 				components: {
 					securitySchemes: {
 						bearerAuth: {
 							type: 'http',
 							scheme: 'bearer',
-							description: 'Bearer token authentication for Sunday operators',
+							description: 'Bearer token authentication for operators',
 						},
 					},
 				},
@@ -48,4 +48,4 @@ const rpcHandler = new OpenAPIHandler(router, {
 	],
 })
 
-export { createRpcContext, rpcHandler, router }
+export { createRpcContext, router, rpcHandler }

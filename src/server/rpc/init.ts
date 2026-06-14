@@ -1,9 +1,9 @@
 import { implement } from '@orpc/server'
 import type { ResponseHeadersPluginContext } from '@orpc/server/plugins'
-import { contract } from './contracts'
 import { cvx } from '@server/convex/service'
 import { getAuth } from '@workos/authkit-tanstack-react-start'
 import { workOs } from '@/lib/work-os'
+import { contract } from './contracts'
 export type RpcContext = ResponseHeadersPluginContext & {
 	headers: Headers
 }
@@ -64,4 +64,15 @@ export const org = auth.use(async ({ context, next, errors }) => {
 	const organizationId = context.session.organizationId
 	if (!organizationId) throw errors.NO_ACTIVE_ORGANIZATION()
 	return next({ context: { ...context, organizationId } })
+})
+
+/**
+ * Requires an admin acting on an active organization. Layers the admin role
+ * gate onto `org`, so handlers get a guaranteed `organizationId` for
+ * org-management mutations (update/delete org, change/remove member, invite).
+ */
+export const adminOrg = org.use(async ({ context, next, errors }) => {
+	const role = context.session.role ?? ''
+	if (role !== 'admin') throw errors.NO_ADMIN_ROLE()
+	return next({})
 })
