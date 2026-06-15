@@ -72,6 +72,18 @@ export async function* streamToAgui(
 	const { runId, threadId, model } = ctx
 	let runStarted = false
 	let finished = false
+	// Map provider stream part ids → unique AG-UI message ids for this run.
+	// Many models reuse the same part id every turn (e.g. "0"); the client
+	// StreamProcessor dedupes by messageId and would overwrite an earlier
+	// assistant turn in place, leaving the new user message below the reply.
+	const messageIdsByPartId = new Map<string, string>()
+	const resolveMessageId = (partId: string): string => {
+		const existing = messageIdsByPartId.get(partId)
+		if (existing) return existing
+		const next = ctx.generateId()
+		messageIdsByPartId.set(partId, next)
+		return next
+	}
 	// tool-call ids that arrived via streamed `tool-input-*` parts, so a
 	// terminal `tool-call` part for the same id is not re-emitted as START/END.
 	const streamedToolIds = new Set<string>()
@@ -106,7 +118,7 @@ export async function* streamToAgui(
 					}
 					yield {
 						type: EventType.TEXT_MESSAGE_START,
-						messageId: part.id,
+						messageId: resolveMessageId(part.id),
 						role: 'assistant',
 					} satisfies StreamChunk
 					break
@@ -114,7 +126,7 @@ export async function* streamToAgui(
 				case 'text-delta': {
 					yield {
 						type: EventType.TEXT_MESSAGE_CONTENT,
-						messageId: part.id,
+						messageId: resolveMessageId(part.id),
 						delta: part.delta,
 					} satisfies StreamChunk
 					break
@@ -122,7 +134,7 @@ export async function* streamToAgui(
 				case 'text-end': {
 					yield {
 						type: EventType.TEXT_MESSAGE_END,
-						messageId: part.id,
+						messageId: resolveMessageId(part.id),
 					} satisfies StreamChunk
 					break
 				}
@@ -133,7 +145,7 @@ export async function* streamToAgui(
 					}
 					yield {
 						type: EventType.REASONING_MESSAGE_START,
-						messageId: part.id,
+						messageId: resolveMessageId(part.id),
 						role: 'reasoning',
 					} satisfies StreamChunk
 					break
@@ -141,7 +153,7 @@ export async function* streamToAgui(
 				case 'reasoning-delta': {
 					yield {
 						type: EventType.REASONING_MESSAGE_CONTENT,
-						messageId: part.id,
+						messageId: resolveMessageId(part.id),
 						delta: part.delta,
 					} satisfies StreamChunk
 					break
@@ -149,7 +161,7 @@ export async function* streamToAgui(
 				case 'reasoning-end': {
 					yield {
 						type: EventType.REASONING_MESSAGE_END,
-						messageId: part.id,
+						messageId: resolveMessageId(part.id),
 					} satisfies StreamChunk
 					break
 				}

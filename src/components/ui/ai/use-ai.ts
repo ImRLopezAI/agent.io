@@ -60,14 +60,14 @@ export function useAi({
 	// `addToolApprovalResponse`, so no `sendAutomaticallyWhen` equivalent is
 	// needed.
 	const body = React.useMemo(() => ({ model, webSearch }), [model, webSearch])
-	const { sendMessage, ...ai } = useChat({ ...chat, body })
+	const { sendMessage, isLoading, ...ai } = useChat({ ...chat, body })
 
 	const reset = React.useCallback(() => {
 		dispatch({ type: 'reset' })
 	}, [dispatch])
 
 	const handleSubmit = React.useCallback(
-		(message: PromptInputMessage) => {
+		async (message: PromptInputMessage) => {
 			const hasText = Boolean(message.text)
 			const hasAttachments = Boolean(message.files?.length)
 
@@ -76,13 +76,19 @@ export function useAi({
 				return
 			}
 
+			if (isLoading) {
+				toast.error('Wait for the current response to finish.')
+				return
+			}
+
 			// Text path migrated. Attachment file -> ContentPart mapping is a
 			// follow-up (needs the upload/source format); body (model/webSearch)
 			// rides the useChat `body` option.
-			sendMessage(message.text || 'Sent with attachments')
+			await sendMessage(message.text || 'Sent with attachments')
+			input.clear()
 			reset()
 		},
-		[sendMessage, reset],
+		[sendMessage, reset, isLoading, input],
 	)
 
 	const changeModel = React.useCallback(
@@ -109,6 +115,7 @@ export function useAi({
 
 	return {
 		input,
+		isLoading,
 		model,
 		webSearch,
 		artifact,

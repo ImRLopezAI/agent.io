@@ -11,15 +11,22 @@ const AiChatContext = createContext<AiChatHandler | null>(null)
 export function AiChatProvider({
 	handler,
 	children,
+	withPromptInputProvider = true,
 }: {
 	handler: AiChatHandler
 	children: React.ReactNode
+	/** Set false when a parent already wraps the tree in PromptInputProvider. */
+	withPromptInputProvider?: boolean
 }) {
-	return (
-		<AiChatContext.Provider value={handler}>
-			<PromptInputProvider>{children}</PromptInputProvider>
-		</AiChatContext.Provider>
+	const tree = (
+		<AiChatContext.Provider value={handler}>{children}</AiChatContext.Provider>
 	)
+
+	if (!withPromptInputProvider) {
+		return tree
+	}
+
+	return <PromptInputProvider>{tree}</PromptInputProvider>
 }
 
 export function useAiChat() {

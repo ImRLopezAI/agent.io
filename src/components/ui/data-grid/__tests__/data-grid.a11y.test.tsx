@@ -210,9 +210,10 @@ function RowHarness({
 
 interface ViewMenuHarnessProps {
 	onPin?: (id: string, side: 'left' | 'right' | false) => void
+	defaultOpen?: boolean
 }
 
-function ViewMenuHarness({ onPin }: ViewMenuHarnessProps) {
+function ViewMenuHarness({ onPin, defaultOpen }: ViewMenuHarnessProps) {
 	const [columnVisibility, setColumnVisibility] =
 		React.useState<VisibilityState>({})
 	const [columnPinning, setColumnPinning] = React.useState<ColumnPinningState>({
@@ -255,7 +256,7 @@ function ViewMenuHarness({ onPin }: ViewMenuHarnessProps) {
 		getCoreRowModel: getCoreRowModel(),
 	})
 
-	return <DataGridViewMenu table={table} />
+	return <DataGridViewMenu table={table} defaultOpen={defaultOpen} />
 }
 
 function LiveRegionHarness({
@@ -351,15 +352,12 @@ describe('data-grid a11y', () => {
 		const calls: Array<{ id: string; side: 'left' | 'right' | false }> = []
 		render(
 			<ViewMenuHarness
+				defaultOpen
 				onPin={(id, side) => {
 					calls.push({ id, side })
 				}}
 			/>,
 		)
-
-		// Open the view menu popover.
-		const trigger = screen.getByRole('combobox', { name: /toggle columns/i })
-		fireEvent.click(trigger)
 
 		const pinLeftButton = screen.getByRole('button', {
 			name: /pin name to left/i,

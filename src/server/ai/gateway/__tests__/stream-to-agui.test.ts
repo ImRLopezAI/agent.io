@@ -179,6 +179,42 @@ describe('streamToAgui', () => {
 		])
 	})
 
+	it('assigns fresh messageIds per run when the provider reuses part ids', async () => {
+		const parts = [
+			{ type: 'text-start', id: '0' },
+			{ type: 'text-delta', id: '0', delta: 'Hi' },
+			{ type: 'text-end', id: '0' },
+			{
+				type: 'finish',
+				usage,
+				finishReason: { unified: 'stop', raw: 'stop' },
+			},
+		] as const
+
+		let seq = 0
+		const nextId = () => `msg-${++seq}`
+
+		const first = await collect(
+			streamToAgui(streamOf([...parts]), { ...ctx, generateId: nextId }),
+		)
+		const second = await collect(
+			streamToAgui(streamOf([...parts]), {
+				...ctx,
+				runId: 'run-2',
+				generateId: nextId,
+			}),
+		)
+
+		const firstStart = first.find((e) => e.type === EventType.TEXT_MESSAGE_START)!
+		const secondStart = second.find(
+			(e) => e.type === EventType.TEXT_MESSAGE_START,
+		)!
+
+		expect(firstStart.messageId).toBe('msg-1')
+		expect(secondStart.messageId).toBe('msg-2')
+		expect(firstStart.messageId).not.toBe(secondStart.messageId)
+	})
+
 	it('aborted signal terminates without dangling open message', async () => {
 		const controller = new AbortController()
 		controller.abort()

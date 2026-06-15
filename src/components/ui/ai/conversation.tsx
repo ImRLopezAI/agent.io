@@ -10,8 +10,6 @@ import {
 	Message,
 	MessageAction,
 	MessageActions,
-	MessageBranch,
-	MessageBranchContent,
 	MessageContent,
 	MessageResponse,
 } from '../ai-elements/message'
@@ -39,63 +37,60 @@ export function ChatConversation({
 		() => messages.filter((message) => message.role !== 'system'),
 		[messages],
 	)
+
 	return (
-		<Conversation className='overflow-y-hidden'>
+		<Conversation className='flex min-h-0 flex-1 flex-col'>
 			<ConversationContent>
 				{visibleMessages.map(({ id, parts, role }) => (
-					<MessageBranch defaultBranch={0} key={id}>
-						<MessageBranchContent>
-							<div className='flex flex-col gap-3'>
-								{parts.map((part, partIndex) => {
-									switch (part.type) {
-										case 'text':
-											return (
-												<Message key={`${id}-${part.type}`} from={role}>
-													<MessageContent>
-														<MessageResponse>{part.content}</MessageResponse>
-													</MessageContent>
-													{role === 'assistant' &&
-														partIndex === parts.length - 1 && (
-															<MessageActions>
-																<MessageAction label='Retry'>
-																	<RefreshCcwIcon className='size-3' />
-																</MessageAction>
-																<MessageAction
-																	onClick={() =>
-																		navigator.clipboard.writeText(part.content)
-																	}
-																	label='Copy'
-																>
-																	<CopyIcon className='size-3' />
-																</MessageAction>
-															</MessageActions>
-														)}
-												</Message>
-											)
-										case 'thinking':
-											return (
-												<Reasoning
-													key={`${id}-${part.type}`}
-													className='w-full'
-													isStreaming={
-														isLoading &&
-														partIndex === parts.length - 1 &&
-														id === visibleMessages.at(-1)?.id
-													}
-												>
-													<ReasoningTrigger />
-													<ReasoningContent>{part.content}</ReasoningContent>
-												</Reasoning>
-											)
-										default:
-											return null
-									}
-								})}
-							</div>
-						</MessageBranchContent>
-					</MessageBranch>
+					<div className='flex flex-col gap-3' key={id}>
+						{parts.map((part, partIndex) => {
+							switch (part.type) {
+								case 'text':
+									return (
+										<Message key={`${id}-text-${partIndex}`} from={role}>
+											<MessageContent>
+												<MessageResponse>{part.content}</MessageResponse>
+											</MessageContent>
+											{role === 'assistant' &&
+												partIndex === parts.length - 1 && (
+													<MessageActions>
+														<MessageAction label='Retry'>
+															<RefreshCcwIcon className='size-3' />
+														</MessageAction>
+														<MessageAction
+															onClick={() =>
+																navigator.clipboard.writeText(part.content)
+															}
+															label='Copy'
+														>
+															<CopyIcon className='size-3' />
+														</MessageAction>
+													</MessageActions>
+												)}
+										</Message>
+									)
+								case 'thinking':
+									return (
+										<Reasoning
+											key={`${id}-thinking-${partIndex}`}
+											className='w-full'
+											isStreaming={
+												isLoading &&
+												partIndex === parts.length - 1 &&
+												id === visibleMessages.at(-1)?.id
+											}
+										>
+											<ReasoningTrigger />
+											<ReasoningContent>{part.content}</ReasoningContent>
+										</Reasoning>
+									)
+								default:
+									return null
+							}
+						})}
+					</div>
 				))}
-				{isLoading && (
+				{isLoading && visibleMessages.at(-1)?.role !== 'assistant' && (
 					<Message from='assistant'>
 						<MessageContent variant='flat' className='items-start'>
 							<Spinner />

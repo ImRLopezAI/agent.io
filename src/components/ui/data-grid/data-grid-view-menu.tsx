@@ -21,11 +21,13 @@ interface DataGridViewMenuProps<TData>
 	extends React.ComponentProps<typeof PopoverContent> {
 	table: Table<TData>
 	disabled?: boolean
+	defaultOpen?: boolean
 }
 
 export function DataGridViewMenu<TData>({
 	table,
 	disabled,
+	defaultOpen,
 	className,
 	...props
 }: DataGridViewMenuProps<TData>) {
@@ -43,7 +45,7 @@ export function DataGridViewMenu<TData>({
 	)
 
 	return (
-		<Popover>
+		<Popover defaultOpen={defaultOpen}>
 			<PopoverTrigger
 				className='py-0'
 				render={

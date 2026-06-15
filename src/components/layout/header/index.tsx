@@ -6,6 +6,7 @@ import { PromptInputProvider } from '@ui/ai-elements/prompt-input'
 import { AnimatedThemeToggler } from '@ui/animated-theme-toggler'
 import { ShimmerButton } from '@ui/shimmer-button'
 import { PanelLeftIcon, Sparkles } from 'lucide-react'
+import { useMemo } from 'react'
 import { useAgent } from '@/components/ui/ai/use-agent'
 import Search from '@/components/layout/header/search'
 import { Button } from '@/components/ui/button'
@@ -15,13 +16,16 @@ import { Menu } from './navigation'
 import { OrganizationSwitcher } from '@workos-inc/widgets'
 import { useRouteContext } from '@tanstack/react-router'
 function HeaderAiAssistant() {
-	const { handler } = useAgent({
-		transport: {
+	const transport = useMemo(
+		() => ({
 			body: {
 				agent: 'hubspot',
 			},
-		},
-	})
+		}),
+		[],
+	)
+
+	const { handler } = useAgent({ transport })
 
 	return (
 		<AiChatDrawer

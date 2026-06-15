@@ -35,7 +35,7 @@ vi.mock('../gateway/provider', () => {
 
 const { agentRequestHandler } = await import('../index')
 
-function chatRequest(body: unknown): Request {
+function aguiChatRequest(body: Record<string, unknown>): Request {
 	return new Request('http://localhost/api/chat', {
 		method: 'POST',
 		headers: { 'content-type': 'application/json' },
@@ -43,15 +43,37 @@ function chatRequest(body: unknown): Request {
 	})
 }
 
+function baseRunInput(
+	messages: Array<Record<string, unknown>>,
+	forwardedProps: Record<string, unknown> = {},
+) {
+	return {
+		threadId: 'thread-1',
+		runId: 'run-1',
+		state: {},
+		messages,
+		tools: [],
+		context: [],
+		forwardedProps,
+	}
+}
+
 describe('agentRequestHandler', () => {
 	it('streams an AG-UI SSE response with text + headers', async () => {
 		const res = await agentRequestHandler(
-			chatRequest({
-				model: 'anthropic/claude-haiku-4.5',
-				messages: [
-					{ id: '1', role: 'user', parts: [{ type: 'text', content: 'hi' }] },
-				],
-			}),
+			aguiChatRequest(
+				baseRunInput(
+					[
+						{
+							id: '1',
+							role: 'user',
+							content: 'hi',
+							parts: [{ type: 'text', content: 'hi' }],
+						},
+					],
+					{ model: 'anthropic/claude-haiku-4.5' },
+				),
+			),
 		)
 		expect(res.headers.get('content-type')).toContain('text/event-stream')
 		expect(res.headers.get('x-model')).toBe('anthropic/claude-haiku-4.5')
@@ -61,13 +83,18 @@ describe('agentRequestHandler', () => {
 		expect(body).toContain('RUN_FINISHED')
 	})
 
-	it('defaults the model when omitted', async () => {
+	it('defaults the model when omitted from forwardedProps', async () => {
 		const res = await agentRequestHandler(
-			chatRequest({
-				messages: [
-					{ id: '1', role: 'user', parts: [{ type: 'text', content: 'hi' }] },
-				],
-			}),
+			aguiChatRequest(
+				baseRunInput([
+					{
+						id: '1',
+						role: 'user',
+						content: 'hi',
+						parts: [{ type: 'text', content: 'hi' }],
+					},
+				]),
+			),
 		)
 		expect(res.headers.get('x-model')).toBe('anthropic/claude-haiku-4.5')
 		const body = await res.text()
