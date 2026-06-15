@@ -10,6 +10,7 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { XIcon } from 'lucide-react'
 import type { ComponentProps, HTMLAttributes } from 'react'
+
 import { cn } from '#/lib/utils'
 
 export type ArtifactProps = HTMLAttributes<HTMLDivElement>

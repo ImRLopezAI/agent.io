@@ -2,6 +2,7 @@
 
 import { ChevronRight, ArrowRightToLine } from 'lucide-react'
 import type React from 'react'
+
 import {
 	Collapsible,
 	CollapsibleContent,
@@ -28,14 +29,15 @@ import {
 	SidebarMenuSubItem,
 } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
+
 import type { BadgeTypes, NavItem } from './items'
-import { useSidebarNavActions } from './sidebar-nav-store'
 import {
 	getNavItemChildren,
 	getNavItemId,
 	hasActiveItem,
 	resolveNavType,
 } from './nav-utils'
+import { useSidebarNavActions } from './sidebar-nav-store'
 
 const menuButtonClassName =
 	'[&>svg]:text-current hover:bg-(--primary)/10 hover:text-sidebar-foreground data-active:bg-(--primary)/10 data-active:text-sidebar-foreground'
@@ -50,7 +52,11 @@ function NavItemIcon({ icon: Icon }: { icon: NonNullable<NavItem['icon']> }) {
 	return <Icon className='size-4 shrink-0 text-current' />
 }
 
-function NavSubItemIcon({ icon: Icon }: { icon: NonNullable<NavItem['icon']> }) {
+function NavSubItemIcon({
+	icon: Icon,
+}: {
+	icon: NonNullable<NavItem['icon']>
+}) {
 	return <Icon className='size-4 shrink-0 text-primary!' />
 }
 
@@ -431,7 +437,12 @@ function NavSubItemNode({
 						}
 					/>
 					<CollapsibleContent>
-						<SidebarMenuSub className={cn('mx-2 gap-0.5 border-sidebar-border border-l px-2 py-0.5', depth > 1 && 'ms-2')}>
+						<SidebarMenuSub
+							className={cn(
+								'mx-2 gap-0.5 border-sidebar-border border-l px-2 py-0.5',
+								depth > 1 && 'ms-2',
+							)}
+						>
 							{children.map((subItem) => (
 								<NavSubItemNode
 									depth={depth + 1}

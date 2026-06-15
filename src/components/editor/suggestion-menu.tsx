@@ -38,29 +38,31 @@ export function SuggestionMenu<T extends { id: string; label: string }>({
 			{items.length ? (
 				items.map((item) => (
 					<li key={item.id}>
-					<button
-						type='button'
-						className={cn(
-							'flex w-full items-center gap-2 px-3 py-2 text-left',
-							'hover:bg-muted hover:text-foreground',
-						)}
-						onMouseDown={(event) => {
-							event.preventDefault()
-							onSelect(item)
-						}}
-					>
-						{renderItem ? (
-							renderItem(item)
-						) : (
-							<span className='min-w-0 truncate font-medium text-foreground text-sm'>
-								{item.label}
-							</span>
-						)}
-					</button>
+						<button
+							type='button'
+							className={cn(
+								'flex w-full items-center gap-2 px-3 py-2 text-left',
+								'hover:bg-muted hover:text-foreground',
+							)}
+							onMouseDown={(event) => {
+								event.preventDefault()
+								onSelect(item)
+							}}
+						>
+							{renderItem ? (
+								renderItem(item)
+							) : (
+								<span className='min-w-0 truncate font-medium text-foreground text-sm'>
+									{item.label}
+								</span>
+							)}
+						</button>
 					</li>
 				))
 			) : (
-				<li className='px-3 py-2 text-muted-foreground text-sm'>{emptyLabel}</li>
+				<li className='px-3 py-2 text-muted-foreground text-sm'>
+					{emptyLabel}
+				</li>
 			)}
 		</ul>,
 		document.body,

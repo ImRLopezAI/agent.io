@@ -7,8 +7,5 @@ export {
 	useConvexMutation,
 	useConvexQuery,
 } from '@convex-dev/react-query'
-export {
-	useAction,
-	useMutation,
-} from 'convex/react'
+export { useAction, useMutation } from 'convex/react'
 export { usePaginatedQuery, useQuery } from 'convex-helpers/react'

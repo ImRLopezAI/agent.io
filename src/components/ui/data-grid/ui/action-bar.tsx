@@ -2,13 +2,15 @@
 
 import { useDirection } from '@base-ui/react/direction-provider'
 import { useRender } from '@base-ui/react/use-render'
-import { Button } from './button'
 import { useAsRef } from '@ui/data-grid/hooks/use-as-ref'
 import { useIsomorphicLayoutEffect } from '@ui/data-grid/hooks/use-isomorphic-layout-effect'
 import { useComposedRefs } from '@ui/data-grid/lib/compose-refs'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
+
 import { cn } from '#/lib/utils'
+
+import { Button } from './button'
 
 const ROOT_NAME = 'ActionBar'
 const GROUP_NAME = 'ActionBarGroup'
@@ -423,8 +425,10 @@ function ActionBarGroup(props: DivProps) {
 	)
 }
 
-interface ActionBarItemProps
-	extends Omit<React.ComponentProps<typeof Button>, 'onSelect'> {
+interface ActionBarItemProps extends Omit<
+	React.ComponentProps<typeof Button>,
+	'onSelect'
+> {
 	onSelect?: (event: Event) => void
 	closeOnSelect?: boolean
 }

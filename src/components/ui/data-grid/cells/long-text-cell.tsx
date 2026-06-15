@@ -1,14 +1,14 @@
 'use client'
 
 import { formatters } from '@ui/data-grid/lib/data-grid-utils'
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
-import { Textarea } from '../ui/textarea'
 import * as React from 'react'
 
 import { useDataGridActions } from '../contexts/data-grid-actions-context'
 import { DataGridCellWrapper } from '../data-grid-cell-wrapper'
 import { useDebouncedCallback } from '../hooks/use-debounced-callback'
 import type { DataGridCellProps } from '../types/data-grid'
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
+import { Textarea } from '../ui/textarea'
 
 export function LongTextCell<TData>({
 	cell,

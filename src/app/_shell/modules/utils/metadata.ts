@@ -69,7 +69,11 @@ export type Twitter = {
 
 export type Icons = {
 	icon?: string | URL | IconDescriptor | Array<string | URL | IconDescriptor>
-	shortcut?: string | URL | IconDescriptor | Array<string | URL | IconDescriptor>
+	shortcut?:
+		| string
+		| URL
+		| IconDescriptor
+		| Array<string | URL | IconDescriptor>
 	apple?: string | URL | IconDescriptor | Array<string | URL | IconDescriptor>
 	other?: IconDescriptor | Array<IconDescriptor>
 }
@@ -141,7 +145,10 @@ export type Metadata = {
 		next?: string | URL | null
 	}
 	other?: Record<string, string | number | Array<string | number>>
-	themeColor?: string | { media?: string; color: string } | Array<{ media?: string; color: string }>
+	themeColor?:
+		| string
+		| { media?: string; color: string }
+		| Array<{ media?: string; color: string }>
 	colorScheme?: 'normal' | 'light' | 'dark' | 'light dark' | 'dark light' | null
 }
 
@@ -165,9 +172,13 @@ export type HeadFnContext = {
 	loaderData?: unknown
 }
 
-type MetadataInput = Metadata | ((ctx: HeadFnContext) => Metadata | Promise<Metadata>)
+type MetadataInput =
+	| Metadata
+	| ((ctx: HeadFnContext) => Metadata | Promise<Metadata>)
 
-type RegisteredHeadFn = ((ctx: HeadFnContext) => HeadAssets | Promise<HeadAssets>) & {
+type RegisteredHeadFn = ((
+	ctx: HeadFnContext,
+) => HeadAssets | Promise<HeadAssets>) & {
 	__metadata?: MetadataInput
 }
 
@@ -204,11 +215,7 @@ async function resolveMetadataInput(
 }
 
 function isTemplateOnlyTitle(title: Metadata['title']): boolean {
-	return (
-		isTemplateString(title) &&
-		Boolean(title.template) &&
-		!title.absolute
-	)
+	return isTemplateString(title) && Boolean(title.template) && !title.absolute
 }
 
 function stripTemplateOnlyTitle(metadata: Metadata): Metadata {
@@ -372,10 +379,14 @@ function robotsToContent(robots: string | Robots): {
 		else if (robots.googleBot.follow) googleRules.push('follow')
 		if (robots.googleBot.noimageindex) googleRules.push('noimageindex')
 		if (robots.googleBot['max-video-preview'] != null) {
-			googleRules.push(`max-video-preview:${robots.googleBot['max-video-preview']}`)
+			googleRules.push(
+				`max-video-preview:${robots.googleBot['max-video-preview']}`,
+			)
 		}
 		if (robots.googleBot['max-image-preview']) {
-			googleRules.push(`max-image-preview:${robots.googleBot['max-image-preview']}`)
+			googleRules.push(
+				`max-image-preview:${robots.googleBot['max-image-preview']}`,
+			)
 		}
 		if (robots.googleBot['max-snippet'] != null) {
 			googleRules.push(`max-snippet:${robots.googleBot['max-snippet']}`)
@@ -456,7 +467,8 @@ function appendOpenGraph(
 	if (openGraph.url) {
 		pushPropertyMeta(meta, 'og:url', resolveMetadataUrl(openGraph.url, base))
 	}
-	if (openGraph.siteName) pushPropertyMeta(meta, 'og:site_name', openGraph.siteName)
+	if (openGraph.siteName)
+		pushPropertyMeta(meta, 'og:site_name', openGraph.siteName)
 	if (openGraph.locale) pushPropertyMeta(meta, 'og:locale', openGraph.locale)
 	if (openGraph.type) pushPropertyMeta(meta, 'og:type', openGraph.type)
 	if (openGraph.publishedTime) {
@@ -475,15 +487,19 @@ function appendOpenGraph(
 
 	for (const image of normalizeImages(openGraph.images, base)) {
 		pushPropertyMeta(meta, 'og:image', image.url)
-		if (image.width != null) pushPropertyMeta(meta, 'og:image:width', image.width)
-		if (image.height != null) pushPropertyMeta(meta, 'og:image:height', image.height)
+		if (image.width != null)
+			pushPropertyMeta(meta, 'og:image:width', image.width)
+		if (image.height != null)
+			pushPropertyMeta(meta, 'og:image:height', image.height)
 		if (image.alt) pushPropertyMeta(meta, 'og:image:alt', image.alt)
 	}
 
 	for (const video of openGraph.videos ?? []) {
 		pushPropertyMeta(meta, 'og:video', resolveMetadataUrl(video.url, base))
-		if (video.width != null) pushPropertyMeta(meta, 'og:video:width', video.width)
-		if (video.height != null) pushPropertyMeta(meta, 'og:video:height', video.height)
+		if (video.width != null)
+			pushPropertyMeta(meta, 'og:video:width', video.width)
+		if (video.height != null)
+			pushPropertyMeta(meta, 'og:video:height', video.height)
 	}
 
 	for (const audio of openGraph.audio ?? []) {
@@ -552,7 +568,6 @@ function appendAlternates(
 			href: resolveMetadataUrl(href, base),
 		})
 	}
-
 }
 
 function appendVerification(meta: MetaTag[], verification: Verification) {
@@ -598,12 +613,13 @@ export function metadataToHead(
 	const meta: MetaTag[] = []
 	const links: LinkTag[] = []
 	const base = resolveMetadataBase(metadata, context)
-	const title = metadata.title == null
-		? undefined
-		: typeof metadata.title === 'string'
-			? metadata.title
-			: metadata.title.absolute ?? metadata.title.default
-  
+	const title =
+		metadata.title == null
+			? undefined
+			: typeof metadata.title === 'string'
+				? metadata.title
+				: (metadata.title.absolute ?? metadata.title.default)
+
 	if (title || metadata.description) {
 		pushMeta(meta, {
 			...(title ? { title } : {}),
@@ -692,9 +708,19 @@ export function metadataToHead(
 		} else if ('url' in metadata.icons) {
 			appendIconDescriptors(links, 'icon', metadata.icons, base)
 		} else {
-			appendIconDescriptors(links, 'shortcut icon', metadata.icons.shortcut, base)
+			appendIconDescriptors(
+				links,
+				'shortcut icon',
+				metadata.icons.shortcut,
+				base,
+			)
 			appendIconDescriptors(links, 'icon', metadata.icons.icon, base)
-			appendIconDescriptors(links, 'apple-touch-icon', metadata.icons.apple, base)
+			appendIconDescriptors(
+				links,
+				'apple-touch-icon',
+				metadata.icons.apple,
+				base,
+			)
 			appendIconDescriptors(links, 'icon', metadata.icons.other, base)
 		}
 	}
@@ -735,7 +761,11 @@ export function metadataToHead(
 			pushNamedMeta(meta, 'mobile-web-app-capable', 'yes')
 		}
 		if (metadata.appleWebApp.title) {
-			pushNamedMeta(meta, 'apple-mobile-web-app-title', metadata.appleWebApp.title)
+			pushNamedMeta(
+				meta,
+				'apple-mobile-web-app-title',
+				metadata.appleWebApp.title,
+			)
 		}
 		if (metadata.appleWebApp.statusBarStyle) {
 			pushNamedMeta(
@@ -825,8 +855,8 @@ export function defineMetadata(metadata: Metadata) {
 	return createHead(metadata)
 }
 
-export function generateMetadata<TContext extends HeadFnContext = HeadFnContext>(
-	generator: (ctx: TContext) => Metadata | Promise<Metadata>,
-) {
+export function generateMetadata<
+	TContext extends HeadFnContext = HeadFnContext,
+>(generator: (ctx: TContext) => Metadata | Promise<Metadata>) {
 	return createHead(generator)
 }

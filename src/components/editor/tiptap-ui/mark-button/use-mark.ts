@@ -2,6 +2,9 @@
 
 import { type Editor, useEditorState } from '@tiptap/react'
 import { useCallback, useEffect, useState } from 'react'
+
+// --- Hooks ---
+import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
 // --- Icons ---
 import { BoldIcon } from '#/components/editor/tiptap-icons/bold-icon'
 import { Code2Icon } from '#/components/editor/tiptap-icons/code2-icon'
@@ -10,8 +13,6 @@ import { StrikeIcon } from '#/components/editor/tiptap-icons/strike-icon'
 import { SubscriptIcon } from '#/components/editor/tiptap-icons/subscript-icon'
 import { SuperscriptIcon } from '#/components/editor/tiptap-icons/superscript-icon'
 import { UnderlineIcon } from '#/components/editor/tiptap-icons/underline-icon'
-// --- Hooks ---
-import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
 // --- Lib ---
 import { isMarkInSchema, isNodeTypeSelected } from '#/lib/tiptap-utils'
 

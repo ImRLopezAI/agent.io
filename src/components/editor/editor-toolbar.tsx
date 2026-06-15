@@ -17,6 +17,21 @@ import { StrikeIcon } from '#/components/editor/tiptap-icons/strike-icon'
 import { SubscriptIcon } from '#/components/editor/tiptap-icons/subscript-icon'
 import { SuperscriptIcon } from '#/components/editor/tiptap-icons/superscript-icon'
 import { UnderlineIcon } from '#/components/editor/tiptap-icons/underline-icon'
+import { Button } from '#/components/editor/tiptap-ui-primitive/button'
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuGroup,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from '#/components/editor/tiptap-ui-primitive/dropdown-menu'
+import {
+	Toolbar,
+	ToolbarGroup,
+	ToolbarSeparator,
+} from '#/components/editor/tiptap-ui-primitive/toolbar'
 import { toggleBlockquote } from '#/components/editor/tiptap-ui/blockquote-button/use-blockquote'
 import { toggleCodeBlock } from '#/components/editor/tiptap-ui/code-block-button/use-code-block'
 import { ColorHighlightPopoverContent } from '#/components/editor/tiptap-ui/color-highlight-popover'
@@ -39,25 +54,11 @@ import {
 import { SlashCommandTriggerButton } from '#/components/editor/tiptap-ui/slash-command-trigger-button'
 import { TextAlignButton } from '#/components/editor/tiptap-ui/text-align-button'
 import { UndoRedoButton } from '#/components/editor/tiptap-ui/undo-redo-button'
-import { Button } from '#/components/editor/tiptap-ui-primitive/button'
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuGroup,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from '#/components/editor/tiptap-ui-primitive/dropdown-menu'
-import {
-	Toolbar,
-	ToolbarGroup,
-	ToolbarSeparator,
-} from '#/components/editor/tiptap-ui-primitive/toolbar'
 import { useCursorVisibility } from '#/hooks/use-cursor-visibility'
 import { useIsBreakpoint } from '#/hooks/use-is-breakpoint'
 import { useWindowSize } from '#/hooks/use-window-size'
 import { cn } from '#/lib/utils'
+
 import { mobilePanelAtomFamily, type ToolbarMode } from './editor-atoms'
 import { useEditorChrome } from './editor-context'
 import { isEditorReady } from './editor-utils'
@@ -379,13 +380,13 @@ export function EditorToolbar({
 					'w-max min-w-full border-none bg-transparent text-foreground shadow-sm',
 					variant === 'document' ? 'rounded-lg' : 'rounded-md',
 				)}
-				style={{
-					...(isMobile
+				style={
+					isMobile
 						? {
 								bottom: `calc(100% - ${height - rect.y}px)`,
 							}
-						: {}),
-				}}
+						: {}
+				}
 				onPointerDown={(event) => {
 					const target = event.target
 					if (

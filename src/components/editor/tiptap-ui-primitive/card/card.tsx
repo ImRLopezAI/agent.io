@@ -1,6 +1,7 @@
 'use client'
 
 import { forwardRef } from 'react'
+
 import { cn } from '#/lib/tiptap-utils'
 
 const Card = forwardRef<HTMLDivElement, React.ComponentProps<'div'>>(

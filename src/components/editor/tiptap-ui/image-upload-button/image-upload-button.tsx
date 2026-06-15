@@ -1,18 +1,19 @@
 'use client'
 
 import { forwardRef, useCallback } from 'react'
+
+// --- Hooks ---
+import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
+import { Badge } from '#/components/editor/tiptap-ui-primitive/badge'
+// --- UI Primitives ---
+import type { ButtonProps } from '#/components/editor/tiptap-ui-primitive/button'
+import { Button } from '#/components/editor/tiptap-ui-primitive/button'
 // --- Tiptap UI ---
 import type { UseImageUploadConfig } from '#/components/editor/tiptap-ui/image-upload-button'
 import {
 	IMAGE_UPLOAD_SHORTCUT_KEY,
 	useImageUpload,
 } from '#/components/editor/tiptap-ui/image-upload-button'
-import { Badge } from '#/components/editor/tiptap-ui-primitive/badge'
-// --- UI Primitives ---
-import type { ButtonProps } from '#/components/editor/tiptap-ui-primitive/button'
-import { Button } from '#/components/editor/tiptap-ui-primitive/button'
-// --- Hooks ---
-import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
 // --- Lib ---
 import { parseShortcutKeys } from '#/lib/tiptap-utils'
 
@@ -20,8 +21,7 @@ type IconProps = React.SVGProps<SVGSVGElement>
 type IconComponent = ({ className, ...props }: IconProps) => React.ReactElement
 
 export interface ImageUploadButtonProps
-	extends Omit<ButtonProps, 'type'>,
-		UseImageUploadConfig {
+	extends Omit<ButtonProps, 'type'>, UseImageUploadConfig {
 	/**
 	 * Optional text to display alongside the icon.
 	 */

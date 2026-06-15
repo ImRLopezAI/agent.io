@@ -11,6 +11,7 @@ import { DataGridCellWrapper } from '@ui/data-grid/data-grid-cell-wrapper'
 import { DataGridPreviewCellTrigger } from '@ui/data-grid/data-grid-preview'
 import { motion, type Variants } from 'motion/react'
 import * as React from 'react'
+
 import { cn } from '#/lib/utils'
 
 import { useComposedRefs } from './lib/compose-refs'

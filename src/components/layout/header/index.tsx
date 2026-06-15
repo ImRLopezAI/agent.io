@@ -1,20 +1,22 @@
 'use client'
 
 import { AiChatDrawer } from '@components/ui/ai/drawer'
+import { useRouteContext } from '@tanstack/react-router'
 // import { UserButton } from '@components/auth/user-button'
 import { PromptInputProvider } from '@ui/ai-elements/prompt-input'
 import { AnimatedThemeToggler } from '@ui/animated-theme-toggler'
 import { ShimmerButton } from '@ui/shimmer-button'
+import { OrganizationSwitcher } from '@workos-inc/widgets'
 import { PanelLeftIcon, Sparkles } from 'lucide-react'
 import { useMemo } from 'react'
-import { useAgent } from '@/components/ui/ai/use-agent'
+
 import Search from '@/components/layout/header/search'
+import { useAgent } from '@/components/ui/ai/use-agent'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { useSidebar } from '@/components/ui/sidebar'
+
 import { Menu } from './navigation'
-import { OrganizationSwitcher } from '@workos-inc/widgets'
-import { useRouteContext } from '@tanstack/react-router'
 function HeaderAiAssistant() {
 	const transport = useMemo(
 		() => ({
@@ -43,7 +45,7 @@ function HeaderAiAssistant() {
 export function SiteHeader() {
 	const { toggleSidebar } = useSidebar()
 	const { auth } = useRouteContext({
-		from: '/_shell'
+		from: '/_shell',
 	})
 	return (
 		<header className='sticky top-0 z-50 flex h-(--header-height) shrink-0 items-center gap-2 border-b bg-background/40 backdrop-blur-md transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) md:rounded-tl-xl md:rounded-tr-xl'>
@@ -60,9 +62,12 @@ export function SiteHeader() {
 					<Search />
 					<AnimatedThemeToggler />
 					<Separator orientation='vertical' />
-					<OrganizationSwitcher authToken={auth.accessToken} switchToOrganization={({organizationId}) => {
-						console.log(organizationId)
-					}} />
+					<OrganizationSwitcher
+						authToken={auth.accessToken}
+						switchToOrganization={({ organizationId }) => {
+							console.log(organizationId)
+						}}
+					/>
 				</div>
 			</div>
 		</header>

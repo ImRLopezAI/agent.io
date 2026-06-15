@@ -10,7 +10,9 @@ import {
 	Upload,
 } from 'lucide-react'
 import * as React from 'react'
+
 import { Card } from '@/components/ui/card'
+
 import { FileThumbnail } from './file-thumbnail'
 import { renderPdfThumbnail } from './pdf-thumbnail'
 

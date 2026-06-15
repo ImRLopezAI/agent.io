@@ -3,10 +3,11 @@
 import { NodeSelection, TextSelection } from '@tiptap/pm/state'
 import type { Editor } from '@tiptap/react'
 import { useCallback, useEffect, useState } from 'react'
-// --- Icons ---
-import { CodeBlockIcon } from '#/components/editor/tiptap-icons/code-block-icon'
+
 // --- Hooks ---
 import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
+// --- Icons ---
+import { CodeBlockIcon } from '#/components/editor/tiptap-icons/code-block-icon'
 // --- Lib ---
 import {
 	findNodePosition,

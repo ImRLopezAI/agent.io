@@ -3,16 +3,16 @@
 import { NodeSelection, TextSelection } from '@tiptap/pm/state'
 import { type Editor, useEditorState } from '@tiptap/react'
 import { useCallback, useEffect, useState } from 'react'
+
+// --- Hooks ---
+import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
 import { HeadingFiveIcon } from '#/components/editor/tiptap-icons/heading-five-icon'
 import { HeadingFourIcon } from '#/components/editor/tiptap-icons/heading-four-icon'
-
 // --- Icons ---
 import { HeadingOneIcon } from '#/components/editor/tiptap-icons/heading-one-icon'
 import { HeadingSixIcon } from '#/components/editor/tiptap-icons/heading-six-icon'
 import { HeadingThreeIcon } from '#/components/editor/tiptap-icons/heading-three-icon'
 import { HeadingTwoIcon } from '#/components/editor/tiptap-icons/heading-two-icon'
-// --- Hooks ---
-import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
 // --- Lib ---
 import {
 	findNodePosition,

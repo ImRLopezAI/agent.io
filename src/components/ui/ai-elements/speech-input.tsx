@@ -5,6 +5,7 @@ import { Spinner } from '@ui/spinner'
 import { MicIcon, SquareIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+
 import { cn } from '#/lib/utils'
 
 interface SpeechRecognition extends EventTarget {

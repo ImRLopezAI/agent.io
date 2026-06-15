@@ -1,7 +1,8 @@
 import type { MemberRow } from '@server/rpc/contracts/work-os.contract'
 import { QueryClient } from '@tanstack/react-query'
 import { renderHook } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test'
+
 import { membersRemoveOpts, membersUpdateRoleOpts } from '../org.mut-opts'
 
 const toastMock = vi.hoisted(() => ({

@@ -23,6 +23,7 @@ import {
 	XAxis as RechartsXAxis,
 	YAxis as RechartsYAxis,
 } from 'recharts'
+
 import {
 	axisValueToPercentFormatter,
 	type ChartConfig,

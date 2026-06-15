@@ -8,9 +8,11 @@
  * actually streams and tool-calls through the gateway.
  */
 import { readFileSync } from 'node:fs'
+
 import { chat, EventType, toolDefinition } from '@tanstack/ai'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vite-plus/test'
 import { z } from 'zod'
+
 import { gatewayText } from '../text/adapter'
 
 // vitest doesn't load .env.local into process.env; @ai-sdk/gateway reads it.

@@ -6,13 +6,15 @@ import { PromptInputProvider } from '@ui/ai-elements/prompt-input'
 import { AnimatedThemeToggler } from '@ui/animated-theme-toggler'
 import { ShimmerButton } from '@ui/shimmer-button'
 import { PanelLeftIcon, Sparkles } from 'lucide-react'
-import { useAgent } from '@/components/ui/ai/use-agent'
+
 import Search from '@/components/layout/header/search'
+import { useAgent } from '@/components/ui/ai/use-agent'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { useSidebar } from '@/components/ui/sidebar'
-import { Menu } from './navigation'
+
 import { UserButton } from '../auth/user/user-button'
+import { Menu } from './navigation'
 function HeaderAiAssistant() {
 	const { handler } = useAgent({
 		transport: {

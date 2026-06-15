@@ -1,11 +1,11 @@
 'use client'
 
-import { Checkbox } from '../ui/checkbox'
 import * as React from 'react'
 
 import { useDataGridActions } from '../contexts/data-grid-actions-context'
 import { DataGridCellWrapper } from '../data-grid-cell-wrapper'
 import type { DataGridCellProps } from '../types/data-grid'
+import { Checkbox } from '../ui/checkbox'
 
 export function CheckboxCell<TData>({
 	cell,

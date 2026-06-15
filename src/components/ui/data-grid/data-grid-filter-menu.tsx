@@ -3,6 +3,26 @@
 import { useDirection } from '@base-ui/react/direction-provider'
 import { useHotkey } from '@tanstack/react-hotkeys'
 import type { Column, ColumnFilter, Table } from '@tanstack/react-table'
+import {
+	CalendarIcon,
+	Check,
+	ChevronsUpDown,
+	GripVertical,
+	ListFilter,
+	Trash2,
+} from 'lucide-react'
+import * as React from 'react'
+
+import { cn } from '#/lib/utils'
+
+import { useFilterMenuRequestBus } from './contexts/data-grid-actions-context'
+import { safeParseFilterValue } from './lib/data-grid-filter-schema'
+import {
+	getDefaultOperator,
+	getOperatorsForVariant,
+} from './lib/data-grid-filters'
+import { formatDate } from './lib/format'
+import type { FilterOperator } from './types/data-grid'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import { Calendar } from './ui/calendar'
@@ -24,24 +44,6 @@ import {
 	SelectValue,
 } from './ui/select'
 import {
-	CalendarIcon,
-	Check,
-	ChevronsUpDown,
-	GripVertical,
-	ListFilter,
-	Trash2,
-} from 'lucide-react'
-import * as React from 'react'
-import { cn } from '#/lib/utils'
-import { useFilterMenuRequestBus } from './contexts/data-grid-actions-context'
-import { safeParseFilterValue } from './lib/data-grid-filter-schema'
-import {
-	getDefaultOperator,
-	getOperatorsForVariant,
-} from './lib/data-grid-filters'
-import { formatDate } from './lib/format'
-import type { FilterOperator } from './types/data-grid'
-import {
 	Sortable,
 	SortableContent,
 	SortableItem,
@@ -57,8 +59,9 @@ function escapeSelectorValue(value: string) {
 	return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 }
 
-interface DataGridFilterMenuProps<TData>
-	extends React.ComponentProps<typeof PopoverContent> {
+interface DataGridFilterMenuProps<TData> extends React.ComponentProps<
+	typeof PopoverContent
+> {
 	table: Table<TData>
 	disabled?: boolean
 }

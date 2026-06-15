@@ -2,6 +2,7 @@
 
 import { cn } from '@lib/utils'
 import type { ComponentProps } from 'react'
+
 import { OrganizationInvitations } from './organization-invitations'
 import { OrganizationMembers } from './organization-members'
 

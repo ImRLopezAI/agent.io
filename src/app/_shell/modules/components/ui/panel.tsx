@@ -15,6 +15,7 @@ import {
 	useRef,
 } from 'react'
 import type { PanelImperativeHandle } from 'react-resizable-panels'
+
 import {
 	ResizableHandle,
 	ResizablePanel,

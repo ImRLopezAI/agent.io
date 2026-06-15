@@ -27,6 +27,7 @@ import type {
 	ThemedToken,
 } from 'shiki'
 import { createHighlighter } from 'shiki'
+
 import { cn } from '#/lib/utils'
 
 // Shiki uses bitflags for font styles: 1=italic, 2=bold, 4=underline

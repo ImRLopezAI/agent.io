@@ -19,6 +19,7 @@ import {
 	type LinkSafetyConfig,
 	type LinkSafetyModalProps,
 } from 'streamdown'
+
 import { cn } from '#/lib/utils'
 
 function StreamdownLinkSafetyModalContent({

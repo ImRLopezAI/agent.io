@@ -1,6 +1,7 @@
 'use client'
 
 import { useAtomValue } from 'jotai'
+
 import { slashContextAtomFamily } from './editor-atoms'
 import { useEditorChrome } from './editor-context'
 import type { SlashCommandItem } from './extensions/slash-commands'
@@ -23,7 +24,9 @@ export function EditorSlashMenu() {
 						{item.label}
 					</span>
 					{item.description ? (
-						<span className='text-muted-foreground text-xs'>{item.description}</span>
+						<span className='text-muted-foreground text-xs'>
+							{item.description}
+						</span>
 					) : null}
 				</div>
 			)}

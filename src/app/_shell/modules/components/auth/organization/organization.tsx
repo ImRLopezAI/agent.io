@@ -3,7 +3,9 @@
 import { cn } from '@lib/utils'
 import { Navigate, useRouteContext } from '@tanstack/react-router'
 import { Settings as SettingsIcon, User2 as UserIcon } from 'lucide-react'
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
 import { OrganizationPeople } from './organization-people'
 import { OrganizationSettings } from './organization-settings'
 

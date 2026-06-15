@@ -30,6 +30,7 @@ import type {
 	StructuredOutputResult,
 } from '@tanstack/ai/adapters'
 import { BaseTextAdapter } from '@tanstack/ai/adapters'
+
 import { createGatewayProvider, type GatewayProviderConfig } from '../provider'
 import { mapOptions } from './map-options'
 import type { GatewayProviderOptions } from './provider-options'

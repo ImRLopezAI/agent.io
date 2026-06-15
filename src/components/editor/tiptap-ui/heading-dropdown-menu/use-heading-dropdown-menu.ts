@@ -1,6 +1,9 @@
 'use client'
 
 import type { Editor } from '@tiptap/react'
+
+// --- Hooks ---
+import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
 // --- Icons ---
 import { HeadingIcon } from '#/components/editor/tiptap-icons/heading-icon'
 // --- Tiptap UI ---
@@ -11,8 +14,6 @@ import {
 	type Level,
 	shouldShowButton,
 } from '#/components/editor/tiptap-ui/heading-button'
-// --- Hooks ---
-import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
 
 const DEFAULT_HEADING_LEVELS: Level[] = [1, 2, 3, 4, 5, 6]
 

@@ -1,4 +1,5 @@
 import { createContext, use } from 'react'
+
 import type { NavGroup } from './items'
 
 export interface SidebarContextProps {

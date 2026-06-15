@@ -34,7 +34,9 @@ import type {
 } from '@ui/data-grid/types/data-grid'
 import { Search } from 'lucide-react'
 import * as React from 'react'
+
 import { cn } from '#/lib/utils'
+
 import {
 	ActionBar,
 	ActionBarClose,
@@ -54,8 +56,10 @@ type RowClassName<TData extends object> =
 	| string
 	| ((row: TData, rowIndex: number) => string | undefined)
 
-interface CreateDataGridProps<TData extends object>
-	extends Omit<UseDataGridProps<TData>, 'columns'> {
+interface CreateDataGridProps<TData extends object> extends Omit<
+	UseDataGridProps<TData>,
+	'columns'
+> {
 	data: TData[]
 	isLoading?: boolean
 	emptyMessage?: React.ReactNode
@@ -164,8 +168,7 @@ type DataGridToolbarToggleProps = {
 }
 
 interface DataGridToolbarProps<TData extends object>
-	extends React.ComponentProps<'div'>,
-		DataGridToolbarToggleProps {
+	extends React.ComponentProps<'div'>, DataGridToolbarToggleProps {
 	align?: 'start' | 'center' | 'end'
 	exportProps?: Omit<DataGridExportProps<TData>, 'table'>
 }
@@ -642,7 +645,7 @@ function resolveCellVariant<TData extends object>(
 
 	let resolved: CellOpts
 	if (typeof cellVariant === 'string') {
-		resolved = { variant: cellVariant, ...(opts ?? {}) } as CellOpts
+		resolved = { variant: cellVariant, ...opts } as CellOpts
 	} else {
 		resolved = opts ? ({ ...cellVariant, ...opts } as CellOpts) : cellVariant
 	}
@@ -701,7 +704,7 @@ function buildDataGridColumnDef<TData extends object, TValue = unknown>(
 		(children != null && children !== false)
 
 	const resolvedMeta = {
-		...(meta ?? {}),
+		...meta,
 		...(title && !header ? { label: title } : {}),
 		...(resolvedCellVariant ? { cell: resolvedCellVariant } : {}),
 		...(formatter ? { formatter } : {}),

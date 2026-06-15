@@ -1,7 +1,6 @@
 'use client'
 
 import './editor.css'
-
 import {
 	type UseHotkeyDefinition,
 	useHotkey,
@@ -17,6 +16,7 @@ import {
 } from '@tiptap/react'
 import { useSetAtom } from 'jotai'
 import { type RefObject, useId, useMemo, useRef } from 'react'
+
 import { toggleBlockquote } from '#/components/editor/tiptap-ui/blockquote-button/use-blockquote'
 import { toggleCodeBlock } from '#/components/editor/tiptap-ui/code-block-button/use-code-block'
 import { toggleHeading } from '#/components/editor/tiptap-ui/heading-button/use-heading'
@@ -26,6 +26,7 @@ import { toggleMark } from '#/components/editor/tiptap-ui/mark-button/use-mark'
 import { useSlashCommandTrigger } from '#/components/editor/tiptap-ui/slash-command-trigger-button'
 import { setTextAlign } from '#/components/editor/tiptap-ui/text-align-button/use-text-align'
 import { cn } from '#/lib/utils'
+
 import { normalizeDescriptionMarkdown } from './document'
 import {
 	mentionContextAtomFamily,

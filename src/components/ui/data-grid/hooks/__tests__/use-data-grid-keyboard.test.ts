@@ -1,6 +1,7 @@
 import { getHotkeyManager } from '@tanstack/react-hotkeys'
 import { act, renderHook } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vite-plus/test'
+
 import { useDataGridKeyboard } from '../use-data-grid-keyboard'
 import {
 	createDataGridStore,

@@ -1,3 +1,5 @@
+import { PromptInputProvider } from '../ai-elements/prompt-input'
+import { AiRobotixLogo } from '../logo'
 import {
 	Sheet,
 	SheetContent,
@@ -6,11 +8,9 @@ import {
 	SheetTitle,
 	SheetTrigger,
 } from '../sheet'
-import { PromptInputProvider } from '../ai-elements/prompt-input'
 import { ChatIteration } from './chat'
 import { ChatConversation } from './conversation'
 import type { useAi } from './use-ai'
-import { AiRobotixLogo } from '../logo'
 
 interface AiChatSheetProps extends React.ComponentProps<typeof SheetTrigger> {
 	handler: ReturnType<typeof useAi>

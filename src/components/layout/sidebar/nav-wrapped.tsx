@@ -1,16 +1,18 @@
 'use client'
 
 import { ArrowLeft } from 'lucide-react'
+
 import { Button } from '@/components/ui/button'
 import {
 	SidebarGroup,
 	SidebarGroupContent,
 	SidebarMenu,
 } from '@/components/ui/sidebar'
-import { useSidebarNavActions } from './sidebar-nav-store'
+
 import { NavItemNode } from './nav-items'
 import type { NavStackFrame } from './nav-utils'
 import { resolveStackFrameItems } from './nav-utils'
+import { useSidebarNavActions } from './sidebar-nav-store'
 
 type NavWrappedPanelProps = {
 	frame: NavStackFrame

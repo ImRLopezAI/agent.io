@@ -3,13 +3,13 @@
 import { NodeSelection, TextSelection } from '@tiptap/pm/state'
 import { type Editor, useEditorState } from '@tiptap/react'
 import { useCallback, useEffect, useState } from 'react'
+
+// --- Hooks ---
+import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
 // --- Icons ---
 import { ListIcon } from '#/components/editor/tiptap-icons/list-icon'
 import { ListOrderedIcon } from '#/components/editor/tiptap-icons/list-ordered-icon'
 import { ListTodoIcon } from '#/components/editor/tiptap-icons/list-todo-icon'
-// --- Hooks ---
-import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
-
 // --- Lib ---
 import {
 	findNodePosition,

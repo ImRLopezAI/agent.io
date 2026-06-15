@@ -6,7 +6,8 @@ import {
 } from '@tanstack/react-table'
 import { render, within } from '@testing-library/react'
 import * as React from 'react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vite-plus/test'
+
 import { DataGridStateProvider } from '../contexts/data-grid-state-context'
 import { DataGridSelectionSummary } from '../data-grid-selection-summary'
 import {

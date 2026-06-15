@@ -1,5 +1,6 @@
 import { ORPCError } from '@orpc/client'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test'
+
 import { mapOrpcError } from '../map-orpc-error'
 
 const toastMock = vi.hoisted(() => ({

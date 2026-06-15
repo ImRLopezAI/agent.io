@@ -3,6 +3,7 @@
 import { useChat } from '@tanstack/ai-react'
 import React from 'react'
 import { toast } from 'sonner'
+
 import {
 	type PromptInputMessage,
 	usePromptInputController,
@@ -108,8 +109,7 @@ export function useAi({
 		[dispatch],
 	)
 	const setModelSelectorOpen = React.useCallback(
-		(next: boolean) =>
-			dispatch({ type: 'setModelSelectorOpen', open: next }),
+		(next: boolean) => dispatch({ type: 'setModelSelectorOpen', open: next }),
 		[dispatch],
 	)
 

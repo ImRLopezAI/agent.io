@@ -1,11 +1,13 @@
 'use client'
 
+import { cva, type VariantProps } from 'class-variance-authority'
+import type * as React from 'react'
+
+import { cn } from '@/lib/utils'
+
 import { Button } from './button'
 import { Input } from './input'
 import { Textarea } from './textarea'
-import { cva, type VariantProps } from 'class-variance-authority'
-import type * as React from 'react'
-import { cn } from '@/lib/utils'
 
 function InputGroup({ className, ...props }: React.ComponentProps<'fieldset'>) {
 	return (
@@ -46,7 +48,8 @@ function InputGroupAddon({
 	className,
 	align = 'inline-start',
 	...props
-}: React.ComponentProps<'fieldset'> & VariantProps<typeof inputGroupAddonVariants>) {
+}: React.ComponentProps<'fieldset'> &
+	VariantProps<typeof inputGroupAddonVariants>) {
 	return (
 		<fieldset
 			data-slot='input-group-addon'

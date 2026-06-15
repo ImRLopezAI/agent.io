@@ -1,16 +1,17 @@
-import { authKit } from './auth'
-import { resend } from './resend'
+import { agentRequestHandler } from '@server/ai'
 import {
 	type HonoWithConvex,
 	HttpRouterWithHono,
 } from 'convex-helpers/server/hono'
-import type { ActionCtx } from './_generated/server'
+import type { GenericDataModel, GenericMutationCtx } from 'convex/server'
+import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
 import { requestId } from 'hono/request-id'
-import { cors } from 'hono/cors'
 import { Hono } from 'hono/tiny'
-import { agentRequestHandler } from '@server/ai'
-import type { GenericDataModel, GenericMutationCtx } from 'convex/server'
+
+import type { ActionCtx } from './_generated/server'
+import { authKit } from './auth'
+import { resend } from './resend'
 
 const app: HonoWithConvex<ActionCtx> = new Hono()
 
@@ -23,14 +24,16 @@ app.on('POST', ['/api/agents', '/api/chat'], async (c) => {
 })
 
 app.post('/resend/events', async (c) => {
-	return await resend.handleResendEventWebhook(c.env as unknown as RunMutationCtx, c.req.raw)
+	return await resend.handleResendEventWebhook(
+		c.env as unknown as RunMutationCtx,
+		c.req.raw,
+	)
 })
 
 const http = new HttpRouterWithHono(app)
 authKit.registerRoutes(http)
 export default http
 
-
 type RunMutationCtx = {
-  runMutation: GenericMutationCtx<GenericDataModel>["runMutation"];
-};
+	runMutation: GenericMutationCtx<GenericDataModel>['runMutation']
+}

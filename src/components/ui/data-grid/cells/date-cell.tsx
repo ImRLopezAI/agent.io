@@ -1,9 +1,6 @@
 'use client'
 
-import { Calendar } from '../ui/calendar'
-
 import { formatters } from '@ui/data-grid/lib/data-grid-utils'
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import * as React from 'react'
 
 import { useDataGridActions } from '../contexts/data-grid-actions-context'
@@ -14,6 +11,8 @@ import {
 	parseLocalDate,
 } from '../lib/data-grid'
 import type { DataGridCellProps } from '../types/data-grid'
+import { Calendar } from '../ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 
 export function DateCell<TData>({
 	cell,

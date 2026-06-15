@@ -1,7 +1,9 @@
 import { v } from 'convex/values'
+
+import { DEFAULT_ROLES, DEFAULT_PERMISSIONS } from '@/lib/work-os'
+
 import { internalAction } from './_generated/server'
 import { authKit } from './auth'
-import { DEFAULT_ROLES, DEFAULT_PERMISSIONS } from '@/lib/work-os'
 
 export const ensureCustomerRoleOnOrg = internalAction({
 	args: { organizationId: v.string() },

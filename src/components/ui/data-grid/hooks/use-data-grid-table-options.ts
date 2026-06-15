@@ -16,6 +16,7 @@ import {
 	type Updater,
 } from '@tanstack/react-table'
 import * as React from 'react'
+
 import type { ResolvedDataGridServerFiltersOptions } from '../server/server-filters'
 import type { Direction } from '../types/data-grid'
 

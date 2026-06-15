@@ -1,6 +1,6 @@
 import type { MyInvitationRow } from '@server/rpc/contracts/work-os.contract'
 import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 
 /**
  * Unit 8 — the user-facing "invitations to join" cards.

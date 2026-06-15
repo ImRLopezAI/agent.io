@@ -1,7 +1,6 @@
-/** biome-ignore-all lint/suspicious/noExplicitAny: Any due the type inference */
+import { zid, zodToConvex } from 'convex-helpers/server/zod4'
 import { defineTable } from 'convex/server'
 import type { GenericId } from 'convex/values'
-import { zid, zodToConvex } from 'convex-helpers/server/zod4'
 import { z } from 'zod'
 
 // JSON-schema-safe Convex ID for tools: still typed as GenericId<TableName> but uses primitive string checks.

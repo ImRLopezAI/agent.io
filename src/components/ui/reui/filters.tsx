@@ -39,6 +39,7 @@ import {
 	useRef,
 	useState,
 } from 'react'
+
 import { cn } from '#/lib/utils'
 
 // i18n Configuration Interface
@@ -383,8 +384,7 @@ function FilterInput<T = unknown>({
 	)
 }
 
-interface FilterRemoveButtonProps
-	extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface FilterRemoveButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 	icon?: React.ReactNode
 }
 
@@ -498,20 +498,20 @@ export interface FilterFieldConfig<T = unknown> {
 }
 
 // Helper functions to handle both flat and grouped field configurations
-const isFieldGroup = <T = unknown>(
+const isFieldGroup = <T = unknown,>(
 	item: FilterFieldConfig<T> | FilterFieldGroup<T>,
 ): item is FilterFieldGroup<T> => {
 	return 'fields' in item && Array.isArray(item.fields)
 }
 
 // Helper function to check if a FilterFieldConfig is a group-level configuration
-const isGroupLevelField = <T = unknown>(
+const isGroupLevelField = <T = unknown,>(
 	field: FilterFieldConfig<T>,
 ): boolean => {
 	return Boolean(field.group && field.fields)
 }
 
-const flattenFields = <T = unknown>(
+const flattenFields = <T = unknown,>(
 	fields: FilterFieldsConfig<T>,
 ): FilterFieldConfig<T>[] => {
 	return fields.reduce<FilterFieldConfig<T>[]>((acc, item) => {
@@ -526,7 +526,7 @@ const flattenFields = <T = unknown>(
 	}, [])
 }
 
-const getFieldsMap = <T = unknown>(
+const getFieldsMap = <T = unknown,>(
 	fields: FilterFieldsConfig<T>,
 ): Record<string, FilterFieldConfig<T>> => {
 	const flatFields = flattenFields(fields)
@@ -584,7 +584,7 @@ export const DEFAULT_OPERATORS: Record<string, FilterOperator[]> =
 	createOperatorsFromI18n(DEFAULT_I18N)
 
 // Helper function to get operators for a field
-const getOperatorsForField = <T = unknown>(
+const getOperatorsForField = <T = unknown,>(
 	field: FilterFieldConfig<T>,
 	values: T[],
 	i18n: FilterI18nConfig,
@@ -1056,7 +1056,7 @@ interface FiltersContentProps<T = unknown> {
 	onChange: (filters: Filter<T>[]) => void
 }
 
-export const FiltersContent = <T = unknown>({
+export const FiltersContent = <T = unknown,>({
 	filters,
 	fields,
 	onChange,
@@ -1897,7 +1897,7 @@ export function Filters<T = unknown>({
 	)
 }
 
-export const createFilter = <T = unknown>(
+export const createFilter = <T = unknown,>(
 	field: string,
 	operator?: string,
 	values: T[] = [],
@@ -1908,7 +1908,7 @@ export const createFilter = <T = unknown>(
 	values,
 })
 
-export const createFilterGroup = <T = unknown>(
+export const createFilterGroup = <T = unknown,>(
 	id: string,
 	label: string,
 	fields: FilterFieldConfig<T>[],

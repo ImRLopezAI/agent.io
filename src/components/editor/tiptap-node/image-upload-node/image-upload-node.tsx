@@ -3,6 +3,7 @@
 import type { NodeViewProps } from '@tiptap/react'
 import { NodeViewWrapper } from '@tiptap/react'
 import { useRef, useState } from 'react'
+
 import { CloseIcon } from '#/components/editor/tiptap-icons/close-icon'
 import { Button } from '#/components/editor/tiptap-ui-primitive/button'
 import { cn, focusNextNode, isValidPosition } from '#/lib/tiptap-utils'

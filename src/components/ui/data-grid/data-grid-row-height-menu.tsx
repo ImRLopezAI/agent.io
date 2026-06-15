@@ -2,19 +2,20 @@
 
 import type { Table } from '@tanstack/react-table'
 import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from './ui/select'
-import {
 	AlignVerticalSpaceAroundIcon,
 	ChevronsDownUpIcon,
 	EqualIcon,
 	MinusIcon,
 } from 'lucide-react'
 import * as React from 'react'
+
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from './ui/select'
 
 const rowHeights = [
 	{
@@ -39,8 +40,9 @@ const rowHeights = [
 	},
 ] as const
 
-interface DataGridRowHeightMenuProps<TData>
-	extends React.ComponentProps<typeof SelectContent> {
+interface DataGridRowHeightMenuProps<TData> extends React.ComponentProps<
+	typeof SelectContent
+> {
 	table: Table<TData>
 	disabled?: boolean
 }

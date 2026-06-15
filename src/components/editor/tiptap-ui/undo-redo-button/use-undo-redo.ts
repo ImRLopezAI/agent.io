@@ -3,11 +3,12 @@
 import type { Editor } from '@tiptap/react'
 import { useEditorState } from '@tiptap/react'
 import { useCallback, useEffect, useState } from 'react'
+
+// --- Hooks ---
+import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
 // --- Icons ---
 import { Redo2Icon } from '#/components/editor/tiptap-icons/redo2-icon'
 import { Undo2Icon } from '#/components/editor/tiptap-icons/undo2-icon'
-// --- Hooks ---
-import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
 // --- Lib ---
 import { isNodeTypeSelected } from '#/lib/tiptap-utils'
 

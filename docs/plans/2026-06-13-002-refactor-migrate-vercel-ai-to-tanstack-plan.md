@@ -1,5 +1,5 @@
 ---
-title: "refactor: Migrate app off Vercel AI SDK to TanStack AI"
+title: 'refactor: Migrate app off Vercel AI SDK to TanStack AI'
 type: refactor
 status: active
 date: 2026-06-13
@@ -101,7 +101,7 @@ into — so the orchestration is redesigned, not swapped.
   — `UIMessageChunk`/`UIMessage` stream transforms.
 - `src/server/ai/constants.ts` — `MODELS`, `PROVIDER_OPTIONS` → `modelOptions`.
 - `src/server/index.ts` — Hono route `POST ['/api/agents','/api/chat'] →
-  agentRequestHandler`.
+agentRequestHandler`.
 - `src/components/ui/ai/use-ai.ts` — `useChat` (`@ai-sdk/react`),
   `lastAssistantMessageIsCompleteWithApprovalResponses`, jotai atoms,
   `sendMessage({text,files},{body:{model,webSearch}})`.
@@ -120,15 +120,15 @@ into — so the orchestration is redesigned, not swapped.
 ### Key Type Contracts (installed)
 
 - `@tanstack/ai`: `chat({ adapter, messages, systemPrompts, tools,
-  modelOptions, agentLoopStrategy, middleware, outputSchema, stream })`;
+modelOptions, agentLoopStrategy, middleware, outputSchema, stream })`;
   `toServerSentEventsResponse(stream, { abortController })`; `toolDefinition({
-  name, description, inputSchema, outputSchema, needsApproval }).server(fn)
-  /.client(fn)`; `maxIterations`/`untilFinishReason`/`combineStrategies`.
+name, description, inputSchema, outputSchema, needsApproval }).server(fn)
+/.client(fn)`; `maxIterations`/`untilFinishReason`/`combineStrategies`.
   `chat()` accepts `UIMessage | ModelMessage` directly (no
   `convertToModelMessages`).
 - `@tanstack/ai-react`: `useChat({ connection, body, tools })` → `{ messages,
-  sendMessage(content, body?), isLoading, addToolApprovalResponse, reload,
-  connectionStatus }`; `fetchServerSentEvents(url, optsOrFn)` (per-request
+sendMessage(content, body?), isLoading, addToolApprovalResponse, reload,
+connectionStatus }`; `fetchServerSentEvents(url, optsOrFn)` (per-request
   `body`/`headers`); `UIMessage` parts: `{type:'text',content}`,
   `{type:'thinking',content}`, `{type:'tool-call',...}`, `{type:'tool-result',...}`.
 - `@tanstack/ai-client`: `clientTools(...)` for browser-executed tools.
@@ -151,7 +151,7 @@ into — so the orchestration is redesigned, not swapped.
 - **End-to-end first; live sub-streaming in Phase 2** (user decision). Sub-agent
   routing tools return their prose as the tool result so the loop keeps working;
   the live `data-agent-boundary` UX is reintroduced in Phase 2.
-  *Rationale:* ships a working migration fastest, isolates the one hard
+  _Rationale:_ ships a working migration fastest, isolates the one hard
   redesign.
 - **Drop `convertToModelMessages`.** `chat()` consumes UI messages directly;
   the wire format becomes TanStack `UIMessage` (parts with `content`).
@@ -187,7 +187,7 @@ into — so the orchestration is redesigned, not swapped.
 
 ## High-Level Technical Design
 
-> *This illustrates the intended approach and is directional guidance for review, not implementation specification. The implementing agent should treat it as context, not code to reproduce.*
+> _This illustrates the intended approach and is directional guidance for review, not implementation specification. The implementing agent should treat it as context, not code to reproduce._
 
 Request path, before → after:
 
@@ -207,19 +207,19 @@ flowchart LR
 
 Core mapping (from the migration guide):
 
-| Vercel AI SDK | TanStack AI | Where it lands |
-|---|---|---|
-| `streamText`/`ToolLoopAgent` | `chat({ adapter })` | `src/server/ai/index.ts` |
-| `convertToModelMessages` | *(removed)* | server handler |
-| `createUIMessageStreamResponse` | `toServerSentEventsResponse(stream)` | server handler |
-| `system:` | `systemPrompts: []` | server handler |
-| `providerOptions` | `modelOptions` | `constants.ts` + handler |
-| `tool({inputSchema,execute})` | `toolDefinition().server(fn)` | `routing.ts` |
-| `stopWhen: stepCountIs(N)` | `agentLoopStrategy: maxIterations(N)` | server handler |
-| `useChat`/`DefaultChatTransport` | `useChat`/`fetchServerSentEvents` | `use-ai.ts`/`use-agent.ts` |
-| `status` | `isLoading` | hooks + `conversation.tsx` |
-| `sendMessage({text},{body})` | `sendMessage(text, body)` | `use-ai.ts` |
-| `part.text` (text/reasoning) | `part.content` (text/thinking) | `ai-elements` |
+| Vercel AI SDK                    | TanStack AI                           | Where it lands             |
+| -------------------------------- | ------------------------------------- | -------------------------- |
+| `streamText`/`ToolLoopAgent`     | `chat({ adapter })`                   | `src/server/ai/index.ts`   |
+| `convertToModelMessages`         | _(removed)_                           | server handler             |
+| `createUIMessageStreamResponse`  | `toServerSentEventsResponse(stream)`  | server handler             |
+| `system:`                        | `systemPrompts: []`                   | server handler             |
+| `providerOptions`                | `modelOptions`                        | `constants.ts` + handler   |
+| `tool({inputSchema,execute})`    | `toolDefinition().server(fn)`         | `routing.ts`               |
+| `stopWhen: stepCountIs(N)`       | `agentLoopStrategy: maxIterations(N)` | server handler             |
+| `useChat`/`DefaultChatTransport` | `useChat`/`fetchServerSentEvents`     | `use-ai.ts`/`use-agent.ts` |
+| `status`                         | `isLoading`                           | hooks + `conversation.tsx` |
+| `sendMessage({text},{body})`     | `sendMessage(text, body)`             | `use-ai.ts`                |
+| `part.text` (text/reasoning)     | `part.content` (text/thinking)        | `ai-elements`              |
 
 Directional before/after (server handler):
 
@@ -259,15 +259,17 @@ return toServerSentEventsResponse(stream, { abortController })
 **Dependencies:** None (gateway adapter already shipped)
 
 **Files:**
+
 - Modify: `src/server/ai/index.ts`
 - Modify: `src/server/ai/constants.ts` (`PROVIDER_OPTIONS` → `modelOptions` shape)
 - Modify: `src/server/index.ts` (only if the handler signature/headers change)
 - Test: `src/server/ai/__tests__/chat-handler.test.ts`
 
 **Approach:**
+
 - `agentRequestHandler` parses `{ messages, model, webSearch }`, builds
   `chat({ adapter: gatewayText(model), systemPrompts, messages, tools,
-  modelOptions, agentLoopStrategy: maxIterations(N), abortController })`, returns
+modelOptions, agentLoopStrategy: maxIterations(N), abortController })`, returns
   `toServerSentEventsResponse(stream, { abortController })`.
 - Pass `req.signal` via an `AbortController` bridge.
 - Keep custom headers (`x-sunday-agent`, `x-model`) on the Response.
@@ -277,6 +279,7 @@ return toServerSentEventsResponse(stream, { abortController })
 `src/server/ai/gateway/__tests__/text-adapter.live.test.ts`.
 
 **Test scenarios:**
+
 - Happy path: POST with messages + model returns a streaming SSE Response whose
   events include text content and a terminal finish (mock the adapter stream).
 - Edge case: missing `model` falls back to the configured default.
@@ -297,6 +300,7 @@ return toServerSentEventsResponse(stream, { abortController })
 **Dependencies:** Unit 1
 
 **Files:**
+
 - Modify: `src/server/ai/index.ts` (consume messages directly)
 - Modify: `src/server/ai/agents/lib/strip-renderer-tool-parts.ts` (retype to
   TanStack `UIMessage`)
@@ -304,6 +308,7 @@ return toServerSentEventsResponse(stream, { abortController })
 - Test: `src/server/ai/__tests__/message-bridge.test.ts`
 
 **Approach:**
+
 - Accept `UIMessage[]` from the client and hand to `chat()` directly.
 - Audit Convex for persisted chat messages in the old shape; if present, add a
   small read-time normalizer (old `part.text` → `part.content`,
@@ -311,6 +316,7 @@ return toServerSentEventsResponse(stream, { abortController })
 - Re-type the message-filter helpers to the TanStack `UIMessage`.
 
 **Test scenarios:**
+
 - Happy path: a TanStack `UIMessage[]` passes through unmodified.
 - Integration: an assistant message with tool-call + a tool-result message
   round-trips into `chat()` and the loop resumes (no `convertToModelMessages`).
@@ -332,17 +338,19 @@ return the sub-agent's text — dropping `UIMessageStreamWriter` drain for Phase
 **Dependencies:** Unit 1
 
 **Files:**
+
 - Modify: `src/server/ai/agents/lib/routing.ts`
 - Modify (likely delete in Phase 1): `src/server/ai/agents/lib/{prefix-text-part-ids,rewrite-renderer-parts}.ts`
   (UIMessageChunk transforms not used when not draining)
 - Test: `src/server/ai/__tests__/routing-tools.test.ts`
 
 **Approach:**
+
 - `dbDoctor`/`renderer` become `toolDefinition({ name, description,
-  inputSchema, outputSchema }).server(async ({ prompt }) => { collect the
-  sub-agent chat() text; return { ok:true, text } })`.
+inputSchema, outputSchema }).server(async ({ prompt }) => { collect the
+sub-agent chat() text; return { ok:true, text } })`.
 - Sub-agent runs `chat({ adapter: gatewayText(subModel), systemPrompts:[...],
-  messages:[{role:'user',content:prompt}], stream:false })` (or iterate the
+messages:[{role:'user',content:prompt}], stream:false })` (or iterate the
   stream and accumulate text).
 - Preserve the db-doctor request-scoped cache keyed by normalized prompt
   (cache the returned text, not chunks).
@@ -352,6 +360,7 @@ return the sub-agent's text — dropping `UIMessageStreamWriter` drain for Phase
 capture the `{ ok, text }` contract the orchestrator depends on.
 
 **Test scenarios:**
+
 - Happy path: a routing tool returns `{ ok:true, text }` from a mocked
   sub-agent stream.
 - Edge case: db-doctor cache hit returns the cached text without re-running.
@@ -372,12 +381,14 @@ prose reaches the loop; no `UIMessageStreamWriter` remains.
 **Dependencies:** Unit 1 (server speaks AG-UI SSE)
 
 **Files:**
+
 - Modify: `src/components/ui/ai/use-ai.ts`
 - Modify: `src/components/ui/ai/use-agent.ts`
 - Modify: `src/components/ai/index.tsx`
 - Test: `src/components/ui/ai/__tests__/use-ai.test.tsx`
 
 **Approach:**
+
 - `useChat({ connection: fetchServerSentEvents('/api/chat'), tools })`.
 - `handleSubmit` → `sendMessage(text, { model, webSearch })` (per-request body);
   multimodal attachments via the multimodal `sendMessage` content form.
@@ -386,7 +397,7 @@ prose reaches the loop; no `UIMessageStreamWriter` remains.
   — TanStack auto-resumes after `addToolApprovalResponse` (verify in Unit 6).
 - Keep all jotai atoms (`modelAtom`, `webSearchAtom`, …) and hydration logic.
 
-**Technical design:** *(directional)*
+**Technical design:** _(directional)_
 
 ```text
 // before — use-agent.ts
@@ -396,6 +407,7 @@ fetchServerSentEvents('/api/agent', () => ({ body: resolvedBody }))
 ```
 
 **Test scenarios:**
+
 - Happy path: `sendMessage` posts text + `{model}` body; assistant text streams
   into `messages` (mock SSE).
 - Edge case: empty input shows the existing toast, no send.
@@ -415,11 +427,13 @@ the body; no `@ai-sdk/react`/`DefaultChatTransport` imports remain in hooks.
 **Dependencies:** Unit 4
 
 **Files:**
+
 - Modify: `src/components/ui/ai/conversation.tsx`
 - Modify: `src/components/ui/ai-elements/{message,tool,prompt-input,conversation,attachments,context,image,audio-player,transcription,agent,sandbox}.tsx`
 - Test: `src/components/ui/ai/__tests__/conversation.test.tsx`
 
 **Approach:**
+
 - Replace `ai` type imports with `@tanstack/ai-react` (`UIMessage`) /
   `@tanstack/ai` types; drop `ChatStatus`/`ChatRequestOptions`.
 - `part.type === 'text'` → `part.content`; `part.type === 'reasoning'` →
@@ -431,6 +445,7 @@ the body; no `@ai-sdk/react`/`DefaultChatTransport` imports remain in hooks.
   consistent.
 
 **Test scenarios:**
+
 - Happy path: a message with text parts renders content; assistant copy/retry
   actions still wire up.
 - Edge case: a `thinking` part renders in the reasoning UI while streaming.
@@ -450,6 +465,7 @@ files.
 **Dependencies:** Units 3, 4, 5
 
 **Files:**
+
 - Modify: `src/components/ui/ai-elements/confirmation.tsx`
 - Modify: `src/components/ui/ai/use-ai.ts` (expose `addToolApprovalResponse`)
 - Modify: `src/server/ai/agents/lib/routing.ts` (tools needing approval set
@@ -457,6 +473,7 @@ files.
 - Test: `src/components/ui/ai-elements/__tests__/confirmation.test.tsx`
 
 **Approach:**
+
 - Approval UI reads `part.type==='tool-call' && part.state==='approval-requested'`
   and calls `addToolApprovalResponse({ id: part.approval.id, approved })`.
 - Any tool that must run in the browser becomes `toolDefinition().client(fn)`
@@ -464,6 +481,7 @@ files.
   client tools today; if none, document and skip).
 
 **Test scenarios:**
+
 - Happy path: Approve calls `addToolApprovalResponse({approved:true})` and the
   loop resumes.
 - Happy path: Deny sends `{approved:false}`.
@@ -482,6 +500,7 @@ off `ai`.
 **Dependencies:** Units 1–6
 
 **Files:**
+
 - Modify: `package.json`, `bun.lock`
 - Modify: `src/lib/editor/markdown-joiner-transform.ts` (replace
   `TextStreamPart`/`ToolSet` from `ai` with local/editor types)
@@ -490,6 +509,7 @@ off `ai`.
   pattern for one real end-to-end chat round-trip
 
 **Approach:**
+
 - `grep -rl "from 'ai'\|@ai-sdk/react"` must return only gateway/`@ai-sdk/*`
   connector files; remove the two deps.
 - `markdown-joiner-transform.ts` is editor-only (`import type` of
@@ -498,6 +518,7 @@ off `ai`.
 - Verify with `node_modules/.bin/tsc` (not `npx tsc`).
 
 **Test scenarios:**
+
 - Happy path: `bun pm ls` shows `ai`/`@ai-sdk/react` gone; `@ai-sdk/gateway`
   present.
 - Integration (gated, real network): one `/api/chat` round-trip via `chat()` +
@@ -519,11 +540,13 @@ sub-agent text/tool steps appear live, and re-introduce agent-boundary grouping.
 **Dependencies:** Phase 1 complete
 
 **Files:**
+
 - Create: `src/server/ai/agents/lib/forward-subagent.ts`
 - Modify: `src/server/ai/agents/lib/routing.ts`
 - Test: `src/server/ai/__tests__/forward-subagent.test.ts`
 
 **Approach:**
+
 - Spike first: determine whether to inject sub-agent chunks via a `chat()`
   `middleware.onChunk` on the parent, or emit AG-UI `CUSTOM` events carrying
   sub-agent deltas, or run the parent stream through a merge that interleaves a
@@ -537,6 +560,7 @@ sub-agent text/tool steps appear live, and re-introduce agent-boundary grouping.
 deltas reach the parent SSE in order; build the real forwarder against it.
 
 **Test scenarios:**
+
 - Happy path: sub-agent text deltas appear in the parent stream between boundary
   start/end CUSTOM events, in order.
 - Edge case: two sub-agent calls in one turn don't interleave/clobber ids.
@@ -556,6 +580,7 @@ boundary grouping and ordering.
 **Dependencies:** Unit 8
 
 **Files:**
+
 - Modify: `src/server/ai/agents/lib/routing.ts`
 - Modify: `src/components/ui/ai-elements/agent.tsx` (render `agent.boundary`/
   `agent.step` CUSTOM events)
@@ -563,6 +588,7 @@ boundary grouping and ordering.
 - Test: `src/server/ai/__tests__/routing-streaming.test.ts`
 
 **Approach:**
+
 - Cache replays forwarded sub-agent chunks (mirror the old chunk-record/replay)
   keyed by normalized prompt.
 - Confirm whether `pipeJsonRender` (`@json-render/core`) can transform AG-UI
@@ -572,6 +598,7 @@ boundary grouping and ordering.
   `segmentParts` behavior) reading the new CUSTOM events.
 
 **Test scenarios:**
+
 - Happy path: renderer ```spec fence lifts to a spec event the UI renders.
 - Edge case: db-doctor cache hit replays a prior sub-stream with a
   "from cache" badge.
@@ -603,22 +630,24 @@ boundary grouping and ordering.
 
 ## Risks & Dependencies
 
-| Risk | Mitigation |
-|------|------------|
-| Sub-agent live streaming has no direct `chat()` equivalent | User-approved Phase 2 split; Unit 8 spikes the forwarding mechanism before committing |
-| Wire-format change breaks persisted/in-flight chats | Unit 2 audits Convex; coordinate server+client deploy; optional read-time normalizer |
-| `pipeJsonRender` may not consume AG-UI streams | Unit 9 confirms; add a thin shim if needed; renderer spec lifting isolated to one unit |
-| Broad ai-elements sweep (12 files) risks inconsistent parts handling | Unit 5 does it as one coordinated pass with a shared parts-rendering helper |
-| Approval auto-resume differs from Vercel's `sendAutomaticallyWhen` | Unit 6 verifies TanStack auto-resume against the real flow before removing the Vercel helper |
-| `npx tsc` is a stub in this repo → false green | Verify exclusively with `node_modules/.bin/tsc`; keep `docs/ref/**` excluded |
+| Risk                                                                 | Mitigation                                                                                   |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Sub-agent live streaming has no direct `chat()` equivalent           | User-approved Phase 2 split; Unit 8 spikes the forwarding mechanism before committing        |
+| Wire-format change breaks persisted/in-flight chats                  | Unit 2 audits Convex; coordinate server+client deploy; optional read-time normalizer         |
+| `pipeJsonRender` may not consume AG-UI streams                       | Unit 9 confirms; add a thin shim if needed; renderer spec lifting isolated to one unit       |
+| Broad ai-elements sweep (12 files) risks inconsistent parts handling | Unit 5 does it as one coordinated pass with a shared parts-rendering helper                  |
+| Approval auto-resume differs from Vercel's `sendAutomaticallyWhen`   | Unit 6 verifies TanStack auto-resume against the real flow before removing the Vercel helper |
+| `npx tsc` is a stub in this repo → false green                       | Verify exclusively with `node_modules/.bin/tsc`; keep `docs/ref/**` excluded                 |
 
 ## Phased Delivery
 
 ### Phase 1 (Units 1–7)
+
 Working chat end-to-end on TanStack AI; `ai`/`@ai-sdk/react` removed. Sub-agents
 return text (no live sub-stream UI). Shippable.
 
 ### Phase 2 (Units 8–9)
+
 Restore live sub-agent streaming, agent boundaries, db-doctor cache replay, and
 renderer spec lifting. Closes the Phase-1 UX regression.
 

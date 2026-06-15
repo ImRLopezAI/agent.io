@@ -28,6 +28,7 @@ import {
 	useState,
 	version,
 } from 'react'
+
 import { cn } from '#/lib/tiptap-utils'
 
 interface TooltipProviderProps {
@@ -42,14 +43,18 @@ interface TooltipProviderProps {
 	useDelayGroup?: boolean
 }
 
-interface TooltipTriggerProps
-	extends Omit<React.HTMLProps<HTMLElement>, 'ref'> {
+interface TooltipTriggerProps extends Omit<
+	React.HTMLProps<HTMLElement>,
+	'ref'
+> {
 	asChild?: boolean
 	children: React.ReactNode
 }
 
-interface TooltipContentProps
-	extends Omit<React.HTMLProps<HTMLDivElement>, 'ref'> {
+interface TooltipContentProps extends Omit<
+	React.HTMLProps<HTMLDivElement>,
+	'ref'
+> {
 	children?: React.ReactNode
 	portal?: boolean
 	portalProps?: Omit<React.ComponentProps<typeof FloatingPortal>, 'children'>

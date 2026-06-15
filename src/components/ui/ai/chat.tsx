@@ -2,6 +2,7 @@
 
 import { CheckIcon, GlobeIcon } from 'lucide-react'
 import { useMemo } from 'react'
+
 import {
 	ModelSelector,
 	ModelSelectorContent,

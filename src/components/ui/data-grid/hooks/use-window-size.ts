@@ -10,10 +10,12 @@ interface UseWindowSizeProps {
 	defaultHeight?: number
 }
 
-export function useWindowSize(props: UseWindowSizeProps = {
-	defaultWidth: 1200,
-	defaultHeight: 800,
-}): WindowSize {
+export function useWindowSize(
+	props: UseWindowSizeProps = {
+		defaultWidth: 1200,
+		defaultHeight: 800,
+	},
+): WindowSize {
 	const { defaultWidth = 1200, defaultHeight = 800 } = props
 
 	const [windowSize, setWindowSize] = React.useState<WindowSize>({

@@ -6,9 +6,11 @@ import { useAuth } from '@workos/authkit-tanstack-react-start/client'
 import { Check, Settings as SettingsIcon } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+
 import { useOnOrgChanged } from '@/app/_shell/modules/utils/use-on-org-changed'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
+
 import { OrganizationView } from './organization-view'
 
 export type OrganizationRowProps = {

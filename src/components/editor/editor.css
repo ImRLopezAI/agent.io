@@ -1,5 +1,5 @@
-@import "./styles/_variables.scss";
-@import "./styles/_keyframe-animations.scss";
+@import './styles/_variables.scss';
+@import './styles/_keyframe-animations.scss';
 
 @layer components {
 	.icon-button {
@@ -113,7 +113,7 @@
 		z-index: 10;
 	}
 
-	.editor-drag-handle[data-dragging="true"] {
+	.editor-drag-handle[data-dragging='true'] {
 		opacity: 0.45;
 	}
 }

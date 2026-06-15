@@ -3,6 +3,7 @@ import type {
 	ColumnFiltersState,
 	SortingState,
 } from '@tanstack/react-table'
+
 import type { DataGridPreviewRenderer } from '../data-grid-preview'
 import type { FilterValue } from '../lib/data-grid-filter-schema'
 import type { TableVariant } from '../lib/data-grid-variants'
@@ -309,8 +310,7 @@ export interface DataGridServerStructuredFilter {
 	value: FilterValue
 }
 
-export interface DataGridServerFilterCommitState
-	extends DataGridServerFilterState {
+export interface DataGridServerFilterCommitState extends DataGridServerFilterState {
 	search?: string
 	structuredFilters?: DataGridServerStructuredFilter[]
 	orderBy?: DataGridServerOrderBy

@@ -2,6 +2,7 @@ import type { FetchConnectionOptions } from '@tanstack/ai-react'
 import { fetchServerSentEvents } from '@tanstack/ai-react'
 import type React from 'react'
 import { useMemo, useRef } from 'react'
+
 import { useAi } from './use-ai'
 
 const AGENTS_URL = `${import.meta.env.VITE_CONVEX_SITE_URL}/api/agents`

@@ -17,8 +17,7 @@ import { gatewayText } from './gateway'
  */
 export async function agentRequestHandler(req: Request) {
 	const rawBody: unknown = await req.json()
-	const { messages, forwardedProps } =
-		await chatParamsFromRequestBody(rawBody)
+	const { messages, forwardedProps } = await chatParamsFromRequestBody(rawBody)
 
 	const model =
 		(typeof forwardedProps.model === 'string'

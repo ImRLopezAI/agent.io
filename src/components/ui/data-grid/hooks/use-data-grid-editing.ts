@@ -1,5 +1,6 @@
 import type { useReactTable } from '@tanstack/react-table'
 import * as React from 'react'
+
 import { getCellKey, scrollCellIntoView } from '../lib/data-grid'
 import type {
 	CellPosition,

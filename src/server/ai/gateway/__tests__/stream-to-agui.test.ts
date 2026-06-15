@@ -1,6 +1,7 @@
 import type { LanguageModelV3StreamPart } from '@ai-sdk/provider'
 import { EventType } from '@tanstack/ai'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vite-plus/test'
+
 import { type StreamToAguiContext, streamToAgui } from '../text/stream-to-agui'
 
 function streamOf(
@@ -205,7 +206,9 @@ describe('streamToAgui', () => {
 			}),
 		)
 
-		const firstStart = first.find((e) => e.type === EventType.TEXT_MESSAGE_START)!
+		const firstStart = first.find(
+			(e) => e.type === EventType.TEXT_MESSAGE_START,
+		)!
 		const secondStart = second.find(
 			(e) => e.type === EventType.TEXT_MESSAGE_START,
 		)!

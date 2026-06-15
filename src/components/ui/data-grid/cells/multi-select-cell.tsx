@@ -1,5 +1,15 @@
 'use client'
 
+import { Check, X } from 'lucide-react'
+import * as React from 'react'
+
+import { cn } from '#/lib/utils'
+
+import { useDataGridActions } from '../contexts/data-grid-actions-context'
+import { DataGridCellWrapper } from '../data-grid-cell-wrapper'
+import { useBadgeOverflow } from '../hooks/use-badge-overflow'
+import { getCellKey, getLineCount } from '../lib/data-grid'
+import type { DataGridCellProps } from '../types/data-grid'
 import { Badge } from '../ui/badge'
 import {
 	Command,
@@ -11,15 +21,6 @@ import {
 	CommandSeparator,
 } from '../ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
-import { Check, X } from 'lucide-react'
-import * as React from 'react'
-import { cn } from '#/lib/utils'
-
-import { useDataGridActions } from '../contexts/data-grid-actions-context'
-import { DataGridCellWrapper } from '../data-grid-cell-wrapper'
-import { useBadgeOverflow } from '../hooks/use-badge-overflow'
-import { getCellKey, getLineCount } from '../lib/data-grid'
-import type { DataGridCellProps } from '../types/data-grid'
 
 export function MultiSelectCell<TData>({
 	cell,

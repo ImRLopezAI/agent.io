@@ -3,11 +3,12 @@
 import type { Editor } from '@tiptap/react'
 import { useCallback, useEffect, useState } from 'react'
 import { useHotkeys } from 'react-hotkeys-hook'
-// --- Icons ---
-import { HighlighterIcon } from '#/components/editor/tiptap-icons/highlighter-icon'
+
 import { useIsBreakpoint } from '#/components/editor/hooks/use-is-breakpoint'
 // --- Hooks ---
 import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
+// --- Icons ---
+import { HighlighterIcon } from '#/components/editor/tiptap-icons/highlighter-icon'
 // --- Lib ---
 import {
 	isExtensionAvailable,

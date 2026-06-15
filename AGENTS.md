@@ -1,4 +1,5 @@
 <!-- CodeGraph:start -->
+
 ## MCP Call
 
 Before any tool calling about the code base use the CodeGraph MCP to the MCP already loaded in the tool and it already indexed the code base completely.
@@ -6,9 +7,11 @@ Before any tool calling about the code base use the CodeGraph MCP to the MCP alr
 <!-- CodeGraph:end -->
 
 <!-- intent-skills:start -->
+
 ## Skill Loading
 
 Before substantial work:
+
 - Skill check: run `bunx @tanstack/intent@latest list`, or use skills already listed in context.
 - Skill guidance: if one local skill clearly matches the task, run `bunx @tanstack/intent@latest load <package>#<skill>` and follow the returned `SKILL.md`.
 - Monorepos: when working across packages, run the skill check from the workspace root and prefer the local skill for the package being changed.
@@ -23,8 +26,8 @@ use Jotai for UI state management.
 dont use useEffect to fetch data, use the `useQuery` hook to fetch the data.
 
 ## Design Guidelines Skills
-This skills are used to review the design of the feature and to hand off the design to the designer and create better designs and works specially together as plugin.
 
+This skills are used to review the design of the feature and to hand off the design to the designer and create better designs and works specially together as plugin.
 
 Have in mind this
 AI Slop Web Design Guide:

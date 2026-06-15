@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import type { ComponentProps, HTMLAttributes, ReactNode } from 'react'
 import { createContext, useCallback, useContext, useMemo } from 'react'
+
 import { cn } from '#/lib/utils'
 
 import type { FileUIPart, SourceDocumentUIPart } from './ai-compat-types'

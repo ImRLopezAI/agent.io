@@ -1,7 +1,6 @@
 'use client'
 import { mergeProps } from '@base-ui/react/merge-props'
 import { useRender } from '@base-ui/react/use-render'
-
 import {
 	type Announcements,
 	closestCenter,
@@ -40,7 +39,9 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
+
 import { cn } from '#/lib/utils'
+
 import { useComposedRefs } from '../lib/compose-refs'
 
 const orientationConfig = {
@@ -542,8 +543,10 @@ const dropAnimation: DropAnimation = {
 	}),
 }
 
-interface SortableOverlayProps
-	extends Omit<React.ComponentProps<typeof DragOverlay>, 'children'> {
+interface SortableOverlayProps extends Omit<
+	React.ComponentProps<typeof DragOverlay>,
+	'children'
+> {
 	container?: Element | DocumentFragment | null
 	children?:
 		| ((params: { value: UniqueIdentifier }) => React.ReactNode)

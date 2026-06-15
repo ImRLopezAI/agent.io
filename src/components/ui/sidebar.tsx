@@ -18,6 +18,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@ui/tooltip'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { PanelLeftIcon } from 'lucide-react'
 import * as React from 'react'
+
 import { useIsMobile } from '#/hooks/use-mobile'
 import { cn } from '#/lib/utils'
 

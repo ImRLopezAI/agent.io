@@ -12,8 +12,8 @@
 		"test": "vp test run",
 		"start": "node  .output/server/index.mjs",
 		"clean": "git clean -xdf .cache .turbo node_modules dist .tanstack .output",
-		"lint": "vp lint  . --fix",
-		"typecheck": "vp check",
+		"lint": "biome check . --write",
+		"typecheck": "vp check --fix",
 		"db:dev": "convex dev"
 	},
 	"dependencies": {

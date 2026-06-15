@@ -1,4 +1,5 @@
 import { cva, type VariantProps } from 'class-variance-authority'
+
 import type { StatusKey } from '#/lib/constants'
 
 export const badgeVariants = cva(

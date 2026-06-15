@@ -3,13 +3,14 @@
 import type { ChainedCommands } from '@tiptap/react'
 import { type Editor, useEditorState } from '@tiptap/react'
 import { useCallback, useEffect, useState } from 'react'
+
+// --- Hooks ---
+import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
 // --- Icons ---
 import { AlignCenterIcon } from '#/components/editor/tiptap-icons/align-center-icon'
 import { AlignJustifyIcon } from '#/components/editor/tiptap-icons/align-justify-icon'
 import { AlignLeftIcon } from '#/components/editor/tiptap-icons/align-left-icon'
 import { AlignRightIcon } from '#/components/editor/tiptap-icons/align-right-icon'
-// --- Hooks ---
-import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
 // --- Lib ---
 import { isExtensionAvailable, isNodeTypeSelected } from '#/lib/tiptap-utils'
 

@@ -11,6 +11,7 @@
  */
 
 import type { Cell } from '@tanstack/react-table'
+
 import type {
 	CellValueByVariant,
 	DataGridCellProps,

@@ -9,6 +9,7 @@ import {
 import { ScrollArea } from '@ui/scroll-area'
 import { ChevronDownIcon, PaperclipIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
+
 import { cn } from '#/lib/utils'
 
 export interface QueueMessagePart {

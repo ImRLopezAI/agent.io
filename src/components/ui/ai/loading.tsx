@@ -1,6 +1,7 @@
 import { LoaderIcon } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState } from 'react'
+
 import { SPINNER_VERBS } from '../ai-elements/spinners'
 import { AiRobotixLogo } from '../logo'
 import { ShimmeringText } from '../unlumen-ui/shimmering-text'

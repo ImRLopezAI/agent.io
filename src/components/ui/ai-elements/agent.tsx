@@ -10,6 +10,7 @@ import { Badge } from '@ui/badge'
 import { BotIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
 import { memo } from 'react'
+
 import { cn } from '#/lib/utils'
 
 import type { Tool } from './ai-compat-types'

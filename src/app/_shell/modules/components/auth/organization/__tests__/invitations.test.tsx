@@ -8,7 +8,7 @@ import {
 	waitFor,
 } from '@testing-library/react'
 import type { ReactNode } from 'react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 
 /**
  * Unit 6 — the org-invitations surface.
@@ -86,9 +86,8 @@ vi.mock('@tanstack/react-router', () => ({
 }))
 
 const { useOrgOpts } = await import('@/app/_shell/modules/utils/use-org-opts')
-const { OrganizationInvitationRow } = await import(
-	'../organization-invitation-row'
-)
+const { OrganizationInvitationRow } =
+	await import('../organization-invitation-row')
 
 // --- fixtures ---
 

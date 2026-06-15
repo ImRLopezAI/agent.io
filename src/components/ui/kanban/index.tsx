@@ -44,7 +44,9 @@ import { HotkeysProvider } from '@tanstack/react-hotkeys'
 import { createStore, Provider, useAtomValue, useSetAtom } from 'jotai'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
+
 import { cn } from '@/lib/utils'
+
 import { useComposedRefs } from './compose-refs'
 import {
 	useKanbanColumnHandleOptional,
@@ -655,9 +657,7 @@ function KanbanRoot<T>(props: KanbanRootProps<T>) {
 function useSyncKanbanHandle(
 	handleKey: string,
 	state: KanbanSortableHandleState,
-	family:
-		| typeof kanbanColumnHandleAtomFamily
-		| typeof kanbanItemHandleAtomFamily,
+	family: typeof kanbanColumnHandleAtomFamily,
 ) {
 	const handleAtom = family(handleKey)
 	const setHandle = useSetAtom(handleAtom)
@@ -1081,8 +1081,10 @@ const dropAnimation: DropAnimation = {
 	}),
 }
 
-interface KanbanOverlayProps
-	extends Omit<React.ComponentPropsWithoutRef<typeof DragOverlay>, 'children'> {
+interface KanbanOverlayProps extends Omit<
+	React.ComponentPropsWithoutRef<typeof DragOverlay>,
+	'children'
+> {
 	container?: Element | DocumentFragment | null
 	children?:
 		| ((params: {

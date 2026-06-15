@@ -24,6 +24,7 @@ import {
 	XAxis as RechartsXAxis,
 	YAxis as RechartsYAxis,
 } from 'recharts'
+
 import {
 	type ChartConfig,
 	ChartContainer,

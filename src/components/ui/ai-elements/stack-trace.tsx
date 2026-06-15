@@ -24,6 +24,7 @@ import {
 	useRef,
 	useState,
 } from 'react'
+
 import { cn } from '#/lib/utils'
 
 // Regex patterns for parsing stack traces

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vite-plus/test'
 
 // Mock the gateway provider so the handler runs chat() end-to-end with a fake
 // LanguageModelV3 stream (no network).
@@ -24,7 +24,11 @@ vi.mock('../gateway/provider', () => {
 							{ type: 'text-start', id: 'm1' },
 							{ type: 'text-delta', id: 'm1', delta: 'Hello' },
 							{ type: 'text-end', id: 'm1' },
-							{ type: 'finish', usage, finishReason: { unified: 'stop', raw: 'stop' } },
+							{
+								type: 'finish',
+								usage,
+								finishReason: { unified: 'stop', raw: 'stop' },
+							},
 						]),
 					}
 				},

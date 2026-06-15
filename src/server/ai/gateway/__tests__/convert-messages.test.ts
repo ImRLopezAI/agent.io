@@ -1,5 +1,6 @@
 import type { ModelMessage } from '@tanstack/ai'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vite-plus/test'
+
 import { convertMessages } from '../text/convert-messages'
 
 describe('convertMessages', () => {

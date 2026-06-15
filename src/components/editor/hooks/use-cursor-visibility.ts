@@ -2,6 +2,7 @@
 
 import type { Editor } from '@tiptap/react'
 import { useEffect } from 'react'
+
 import { useBodyRect } from '#/components/editor/hooks/use-element-rect'
 import { useWindowSize } from '#/components/editor/hooks/use-window-size'
 

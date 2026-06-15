@@ -1,5 +1,5 @@
 import { chat, EventType } from '@tanstack/ai'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vite-plus/test'
 
 // Mock the shared provider so no network is hit. The fake LanguageModelV3
 // streams "Hello" then finishes, and doGenerate returns a JSON object.

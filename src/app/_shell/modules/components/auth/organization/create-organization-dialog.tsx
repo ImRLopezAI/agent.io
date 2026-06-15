@@ -6,6 +6,7 @@ import { useMutation } from '@tanstack/react-query'
 import { useAuth } from '@workos/authkit-tanstack-react-start/client'
 import { Briefcase } from 'lucide-react'
 import { toast } from 'sonner'
+
 import { mapOrpcError } from '@/app/_shell/modules/utils/map-orpc-error'
 import { useOnOrgChanged } from '@/app/_shell/modules/utils/use-on-org-changed'
 import {
@@ -20,7 +21,6 @@ import {
 } from '@/components/ui/alert-dialog'
 import { useCreateForm } from '@/components/ui/form'
 import { $api } from '@/lib/rpc/client'
-
 
 /** Props for the `CreateOrganizationDialog` component. */
 export type CreateOrganizationDialogProps = {

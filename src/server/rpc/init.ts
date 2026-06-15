@@ -1,7 +1,9 @@
 import { implement, ORPCError } from '@orpc/server'
 import type { ResponseHeadersPluginContext } from '@orpc/server/plugins'
 import { getAuth } from '@workos/authkit-tanstack-react-start'
+
 import { workOs } from '@/lib/work-os'
+
 import { contract } from './contracts'
 export type RpcContext = ResponseHeadersPluginContext & {
 	headers: Headers

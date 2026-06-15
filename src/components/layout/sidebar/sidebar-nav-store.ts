@@ -1,6 +1,7 @@
 'use client'
 
 import { useSyncExternalStore } from 'react'
+
 import type { NavGroup } from './items'
 import type { NavStackFrame } from './nav-utils'
 import { findWrappedStackForPathname } from './nav-utils'

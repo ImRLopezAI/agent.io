@@ -6,6 +6,7 @@ import { Separator } from '@ui/separator'
 import { Check, ChevronRight, Copy } from 'lucide-react'
 import type { JSX } from 'react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
 import { useIsMobile } from '#/hooks/use-mobile'
 import { cn } from '#/lib/utils'
 

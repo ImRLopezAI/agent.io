@@ -1,6 +1,6 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { createElement } from 'react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vite-plus/test'
 
 import { getCellKey, parseCellKey, parseLocalDate } from '../data-grid'
 

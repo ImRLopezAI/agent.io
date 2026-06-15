@@ -1,5 +1,6 @@
 import type { TextOptions } from '@tanstack/ai'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vite-plus/test'
+
 import { mapOptions } from '../text/map-options'
 
 function baseOptions(over: Partial<TextOptions> = {}): TextOptions {

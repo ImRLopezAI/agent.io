@@ -1,5 +1,6 @@
 import type { useReactTable } from '@tanstack/react-table'
 import * as React from 'react'
+
 import { getCellKey, parseCellKey } from '../lib/data-grid'
 import type { CellPosition } from '../types/data-grid'
 import { type DataGridStore, useStore } from './use-data-grid-store'

@@ -5,6 +5,7 @@ import type {
 	NameType,
 	ValueType,
 } from 'recharts/types/component/DefaultTooltipContent'
+
 import {
 	getColorsCount,
 	getPayloadConfigFromPayload,

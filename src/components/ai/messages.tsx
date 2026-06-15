@@ -1,4 +1,3 @@
-import { SpinnerVerbsShimmer, StreamingFooterIndicator } from '@ui/ai/loading'
 import {
 	Confirmation,
 	ConfirmationAccepted,
@@ -28,6 +27,7 @@ import {
 	ReasoningTrigger,
 } from '@ui/ai-elements/reasoning'
 import { Shimmer } from '@ui/ai-elements/shimmer'
+import { SpinnerVerbsShimmer, StreamingFooterIndicator } from '@ui/ai/loading'
 import { Badge } from '@ui/badge'
 import {
 	Collapsible,
@@ -54,6 +54,7 @@ import {
 	useMemo,
 	useState,
 } from 'react'
+
 import { cn } from '#/lib/utils'
 
 import { useAiChat } from './context'
@@ -64,7 +65,9 @@ import {
 	segmentParts,
 } from './segment-parts'
 
-type MessagePart = ReturnType<typeof useAiChat>['messages'][number]['parts'][number]
+type MessagePart = ReturnType<
+	typeof useAiChat
+>['messages'][number]['parts'][number]
 type MessageRole = ReturnType<typeof useAiChat>['messages'][number]['role']
 
 /**

@@ -1,6 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query'
 import type { Organization } from '@workos-inc/node'
+
 import { $api } from '@/lib/rpc/client'
+
 import { mapOrpcError } from './map-orpc-error'
 import {
 	invitationsResendOpts,

@@ -1,6 +1,9 @@
 'use client'
 
 import type { Editor } from '@tiptap/react'
+
+// --- Hooks ---
+import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
 // --- Icons ---
 import { ListIcon } from '#/components/editor/tiptap-icons/list-icon'
 import { ListOrderedIcon } from '#/components/editor/tiptap-icons/list-ordered-icon'
@@ -12,8 +15,6 @@ import {
 	type ListType,
 	listIcons,
 } from '#/components/editor/tiptap-ui/list-button'
-// --- Hooks ---
-import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
 // --- Lib ---
 import { isNodeInSchema } from '#/lib/tiptap-utils'
 

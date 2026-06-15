@@ -14,6 +14,7 @@ import type {
 import type { TextOptions } from '@tanstack/ai'
 import { convertSchemaToJsonSchema, normalizeSystemPrompts } from '@tanstack/ai'
 import type { JSONSchema7 } from 'json-schema'
+
 import { convertMessages } from './convert-messages'
 import { convertTools } from './convert-tools'
 

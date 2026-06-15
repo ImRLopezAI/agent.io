@@ -1,23 +1,22 @@
 'use client'
 
 import { forwardRef, useCallback } from 'react'
+
+import { Badge } from '#/components/editor/tiptap-ui-primitive/badge'
+// --- UI Primitives ---
+import type { ButtonProps } from '#/components/editor/tiptap-ui-primitive/button'
+import { Button } from '#/components/editor/tiptap-ui-primitive/button'
 // --- Tiptap UI ---
 import type { UseSlashCommandTriggerConfig } from '#/components/editor/tiptap-ui/slash-command-trigger-button'
 import {
 	SLASH_COMMAND_TRIGGER_SHORTCUT_KEYS,
 	useSlashCommandTrigger,
 } from '#/components/editor/tiptap-ui/slash-command-trigger-button'
-import { Badge } from '#/components/editor/tiptap-ui-primitive/badge'
-
-// --- UI Primitives ---
-import type { ButtonProps } from '#/components/editor/tiptap-ui-primitive/button'
-import { Button } from '#/components/editor/tiptap-ui-primitive/button'
 // --- Lib ---
 import { parseShortcutKeys } from '#/lib/tiptap-utils'
 
 export interface SlashCommandTriggerButtonProps
-	extends ButtonProps,
-		UseSlashCommandTriggerConfig {
+	extends ButtonProps, UseSlashCommandTriggerConfig {
 	/**
 	 * Optional text to display alongside the icon.
 	 */

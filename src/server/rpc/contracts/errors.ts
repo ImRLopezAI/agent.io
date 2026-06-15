@@ -28,7 +28,8 @@ export const baseErrors = {
 		status: 403,
 	},
 	NO_ACTIVE_ORGANIZATION: {
-		message: 'No active organization on the session. Pick an organization first.',
+		message:
+			'No active organization on the session. Pick an organization first.',
 		status: 403,
 	},
 	NO_ADMIN_ROLE: {

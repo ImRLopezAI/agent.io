@@ -1,6 +1,12 @@
 'use client'
 
 import type { Table } from '@tanstack/react-table'
+import { ChevronLeftIcon, ChevronRightIcon, Loader2 } from 'lucide-react'
+import { motion } from 'motion/react'
+import * as React from 'react'
+
+import { cn } from '#/lib/utils'
+
 import { Button } from './ui/button'
 import {
 	Select,
@@ -10,10 +16,6 @@ import {
 	SelectValue,
 } from './ui/select'
 import { Skeleton } from './ui/skeleton'
-import { ChevronLeftIcon, ChevronRightIcon, Loader2 } from 'lucide-react'
-import { motion } from 'motion/react'
-import * as React from 'react'
-import { cn } from '#/lib/utils'
 
 interface ManualPaginationOptions {
 	onLoadMore: () => void | Promise<void>

@@ -14,6 +14,7 @@ import {
 } from '@ui/command'
 import { SearchIcon } from 'lucide-react'
 import React, { useState } from 'react'
+
 import { useAppSidebar } from '@/components/layout/sidebar/context'
 
 export default function Search() {
@@ -25,8 +26,12 @@ export default function Search() {
 			<Button size='icon' variant='ghost' onClick={() => setOpen(true)}>
 				<SearchIcon />
 			</Button>
-			<CommandDialog open={open} onOpenChange={setOpen} className='fixed top-1/8 w-full min-w-2/5 md:min-w-4/5 lg:min-w-3/5'>
-				<Command >
+			<CommandDialog
+				open={open}
+				onOpenChange={setOpen}
+				className='fixed top-1/8 w-full min-w-2/5 md:min-w-4/5 lg:min-w-3/5'
+			>
+				<Command>
 					<CommandInput placeholder='Type a command or search...' />
 					<CommandList>
 						<CommandEmpty>No results found.</CommandEmpty>

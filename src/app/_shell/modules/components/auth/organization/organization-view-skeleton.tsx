@@ -2,6 +2,7 @@
 
 import { cn } from '@lib/utils'
 import type { ComponentProps } from 'react'
+
 import { Skeleton } from '@/components/ui/skeleton'
 
 export type OrganizationViewSkeletonProps = {

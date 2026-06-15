@@ -1,6 +1,7 @@
 'use client'
 
 import { useAtomValue } from 'jotai'
+
 import { mentionContextAtomFamily } from './editor-atoms'
 import { useEditorChrome } from './editor-context'
 import type { MentionSuggestionItem } from './extensions/mention-config'

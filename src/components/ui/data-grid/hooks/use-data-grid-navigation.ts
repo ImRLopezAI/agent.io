@@ -1,6 +1,7 @@
 import type { ColumnDef, useReactTable } from '@tanstack/react-table'
 import type { Virtualizer } from '@tanstack/react-virtual'
 import * as React from 'react'
+
 import {
 	getCellKey,
 	getRowHeightValue,
@@ -278,9 +279,9 @@ function useDataGridNavigation<TData>({
 							direction === 'ctrl+home'
 								? 'start'
 								: direction === 'down' ||
-										direction === 'pagedown' ||
-										direction === 'ctrl+down' ||
-										direction === 'ctrl+end'
+									  direction === 'pagedown' ||
+									  direction === 'ctrl+down' ||
+									  direction === 'ctrl+end'
 									? 'end'
 									: 'center'
 

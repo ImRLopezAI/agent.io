@@ -1,5 +1,5 @@
 import type { ImageModelV3CallOptions } from '@ai-sdk/provider'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 
 import { GatewayImageAdapter } from '../image/adapter'
 import { createGatewayProvider } from '../provider'

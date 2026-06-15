@@ -3,8 +3,9 @@
 import { MODELS } from '@server/ai/constants'
 import { fetchServerSentEvents } from '@tanstack/ai-react'
 import { useAi } from '@ui/ai/use-ai'
-import { AiChatProvider } from './context'
+
 import { ChatPrompt } from './chat'
+import { AiChatProvider } from './context'
 import { ChatMessages } from './messages'
 const CHAT_URL = `${import.meta.env.VITE_CONVEX_SITE_URL}/api/chat`
 if (!CHAT_URL) {

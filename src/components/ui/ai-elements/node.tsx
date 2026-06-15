@@ -9,6 +9,7 @@ import {
 } from '@ui/card'
 import { Handle, Position } from '@xyflow/react'
 import type { ComponentProps } from 'react'
+
 import { cn } from '#/lib/utils'
 
 export type NodeProps = ComponentProps<typeof Card> & {

@@ -6,10 +6,10 @@ import {
 	DrawerTitle,
 	DrawerTrigger,
 } from '../drawer'
+import { AiRobotixLogo } from '../logo'
 import { ChatIteration } from './chat'
 import { ChatConversation } from './conversation'
 import type { useAi } from './use-ai'
-import { AiRobotixLogo } from '../logo'
 
 interface ChatDrawerProps extends React.ComponentProps<typeof DrawerTrigger> {
 	handler: ReturnType<typeof useAi>
@@ -24,7 +24,7 @@ export function AiChatDrawer({
 	...props
 }: ChatDrawerProps) {
 	return (
-		<Drawer direction={direction} >
+		<Drawer direction={direction}>
 			<DrawerTrigger {...props} />
 			<DrawerContent className='flex size-full max-h-[90vh]'>
 				<DrawerHeader className='flex flex-row items-center space-x-4 border-b px-4 py-2'>

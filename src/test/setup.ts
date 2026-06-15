@@ -1,5 +1,4 @@
 import '@testing-library/jest-dom/vitest'
-
 import { ResizeObserver as ResizeObserverPolyfill } from '@juggle/resize-observer'
 import { compute as computeScrollIntoView } from 'compute-scroll-into-view'
 
@@ -18,7 +17,7 @@ if (typeof Element !== 'undefined') {
 			const options =
 				typeof arg === 'object'
 					? arg
-					: { block: arg ? 'start' : 'end' } satisfies ScrollIntoViewOptions
+					: ({ block: arg ? 'start' : 'end' } satisfies ScrollIntoViewOptions)
 
 			for (const { el, top, left } of computeScrollIntoView(this, {
 				block: 'nearest',

@@ -31,6 +31,7 @@ import {
 	useState,
 } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+
 import { cn } from '#/lib/utils'
 // ─── Types ───
 
@@ -113,7 +114,7 @@ export const MENTION_CONFIGS: MentionConfig[] = [
 		label: 'Tools',
 		icon: Hammer,
 		className: 'bg-blue-400/30 ',
-		options: flattenAgentTools(AGENTS)
+		options: flattenAgentTools(AGENTS),
 	},
 ]
 

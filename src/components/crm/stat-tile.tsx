@@ -1,4 +1,5 @@
 import { ArrowDown, ArrowUp, type LucideIcon } from 'lucide-react'
+
 import { cn } from '@/lib/utils'
 
 export interface StatTileProps {
@@ -40,27 +41,26 @@ export function StatTile({
 				<span className='font-bold font-heading text-[1.125rem] text-foreground tabular-nums flex items-center gap-1.5'>
 					{value}
 					{(delta || note) && (
-					<div className='flex items-center gap-1.5'>
-						{delta && (
-							<span
-								className={cn(
-									'flex items-center gap-0.5 font-caption font-semibold text-[11px]',
-									trend === 'up' ? 'text-success' : 'text-destructive',
-								)}
-							>
-								<TrendIcon className='size-3' />
-								{delta}
-							</span>
-						)}
-						{note && (
-							<span className='font-caption text-[10px] text-muted-foreground'>
-								{note}
-							</span>
-						)}
-					</div>
-				)}
+						<div className='flex items-center gap-1.5'>
+							{delta && (
+								<span
+									className={cn(
+										'flex items-center gap-0.5 font-caption font-semibold text-[11px]',
+										trend === 'up' ? 'text-success' : 'text-destructive',
+									)}
+								>
+									<TrendIcon className='size-3' />
+									{delta}
+								</span>
+							)}
+							{note && (
+								<span className='font-caption text-[10px] text-muted-foreground'>
+									{note}
+								</span>
+							)}
+						</div>
+					)}
 				</span>
-
 			</div>
 		</div>
 	)

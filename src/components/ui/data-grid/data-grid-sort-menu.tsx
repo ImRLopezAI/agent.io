@@ -2,6 +2,11 @@
 
 import { useDirection } from '@base-ui/react/direction-provider'
 import type { ColumnSort, Table } from '@tanstack/react-table'
+import { ArrowDownUp, ChevronsUpDown, GripVertical, Trash2 } from 'lucide-react'
+import * as React from 'react'
+
+import { cn } from '#/lib/utils'
+
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import {
@@ -20,9 +25,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from './ui/select'
-import { ArrowDownUp, ChevronsUpDown, GripVertical, Trash2 } from 'lucide-react'
-import * as React from 'react'
-import { cn } from '#/lib/utils'
 import {
 	Sortable,
 	SortableContent,
@@ -39,8 +41,9 @@ const SORT_ORDERS = [
 	{ label: 'Desc', value: 'desc' },
 ]
 
-interface DataGridSortMenuProps<TData>
-	extends React.ComponentProps<typeof PopoverContent> {
+interface DataGridSortMenuProps<TData> extends React.ComponentProps<
+	typeof PopoverContent
+> {
 	table: Table<TData>
 	disabled?: boolean
 }

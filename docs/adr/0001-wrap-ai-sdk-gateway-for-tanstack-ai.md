@@ -32,7 +32,7 @@ Key facts established during design:
   narrower `AnyTextAdapter`. Model coverage comes from passing the
   `provider/model` id through to `gateway(modelId)`, not from any type.
 - The installed gateway exposes `KNOWN_MODEL_TYPES = embedding, image,
-  language, reranking, video`. It has **no** speech/transcription model, so TTS
+language, reranking, video`. It has **no** speech/transcription model, so TTS
   and transcription adapters are not buildable without upgrading the gateway.
 
 ## Decision
@@ -57,11 +57,13 @@ AG-UI events and the AI SDK `LanguageModelV3` spec.
 ## Consequences
 
 **Positive**
+
 - Reuses Vercel's exact connector (auth, OIDC, routing, o11y, model catalog).
 - Keeps `@ai-sdk/gateway` as a lean dep while `ai` + `@ai-sdk/react` are removed.
 - One text adapter reaches every gateway chat model.
 
 **Negative**
+
 - We commit non-trivial bridge code coupled to the `@ai-sdk/provider`
   `LanguageModelV3` spec; a future major spec bump (V4) is a maintenance event.
 - Provider-executed tool mapping and the V3→AG-UI tool-streaming
@@ -70,6 +72,7 @@ AG-UI events and the AI SDK `LanguageModelV3` spec.
   face, justified by the connector value above.
 
 **Neutral**
+
 - Video uses the **experimental** `Experimental_VideoModelV3` (job-poll shape);
   its API may change.
 

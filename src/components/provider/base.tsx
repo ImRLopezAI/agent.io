@@ -9,7 +9,7 @@ export default function Providers({ children }: ProvidersProps) {
 	return (
 		<MotionConfig reducedMotion='user'>
 			<ThemeProvider
-				attribute='class'	
+				attribute='class'
 				enableSystem
 				enableColorScheme
 				disableTransitionOnChange

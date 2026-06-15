@@ -1,5 +1,6 @@
 import { BrainCircuit, Sparkles } from 'lucide-react'
 import { useMemo } from 'react'
+
 import { ShimmerButton } from '../shimmer-button'
 import { AiChatDrawer } from './drawer'
 import { AiChatSheet } from './sheet'
@@ -9,8 +10,10 @@ import { useAgent } from './use-agent'
 type AgentKey = string
 type AgentContext = Record<string, unknown>
 
-interface AgentDrawerProps<T extends object>
-	extends Omit<React.ComponentProps<typeof AiChatDrawer>, 'handler'> {
+interface AgentDrawerProps<T extends object> extends Omit<
+	React.ComponentProps<typeof AiChatDrawer>,
+	'handler'
+> {
 	data: T
 	agent: AgentKey
 	label?: string
@@ -56,8 +59,10 @@ export function AgentDrawer<T extends object = {}>({
 		</AiChatDrawer>
 	)
 }
-interface SpecialistDrawerProps
-	extends Omit<React.ComponentProps<typeof AiChatDrawer>, 'handler'> {
+interface SpecialistDrawerProps extends Omit<
+	React.ComponentProps<typeof AiChatDrawer>,
+	'handler'
+> {
 	specialist: string
 	buttonLabel?: string
 	ai?: Omit<Parameters<typeof useAgent>[0], 'transport'>
@@ -97,8 +102,10 @@ export function SpecialistDrawer({
 	)
 }
 
-interface AgentSheetProps<T extends object>
-	extends Omit<React.ComponentProps<typeof AiChatSheet>, 'handler'> {
+interface AgentSheetProps<T extends object> extends Omit<
+	React.ComponentProps<typeof AiChatSheet>,
+	'handler'
+> {
 	data: T
 	agent: AgentKey
 	label?: string

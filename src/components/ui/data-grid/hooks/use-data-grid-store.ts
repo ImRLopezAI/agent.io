@@ -6,6 +6,7 @@ import type {
 	SortingState,
 } from '@tanstack/react-table'
 import * as React from 'react'
+
 import type {
 	CellPosition,
 	ContextMenuState,

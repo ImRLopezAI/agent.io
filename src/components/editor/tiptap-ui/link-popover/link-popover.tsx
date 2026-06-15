@@ -2,14 +2,15 @@
 
 import type { Editor } from '@tiptap/react'
 import { forwardRef, useCallback, useEffect, useState } from 'react'
+
+// --- Hooks ---
+import { useIsBreakpoint } from '#/components/editor/hooks/use-is-breakpoint'
+import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
 // --- Icons ---
 import { CornerDownLeftIcon } from '#/components/editor/tiptap-icons/corner-down-left-icon'
 import { ExternalLinkIcon } from '#/components/editor/tiptap-icons/external-link-icon'
 import { LinkIcon } from '#/components/editor/tiptap-icons/link-icon'
 import { TrashIcon } from '#/components/editor/tiptap-icons/trash-icon'
-// --- Tiptap UI ---
-import type { UseLinkPopoverConfig } from '#/components/editor/tiptap-ui/link-popover'
-import { useLinkPopover } from '#/components/editor/tiptap-ui/link-popover'
 // --- UI Primitives ---
 import type { ButtonProps } from '#/components/editor/tiptap-ui-primitive/button'
 import { Button } from '#/components/editor/tiptap-ui-primitive/button'
@@ -26,9 +27,9 @@ import {
 	PopoverTrigger,
 } from '#/components/editor/tiptap-ui-primitive/popover'
 import { Separator } from '#/components/editor/tiptap-ui-primitive/separator'
-// --- Hooks ---
-import { useIsBreakpoint } from '#/components/editor/hooks/use-is-breakpoint'
-import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
+// --- Tiptap UI ---
+import type { UseLinkPopoverConfig } from '#/components/editor/tiptap-ui/link-popover'
+import { useLinkPopover } from '#/components/editor/tiptap-ui/link-popover'
 
 export interface LinkMainProps {
 	/**
@@ -58,8 +59,7 @@ export interface LinkMainProps {
 }
 
 export interface LinkPopoverProps
-	extends Omit<ButtonProps, 'type'>,
-		UseLinkPopoverConfig {
+	extends Omit<ButtonProps, 'type'>, UseLinkPopoverConfig {
 	/**
 	 * Callback for when the popover opens or closes.
 	 */
@@ -118,16 +118,8 @@ const LinkMain: React.FC<LinkMainProps> = ({
 	}
 
 	return (
-		<Card
-			style={{
-				...(isMobile ? { boxShadow: 'none', border: 0 } : {}),
-			}}
-		>
-			<CardBody
-				style={{
-					...(isMobile ? { padding: 0 } : {}),
-				}}
-			>
+		<Card style={isMobile ? { boxShadow: 'none', border: 0 } : {}}>
+			<CardBody style={isMobile ? { padding: 0 } : {}}>
 				<CardItemGroup orientation='horizontal'>
 					<Input
 						type='url'

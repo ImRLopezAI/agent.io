@@ -1,12 +1,9 @@
 'use client'
 
-import { Badge } from '../ui/badge'
-import { Button } from '../ui/button'
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
-import { Skeleton } from '../ui/skeleton'
 import { Upload, X } from 'lucide-react'
 import * as React from 'react'
 import { toast } from 'sonner'
+
 import { cn } from '#/lib/utils'
 
 import { useDataGridActions } from '../contexts/data-grid-actions-context'
@@ -20,6 +17,10 @@ import {
 } from '../lib/data-grid'
 import { generateId } from '../lib/id'
 import type { DataGridCellProps, FileCellData } from '../types/data-grid'
+import { Badge } from '../ui/badge'
+import { Button } from '../ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
+import { Skeleton } from '../ui/skeleton'
 
 export function FileCell<TData>({
 	cell,

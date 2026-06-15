@@ -7,6 +7,7 @@ import {
 } from '@components/ui/sidebar'
 import { Button } from '@ui/button'
 import { MoreVertical } from 'lucide-react'
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 export function NavUser() {
 	const { isMobile } = useSidebar()

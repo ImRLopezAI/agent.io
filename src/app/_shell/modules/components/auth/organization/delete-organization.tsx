@@ -2,6 +2,7 @@
 
 import { useOrgDialogs } from '@/app/_shell/modules/utils/org-dialogs.atoms'
 import { Button } from '@/components/ui/button'
+
 import { DeleteOrganizationDialog } from './delete-organization-dialog'
 
 /**

@@ -20,6 +20,7 @@ import {
 	LineChart,
 	ResponsiveContainer,
 } from 'recharts'
+
 import {
 	type ChartConfig,
 	ChartStyle,

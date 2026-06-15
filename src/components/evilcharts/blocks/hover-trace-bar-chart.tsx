@@ -13,6 +13,7 @@ import {
 	Tooltip,
 	XAxis,
 } from 'recharts'
+
 import { type ChartConfig, ChartContainer } from '@/components/chart'
 
 const CHART_MARGIN = 38

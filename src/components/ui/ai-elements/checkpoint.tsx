@@ -6,6 +6,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@ui/tooltip'
 import type { LucideProps } from 'lucide-react'
 import { BookmarkIcon } from 'lucide-react'
 import type { ComponentProps, HTMLAttributes } from 'react'
+
 import { cn } from '#/lib/utils'
 
 export type CheckpointProps = HTMLAttributes<HTMLDivElement>

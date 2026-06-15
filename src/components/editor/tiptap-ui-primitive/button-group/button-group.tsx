@@ -1,15 +1,18 @@
 import { mergeProps } from '@base-ui/react/merge-props'
 import { useRender } from '@base-ui/react/use-render'
 import type { VariantProps } from 'class-variance-authority'
+
 import { Separator } from '#/components/editor/tiptap-ui-primitive/separator'
 import { cn } from '#/lib/tiptap-utils'
+
 import { buttonGroupVariants } from './button-group-variants'
 
 function ButtonGroup({
 	className,
 	orientation,
 	...props
-}: React.ComponentProps<'fieldset'> & VariantProps<typeof buttonGroupVariants>) {
+}: React.ComponentProps<'fieldset'> &
+	VariantProps<typeof buttonGroupVariants>) {
 	return (
 		<fieldset
 			data-slot='tiptap-button-group'

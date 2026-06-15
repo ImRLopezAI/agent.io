@@ -1,5 +1,5 @@
 import type { VideoGenerationOptions } from '@tanstack/ai'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 
 import { gatewayVideo } from '../video/adapter'
 

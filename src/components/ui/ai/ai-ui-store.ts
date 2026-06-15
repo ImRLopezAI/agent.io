@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useSyncExternalStore } from 'react'
+
 import { MODELS } from './models'
 
 export type ModelId = (typeof MODELS)[number]['id']
@@ -44,10 +45,7 @@ export function createDefaultAiUiState(
 	}
 }
 
-export function aiUiReducer(
-	state: AiUiState,
-	action: AiUiAction,
-): AiUiState {
+export function aiUiReducer(state: AiUiState, action: AiUiAction): AiUiState {
 	switch (action.type) {
 		case 'setModel':
 			return { ...state, model: action.model }

@@ -1,6 +1,7 @@
 'use client'
 
 import { Menu as MenuPrimitive } from '@base-ui/react/menu'
+
 import { CheckIcon } from '#/components/editor/tiptap-icons/check-icon'
 import { cn } from '@/lib/utils'
 

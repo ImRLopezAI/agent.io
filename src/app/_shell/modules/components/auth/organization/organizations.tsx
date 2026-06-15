@@ -7,6 +7,7 @@ import { useOrgOpts } from '@/app/_shell/modules/utils/use-org-opts'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+
 import { CreateOrganizationDialog } from './create-organization-dialog'
 import { OrganizationRow } from './organization-row'
 import { OrganizationViewSkeleton } from './organization-view-skeleton'

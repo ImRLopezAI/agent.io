@@ -2,12 +2,6 @@
 
 import type { ColumnDef, Table } from '@tanstack/react-table'
 import {
-	ContextMenu as BaseContextMenu,
-	ContextMenuContent,
-	ContextMenuItem,
-	ContextMenuSeparator,
-} from './ui/context-menu'
-import {
 	getItemId,
 	getLinkUrl,
 	isAction,
@@ -22,6 +16,7 @@ import {
 import { CopyIcon, EraserIcon, ScissorsIcon, Trash2Icon } from 'lucide-react'
 import * as React from 'react'
 import { toast } from 'sonner'
+
 import { useDataGridActions } from './contexts/data-grid-actions-context'
 import {
 	useDataGridFocusedCell,
@@ -36,6 +31,12 @@ import type {
 	ContextMenuState,
 	SelectionState,
 } from './types/data-grid'
+import {
+	ContextMenu as BaseContextMenu,
+	ContextMenuContent,
+	ContextMenuItem,
+	ContextMenuSeparator,
+} from './ui/context-menu'
 
 interface DataGridContextMenuProps<TData> {
 	table: Table<TData>
@@ -268,7 +269,9 @@ function DataGridContextMenuImpl<TData>({
 			await onRowsDelete?.(rowIndicesArray)
 			toast.success(`${rowCount} row${rowCount !== 1 ? 's' : ''} deleted`)
 		} catch {
-			toast.error(`Failed to delete ${rowCount} row${rowCount !== 1 ? 's' : ''}`)
+			toast.error(
+				`Failed to delete ${rowCount} row${rowCount !== 1 ? 's' : ''}`,
+			)
 		}
 	}, [propsRef])
 

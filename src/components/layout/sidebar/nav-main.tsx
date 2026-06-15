@@ -6,6 +6,7 @@ import {
 	SidebarGroupLabel,
 	useSidebar,
 } from '@/components/ui/sidebar'
+
 import { useAppSidebar } from './context'
 import { NavGroupMenu } from './nav-items'
 import { NavWrappedPanel } from './nav-wrapped'

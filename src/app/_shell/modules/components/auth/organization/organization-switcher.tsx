@@ -7,6 +7,7 @@ import { useAuth } from '@workos/authkit-tanstack-react-start/client'
 import { ChevronsUpDown, PlusCircle } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { toast } from 'sonner'
+
 import { useOrgDialogs } from '@/app/_shell/modules/utils/org-dialogs.atoms'
 import { useOnOrgChanged } from '@/app/_shell/modules/utils/use-on-org-changed'
 import { useOrgOpts } from '@/app/_shell/modules/utils/use-org-opts'
@@ -18,6 +19,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+
 import { UserView } from '../user/user-view'
 import { CreateOrganizationDialog } from './create-organization-dialog'
 import { OrganizationView } from './organization-view'

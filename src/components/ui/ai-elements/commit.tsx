@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import type { ComponentProps, HTMLAttributes } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+
 import { cn } from '#/lib/utils'
 
 export type CommitProps = ComponentProps<typeof Collapsible>

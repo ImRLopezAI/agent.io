@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from 'motion/react'
 import { Bar, BarChart, Rectangle, XAxis } from 'recharts'
+
 import { type ChartConfig, ChartContainer } from '@/components/chart'
 
 const chartData = [

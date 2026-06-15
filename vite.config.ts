@@ -3,19 +3,10 @@ import tailwindcss from '@tailwindcss/vite'
 import { devtools } from '@tanstack/devtools-vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
-import rsc from '@vitejs/plugin-rsc'
 import { nitro } from 'nitro/vite'
-import { defineConfig } from "vite-plus";
+import { defineConfig } from 'vite-plus'
 
 export default defineConfig({
-	fmt: {
-		singleQuote: true,
-	},
-  lint: {
-    jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
-    rules: { "vite-plus/prefer-vite-plus-imports": "error" },
-    options: { typeAware: true, typeCheck: true },
-  },
 	resolve: { tsconfigPaths: true },
 	ssr: {
 		optimizeDeps: {
@@ -35,11 +26,7 @@ export default defineConfig({
 			serverFns: {
 				disableCsrfMiddlewareWarning: true,
 			},
-			// rsc: {
-			// 	enabled: true,
-			// },
 		}),
-		// rsc({}),
 		viteReact(),
 		// sentryTanstackStart({
 		// 	org: 'airobotix',
@@ -79,11 +66,28 @@ export default defineConfig({
 	},
 	test: {
 		pool: 'forks',
-		exclude: [
-			'**/node_modules/**',
-			'**/dist/**',
-		],
+		exclude: ['**/node_modules/**', '**/dist/**'],
 		environment: 'jsdom',
 		setupFiles: ['./src/test/setup.ts'],
-	}
+	},
+	fmt: {
+		useTabs: true,
+		tabWidth: 2,
+		printWidth: 80,
+		singleQuote: true,
+		jsxSingleQuote: true,
+		quoteProps: 'as-needed',
+		sortImports: true,
+		trailingComma: 'all',
+		semi: false,
+		arrowParens: 'always',
+		bracketSameLine: false,
+		bracketSpacing: true,
+		ignorePatterns: ['**/convex/_generated'],
+	},
+	lint: {
+		jsPlugins: [{ name: 'vite-plus', specifier: 'vite-plus/oxlint-plugin' }],
+		rules: { 'vite-plus/prefer-vite-plus-imports': 'error' },
+		options: { typeAware: true, typeCheck: true },
+	},
 })

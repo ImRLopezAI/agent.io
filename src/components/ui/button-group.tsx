@@ -2,14 +2,17 @@ import { mergeProps } from '@base-ui/react/merge-props'
 import { useRender } from '@base-ui/react/use-render'
 import { Separator } from '@ui/separator'
 import type { VariantProps } from 'class-variance-authority'
+
 import { cn } from '#/lib/utils'
+
 import { buttonGroupVariants } from './button-group-variants'
 
 function ButtonGroup({
 	className,
 	orientation,
 	...props
-}: React.ComponentProps<'fieldset'> & VariantProps<typeof buttonGroupVariants>) {
+}: React.ComponentProps<'fieldset'> &
+	VariantProps<typeof buttonGroupVariants>) {
 	return (
 		<fieldset
 			data-slot='button-group'

@@ -1,15 +1,15 @@
 'use client'
 
+import * as React from 'react'
+
+import { DataGridCellWrapper } from '../data-grid-cell-wrapper'
+import type { DataGridCellProps } from '../types/data-grid'
 import {
 	Progress,
 	ProgressIndicator,
 	ProgressTrack,
 	ProgressValue,
 } from '../ui/progress'
-import * as React from 'react'
-
-import { DataGridCellWrapper } from '../data-grid-cell-wrapper'
-import type { DataGridCellProps } from '../types/data-grid'
 
 function defaultProgressVariant(value: number): string {
 	if (value >= 95) return 'bg-green-600'

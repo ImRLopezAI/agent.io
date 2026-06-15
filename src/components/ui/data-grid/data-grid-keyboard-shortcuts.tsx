@@ -6,6 +6,9 @@ import {
 	useHotkey,
 	useHotkeyRegistrations,
 } from '@tanstack/react-hotkeys'
+import { SearchIcon, XIcon } from 'lucide-react'
+import * as React from 'react'
+
 import { Button } from './ui/button'
 import {
 	Dialog,
@@ -16,10 +19,8 @@ import {
 	DialogTitle,
 } from './ui/dialog'
 import { Input } from './ui/input'
-import { Separator } from './ui/separator'
-import { SearchIcon, XIcon } from 'lucide-react'
-import * as React from 'react'
 import { Kbd, KbdGroup } from './ui/kbd'
+import { Separator } from './ui/separator'
 
 interface ShortcutEntry {
 	keys: string[]

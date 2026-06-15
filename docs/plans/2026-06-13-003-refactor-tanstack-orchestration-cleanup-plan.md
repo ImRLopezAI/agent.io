@@ -1,5 +1,5 @@
 ---
-title: "refactor: TanStack AI orchestration + Vercel AI SDK removal"
+title: 'refactor: TanStack AI orchestration + Vercel AI SDK removal'
 type: refactor
 status: partially-executed
 date: 2026-06-13
@@ -13,6 +13,7 @@ origin: docs/plans/2026-06-13-002-refactor-migrate-vercel-ai-to-tanstack-plan.md
 > sub-agents (db-doctor/renderer + their tools) were never defined or wired, and
 > the live handler ran zero tools. Decision: **delete the scaffolding** rather
 > than build it now.
+>
 > - **Unit 1 (forwardSubAgentStream): DONE** — committed; kept as the reusable
 >   primitive for when real sub-agents are designed later.
 > - **Units 2, 3, 5, 6 (build + render orchestration): SUPERSEDED / DEFERRED** —
@@ -24,7 +25,7 @@ origin: docs/plans/2026-06-13-002-refactor-migrate-vercel-ai-to-tanstack-plan.md
 >   `@ai-sdk/gateway` (connector) remains.
 >
 > Net effect: the Vercel-AI-SDK → @tanstack/ai migration is **complete**.
-> Remaining open items are *new features*, not migration debt: attachment
+> Remaining open items are _new features_, not migration debt: attachment
 > `file`→`ContentPart` mapping, and designing the sub-agents.
 
 > **Execution note for codex:rescue agents.** Verify TypeScript ONLY with
@@ -43,8 +44,8 @@ multi-agent orchestration on AG-UI primitives and removing `ai` + `@ai-sdk/react
 This refines Units 3/6/7/8/9 of the origin plan
 (see origin: `docs/plans/2026-06-13-002-refactor-migrate-vercel-ai-to-tanstack-plan.md`).
 
-The origin plan's deferred question — *how to forward a sub-agent `chat()`
-stream into the parent AG-UI stream* — is **resolved**: a `@tanstack/ai` server
+The origin plan's deferred question — _how to forward a sub-agent `chat()`
+stream into the parent AG-UI stream_ — is **resolved**: a `@tanstack/ai` server
 tool's execute context exposes `emitCustomEvent(name, value)`, which streams
 AG-UI `CUSTOM` events to the client in real time. So the sub-agent routing tools
 emit `agent.boundary` / `agent.step` / `agent.text` / `agent.spec` custom events
@@ -79,7 +80,7 @@ boundaries by walking `data-agent-*` message parts
 - R3. db-doctor request-scoped cache replays a prior sub-agent run (re-emits its
   recorded events) with a visible "from cache" badge.
 - R4. Renderer `pipeJsonRender` spec lifting is preserved (```spec → an
-  `agent.spec` custom event the artifact UI renders).
+`agent.spec` custom event the artifact UI renders).
 - R5. The client renders agent boundaries/steps/spec from `onCustomEvent`
   state, matching the pre-migration collapsible agent UX.
 - R6. Tool approval works through `addToolApprovalResponse` (origin Unit 6).
@@ -131,11 +132,11 @@ boundaries by walking `data-agent-*` message parts
 ### Resolved Contracts (verified in installed packages)
 
 - `ToolExecutionContext = { toolCallId?, abortSignal?, context, emitCustomEvent:
-  (eventName: string, value: Record<string, any>) => void }`
+(eventName: string, value: Record<string, any>) => void }`
   (`@tanstack/ai` types.d.ts). `toolDefinition({...}).server(async (args, ctx) =>
-  result)` receives it. Custom events stream to the client as AG-UI `CUSTOM`.
+result)` receives it. Custom events stream to the client as AG-UI `CUSTOM`.
 - `@tanstack/ai-client` `ChatClientOptions.onCustomEvent?: (eventType: string,
-  data: unknown, context: {...}) => void` — surfaced through `useChat` options.
+data: unknown, context: {...}) => void` — surfaced through `useChat` options.
 - `chat({ adapter, messages|prompt, systemPrompts, tools, stream })` — sub-agent
   runs via `chat({ adapter: gatewayText(subModel), stream: false })` (collect
   text) or streaming (iterate `StreamChunk`s to emit per-delta).
@@ -153,13 +154,13 @@ boundaries by walking `data-agent-*` message parts
   question). The routing tool's execute context emits `agent.boundary`
   (start/end), `agent.text` (prose deltas), `agent.step` (sub-tool lifecycle),
   and `agent.spec` (renderer spec) custom events; returns `{ ok, text }`.
-  *Rationale:* first-class, ordered, real-time; no `UIMessageStreamWriter`
+  _Rationale:_ first-class, ordered, real-time; no `UIMessageStreamWriter`
   equivalent needed; the engine already serializes custom events into the SSE
   stream in order.
 - **Client renders from `onCustomEvent` state, not message parts.** The old
   `data-agent-*` part-walking in `segment-parts.ts` is replaced by accumulating
   custom events into a per-run structure keyed by `toolCallId`.
-  *Rationale:* custom events are the new transport; parts no longer carry agent
+  _Rationale:_ custom events are the new transport; parts no longer carry agent
   boundaries under `chat()`.
 - **db-doctor cache records emitted events, replays by re-emitting.** Mirrors
   the prior chunk-record/replay, adapted to custom events.
@@ -190,7 +191,7 @@ boundaries by walking `data-agent-*` message parts
 
 ## High-Level Technical Design
 
-> *This illustrates the intended approach and is directional guidance for review, not implementation specification. The implementing agent should treat it as context, not code to reproduce.*
+> _This illustrates the intended approach and is directional guidance for review, not implementation specification. The implementing agent should treat it as context, not code to reproduce._
 
 ```mermaid
 sequenceDiagram
@@ -212,12 +213,12 @@ sequenceDiagram
 
 Custom-event vocabulary (directional):
 
-| Event name | Payload | Replaces |
-|---|---|---|
-| `agent.boundary` | `{ agent, toolCallId, phase: 'start'｜'end' }` | `data-agent-boundary` |
-| `agent.text` | `{ toolCallId, delta }` | sub-agent text deltas |
-| `agent.step` | `{ toolCallId, toolName, state, input?, cached? }` | `data-agent-step` |
-| `agent.spec` | `{ toolCallId, spec }` | `data-spec` (renderer) |
+| Event name       | Payload                                            | Replaces               |
+| ---------------- | -------------------------------------------------- | ---------------------- |
+| `agent.boundary` | `{ agent, toolCallId, phase: 'start'｜'end' }`     | `data-agent-boundary`  |
+| `agent.text`     | `{ toolCallId, delta }`                            | sub-agent text deltas  |
+| `agent.step`     | `{ toolCallId, toolName, state, input?, cached? }` | `data-agent-step`      |
+| `agent.spec`     | `{ toolCallId, spec }`                             | `data-spec` (renderer) |
 
 ## Implementation Units
 
@@ -233,10 +234,12 @@ forwards it to the parent via `emitCustomEvent`, accumulating prose to return.
 **Dependencies:** None (gateway adapter shipped)
 
 **Files:**
+
 - Create: `src/server/ai/agents/lib/forward-subagent.ts`
 - Test: `src/server/ai/agents/lib/__tests__/forward-subagent.test.ts`
 
 **Approach:**
+
 - `forwardSubAgentStream({ agent, toolCallId, stream, emit, signal })`: emit
   `agent.boundary` start; iterate the sub-agent `StreamChunk`s; map
   `TEXT_MESSAGE_CONTENT` → `agent.text` deltas (accumulate into `text`),
@@ -253,6 +256,7 @@ discipline in `routing.ts` (await end-of-stream before the closing boundary);
 `stream-to-agui.ts` event mapping in the gateway adapter.
 
 **Test scenarios:**
+
 - Happy path: a sub-agent stream of text deltas emits boundary-start, N
   `agent.text`, boundary-end (in order) and returns concatenated `text`.
 - Integration: a sub-agent tool-call sequence emits `agent.step` events between
@@ -276,14 +280,16 @@ spec lifting.
 **Dependencies:** Unit 1
 
 **Files:**
+
 - Modify: `src/server/ai/agents/lib/routing.ts`
 - Test: `src/server/ai/agents/lib/__tests__/routing.test.ts`
 
 **Approach:**
+
 - Each tool: `toolDefinition({ name, description, inputSchema, outputSchema })
-  .server(async ({ prompt }, ctx) => { ... })`.
+.server(async ({ prompt }, ctx) => { ... })`.
 - Run the sub-agent: `chat({ adapter: gatewayText(subModel), systemPrompts,
-  messages|prompt })` → pass its `StreamChunk` iterable to
+messages|prompt })` → pass its `StreamChunk` iterable to
   `forwardSubAgentStream({ emit: ctx.emitCustomEvent, signal: ctx.abortSignal })`.
 - db-doctor cache: record the emitted events per normalized prompt; on hit,
   re-emit recorded events with an `agent.step { cached: true }` badge marker,
@@ -296,15 +302,16 @@ spec lifting.
 behavior, change the transport from writer-drain to `emitCustomEvent`).
 
 **Test scenarios:**
-- Happy path: db-doctor tool runs, emits agent.* events, returns `{ ok, text }`.
+
+- Happy path: db-doctor tool runs, emits agent.\* events, returns `{ ok, text }`.
 - Edge case: db-doctor cache hit re-emits recorded events with `cached:true` and
   skips re-running the sub-agent.
-- Integration: renderer ```spec output lifts to an `agent.spec` event; prose
-  lands as `agent.text`.
+- Integration: renderer ```spec output lifts to an `agent.spec`event; prose
+lands as`agent.text`.
 - Error path: sub-agent failure closes the boundary and returns an error result
   the loop can read.
 
-**Verification:** Both tools run as TanStack server tools, emit ordered agent.*
+**Verification:** Both tools run as TanStack server tools, emit ordered agent.\*
 events (mock `emitCustomEvent`), and preserve cache + spec behavior; no
 `UIMessageStreamWriter`/`ToolLoopAgent` remain in `routing.ts`.
 
@@ -318,17 +325,20 @@ loop budget.
 **Dependencies:** Unit 2
 
 **Files:**
+
 - Modify: `src/server/ai/index.ts`
 - Modify: `src/server/ai/__tests__/chat-handler.test.ts`
 
 **Approach:**
+
 - `chat({ adapter: gatewayText(model), systemPrompts, messages, tools:
-  [dbDoctorTool, rendererTool], agentLoopStrategy: maxIterations(N) })`.
+[dbDoctorTool, rendererTool], agentLoopStrategy: maxIterations(N) })`.
 - Confirm the orchestrator's instruction prompt still routes to the tools.
 
 **Test scenarios:**
+
 - Integration: a handler request that triggers a tool call streams the tool's
-  agent.* custom events through the SSE response (mock the sub-agent).
+  agent.\* custom events through the SSE response (mock the sub-agent).
 - Happy path: a no-tool text request still streams normally (regression).
 
 **Verification:** `/api/chat` streams orchestrated sub-agent custom events
@@ -344,6 +354,7 @@ remaining `ai` importers so nothing on the app path imports `ai`.
 **Dependencies:** Unit 2 (confirms the transforms are dead)
 
 **Files:**
+
 - Delete (if unused after Unit 2): `src/server/ai/agents/lib/prefix-text-part-ids.ts`,
   `src/server/ai/agents/lib/rewrite-renderer-parts.ts`
 - Modify or delete: `src/server/ai/agents/lib/strip-renderer-tool-parts.ts`
@@ -354,6 +365,7 @@ remaining `ai` importers so nothing on the app path imports `ai`.
 - Test: existing tests for the retyped helpers
 
 **Approach:**
+
 - `grep -rl "from 'ai'"` over `src/` must reduce to zero app files (gateway and
   `@ai-sdk/*` connector files are fine).
 - For `markdown-joiner-transform.ts`, define minimal local `TextStreamPart`/
@@ -361,6 +373,7 @@ remaining `ai` importers so nothing on the app path imports `ai`.
   unused.
 
 **Test scenarios:**
+
 - Happy path: `orchestrator-message-filter` test imports resolve and pass (or the
   test is removed with its dead subject).
 - Edge case: editor markdown transform compiles + behaves without `ai`.
@@ -381,6 +394,7 @@ instead of `data-agent-*` message parts.
 **Dependencies:** Unit 3 (server emits the events)
 
 **Files:**
+
 - Modify: `src/components/ui/ai/use-ai.ts` (add `onCustomEvent`, accumulate state)
 - Rewrite: `src/components/ai/segment-parts.ts` (consume agent-run state, not
   `data-agent-*` parts)
@@ -388,9 +402,10 @@ instead of `data-agent-*` message parts.
 - Test: `src/components/ai/__tests__/segment-parts.test.ts`
 
 **Approach:**
+
 - `useChat({ ..., onCustomEvent: (name, data) => accumulate })`: build a
   per-`toolCallId` agent-run record (`{ agent, started, ended, text, reasoning,
-  steps, spec, cached }`) in jotai/local state, keyed so it renders within the
+steps, spec, cached }`) in jotai/local state, keyed so it renders within the
   owning assistant message.
 - `segment-parts.ts` now segments from agent-run state + plain message parts
   (text/thinking/tool), producing the same `Segment[]` the UI already renders.
@@ -401,6 +416,7 @@ instead of `data-agent-*` message parts.
 message lifecycle (Open Question) before choosing the state key.
 
 **Test scenarios:**
+
 - Happy path: a sequence of agent.boundary/text/step events produces one
   collapsible agent segment with prose + steps.
 - Edge case: `agent.step { cached:true }` renders the "from cache" badge.
@@ -419,17 +435,20 @@ pre-migration, sourced from custom events.
 **Dependencies:** Unit 3
 
 **Files:**
+
 - Modify: `src/components/ui/ai-elements/confirmation.tsx`
 - Modify: `src/components/ui/ai/use-ai.ts` (expose `addToolApprovalResponse`)
 - Modify: `src/server/ai/agents/lib/routing.ts` (set `needsApproval` where required)
 - Test: `src/components/ui/ai-elements/__tests__/confirmation.test.tsx`
 
 **Approach:**
+
 - Render approval UI on `tool-call` parts with `state === 'approval-requested'`;
   Approve/Deny call `addToolApprovalResponse({ id: part.approval.id, approved })`.
   TanStack auto-resumes the loop.
 
 **Test scenarios:**
+
 - Happy path: Approve → `addToolApprovalResponse({approved:true})`.
 - Happy path: Deny → `{approved:false}`.
 - Edge case: non-approval tool-call renders no approval UI.
@@ -447,20 +466,23 @@ pre-migration, sourced from custom events.
 **Dependencies:** Units 1–6
 
 **Files:**
+
 - Modify: `package.json`, `bun.lock`
 - Test: full chat suite + a live gateway round-trip
 
 **Approach:**
+
 - After `grep -rl "from 'ai'\|@ai-sdk/react" src/` returns only connector files,
   remove the two deps.
 - Reuse `gateway/__tests__/text-adapter.live.test.ts`'s env-gated pattern for a
   real `/api/chat` round-trip incl. one orchestrated sub-agent turn.
 
 **Test scenarios:**
+
 - Happy path: `ai` / `@ai-sdk/react` absent from `package.json`;
   `@ai-sdk/gateway` present.
 - Integration (gated, real network): a real orchestrated turn streams text +
-  agent.* custom events + finishes.
+  agent.\* custom events + finishes.
 - Edge case: full `bunx vitest run` green (modulo the documented pre-existing
   failure if its subject still exists).
 
@@ -484,25 +506,28 @@ files; live orchestrated chat works.
 
 ## Risks & Dependencies
 
-| Risk | Mitigation |
-|------|------------|
-| `onCustomEvent` timing vs message lifecycle unclear | Unit 5 verifies firing order before choosing the state key; spike in-unit if needed |
-| `pipeJsonRender` input type may not match a delta text stream | Unit 2 confirms against `@json-render/core`; add a thin text-feed adapter if needed |
-| Custom-event ordering vs tool-result ordering in the SSE stream | Unit 1 awaits sub-stream end before the closing boundary (mirror the old drain discipline); assert order in tests |
+| Risk                                                                   | Mitigation                                                                                                                       |
+| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `onCustomEvent` timing vs message lifecycle unclear                    | Unit 5 verifies firing order before choosing the state key; spike in-unit if needed                                              |
+| `pipeJsonRender` input type may not match a delta text stream          | Unit 2 confirms against `@json-render/core`; add a thin text-feed adapter if needed                                              |
+| Custom-event ordering vs tool-result ordering in the SSE stream        | Unit 1 awaits sub-stream end before the closing boundary (mirror the old drain discipline); assert order in tests                |
 | Deleting the transforms removes approval-resume history reconstruction | Confirm in Unit 2 that `chat()` reconstructs tool-call history from messages natively (no manual rewrite needed) before deleting |
-| `npx tsc` stub masks errors | Verify only with `node_modules/.bin/tsc` |
-| Codex agents drift on the union-typed client return | Unit 5 note: `useAi` return is a union — use `type` aliases, not `interface extends` |
+| `npx tsc` stub masks errors                                            | Verify only with `node_modules/.bin/tsc`                                                                                         |
+| Codex agents drift on the union-typed client return                    | Unit 5 note: `useAi` return is a union — use `type` aliases, not `interface extends`                                             |
 
 ## Phased Delivery
 
 ### Phase A — Server orchestration (Units 1–4)
+
 Sub-agent forwarder → migrate routing tools → register on handler → delete
 `ai`-coupled helpers. Server speaks the new custom-event model.
 
 ### Phase B — Client rendering (Units 5–6)
+
 Consume `onCustomEvent` → render agent runs + approvals. UX parity restored.
 
 ### Phase C — Cleanup (Unit 7)
+
 Remove `ai` + `@ai-sdk/react`; prove end-to-end live.
 
 ## Documentation / Operational Notes
@@ -522,7 +547,7 @@ Remove `ai` + `@ai-sdk/react`; prove end-to-end live.
   this plan path + the unit block.
 - **Hard gates for every agent:** `node_modules/.bin/tsc --noEmit` (zero net-new
   errors in touched files), `bunx vitest run <unit test>` green, `bunx biome
-  check --write` on changed files. Never `npx tsc`.
+check --write` on changed files. Never `npx tsc`.
 - **Do not touch** the shipped substrate (gateway adapter, handler shell, hooks,
   message-parts) except the explicit modify-points listed per unit.
 

@@ -1,8 +1,12 @@
 'use client'
 
-import { Badge } from '../ui/badge'
-
 import { formatters } from '@ui/data-grid/lib/data-grid-utils'
+import * as React from 'react'
+
+import { useDataGridActions } from '../contexts/data-grid-actions-context'
+import { DataGridCellWrapper } from '../data-grid-cell-wrapper'
+import type { DataGridCellProps } from '../types/data-grid'
+import { Badge } from '../ui/badge'
 import {
 	Select,
 	SelectContent,
@@ -10,11 +14,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '../ui/select'
-import * as React from 'react'
-
-import { useDataGridActions } from '../contexts/data-grid-actions-context'
-import { DataGridCellWrapper } from '../data-grid-cell-wrapper'
-import type { DataGridCellProps } from '../types/data-grid'
 
 export function SelectCell<TData>({
 	cell,

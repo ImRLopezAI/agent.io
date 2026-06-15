@@ -18,6 +18,7 @@ import {
 import type { useReactTable } from '@tanstack/react-table'
 import type { Virtualizer } from '@tanstack/react-virtual'
 import * as React from 'react'
+
 import { getCellKey, parseCellKey, scrollCellIntoView } from '../lib/data-grid'
 import type {
 	CellPosition,

@@ -9,19 +9,6 @@ import type {
 	Table,
 } from '@tanstack/react-table'
 import {
-	ContextMenu,
-	ContextMenuCheckboxItem,
-	ContextMenuContent,
-	ContextMenuItem,
-	ContextMenuPortal,
-	ContextMenuSeparator,
-	ContextMenuSub,
-	ContextMenuSubContent,
-	ContextMenuSubTrigger,
-	ContextMenuTrigger,
-} from './ui/context-menu'
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
-import {
 	ArrowLeft,
 	ArrowRight,
 	ChevronDownIcon,
@@ -36,7 +23,9 @@ import {
 	XIcon,
 } from 'lucide-react'
 import * as React from 'react'
+
 import { cn } from '#/lib/utils'
+
 import { useFilterMenuRequestBus } from './contexts/data-grid-actions-context'
 import {
 	MAX_COLUMN_SIZE,
@@ -46,9 +35,24 @@ import { getColumnVariant } from './lib/data-grid'
 import { getDefaultOperator } from './lib/data-grid-filters'
 import { dataGridHeaderCellVariants } from './lib/data-grid-variants'
 import type { TableVariant } from './types/data-grid'
+import {
+	ContextMenu,
+	ContextMenuCheckboxItem,
+	ContextMenuContent,
+	ContextMenuItem,
+	ContextMenuPortal,
+	ContextMenuSeparator,
+	ContextMenuSub,
+	ContextMenuSubContent,
+	ContextMenuSubTrigger,
+	ContextMenuTrigger,
+} from './ui/context-menu'
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 
-interface DataGridColumnHeaderProps<TData, TValue>
-	extends React.ComponentProps<'button'> {
+interface DataGridColumnHeaderProps<
+	TData,
+	TValue,
+> extends React.ComponentProps<'button'> {
 	header: Header<TData, TValue>
 	table: Table<TData>
 	variant?: TableVariant
@@ -467,8 +471,10 @@ const DataGridColumnResizer = React.memo(
 	},
 ) as typeof DataGridColumnResizerImpl
 
-interface DataGridColumnResizerProps<TData, TValue>
-	extends DataGridColumnHeaderProps<TData, TValue> {
+interface DataGridColumnResizerProps<
+	TData,
+	TValue,
+> extends DataGridColumnHeaderProps<TData, TValue> {
 	label: string
 	size: number
 	isResizing: boolean

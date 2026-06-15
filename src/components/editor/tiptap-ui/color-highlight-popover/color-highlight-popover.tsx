@@ -2,19 +2,14 @@
 
 import type { Editor } from '@tiptap/react'
 import { forwardRef, useMemo, useRef, useState } from 'react'
+
+import { useIsBreakpoint } from '#/components/editor/hooks/use-is-breakpoint'
+// --- Hooks ---
+import { useMenuNavigation } from '#/components/editor/hooks/use-menu-navigation'
+import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
 // --- Icons ---
 import { BanIcon } from '#/components/editor/tiptap-icons/ban-icon'
 import { HighlighterIcon } from '#/components/editor/tiptap-icons/highlighter-icon'
-// --- Tiptap UI ---
-import type {
-	HighlightColor,
-	UseColorHighlightConfig,
-} from '#/components/editor/tiptap-ui/color-highlight-button'
-import {
-	ColorHighlightButton,
-	pickHighlightColorsByValue,
-	useColorHighlight,
-} from '#/components/editor/tiptap-ui/color-highlight-button'
 // --- UI Primitives ---
 import type { ButtonProps } from '#/components/editor/tiptap-ui-primitive/button'
 import { Button } from '#/components/editor/tiptap-ui-primitive/button'
@@ -30,10 +25,16 @@ import {
 	PopoverTrigger,
 } from '#/components/editor/tiptap-ui-primitive/popover'
 import { Separator } from '#/components/editor/tiptap-ui-primitive/separator'
-import { useIsBreakpoint } from '#/components/editor/hooks/use-is-breakpoint'
-// --- Hooks ---
-import { useMenuNavigation } from '#/components/editor/hooks/use-menu-navigation'
-import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
+// --- Tiptap UI ---
+import type {
+	HighlightColor,
+	UseColorHighlightConfig,
+} from '#/components/editor/tiptap-ui/color-highlight-button'
+import {
+	ColorHighlightButton,
+	pickHighlightColorsByValue,
+	useColorHighlight,
+} from '#/components/editor/tiptap-ui/color-highlight-button'
 
 export interface ColorHighlightPopoverContentProps {
 	/**
@@ -53,7 +54,8 @@ export interface ColorHighlightPopoverContentProps {
 }
 
 export interface ColorHighlightPopoverProps
-	extends Omit<ButtonProps, 'type'>,
+	extends
+		Omit<ButtonProps, 'type'>,
 		Pick<
 			UseColorHighlightConfig,
 			'editor' | 'hideWhenUnavailable' | 'onApplied'

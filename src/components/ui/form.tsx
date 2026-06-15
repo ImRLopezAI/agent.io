@@ -9,6 +9,8 @@ import {
 	type UseFormReturn,
 	useForm,
 } from 'react-hook-form'
+
+import { FieldGroup } from './field'
 import {
 	ComboBox,
 	CustomFormContext,
@@ -25,13 +27,13 @@ import {
 	type FormComponentStatics,
 	type FormProps,
 } from './form-components'
-import { FieldGroup } from './field'
 import { Input } from './input'
 import { Switch } from './switch'
 import { Textarea } from './textarea'
 
-interface CreateFormProps<TFieldValues extends FieldValues = FieldValues>
-	extends UseFormProps<TFieldValues> {
+interface CreateFormProps<
+	TFieldValues extends FieldValues = FieldValues,
+> extends UseFormProps<TFieldValues> {
 	onSubmit: (data: TFieldValues, form: UseFormReturn<TFieldValues>) => void
 }
 

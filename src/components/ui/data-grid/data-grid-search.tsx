@@ -1,9 +1,5 @@
 'use client'
 
-import { Button } from './ui/button'
-import { Input } from './ui/input'
-import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group'
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 import {
 	ArrowDown,
 	ArrowUp,
@@ -16,10 +12,16 @@ import {
 	X,
 } from 'lucide-react'
 import * as React from 'react'
+
 import { cn } from '#/lib/utils'
+
 import { useAsRef } from './hooks/use-as-ref'
 import { useDebouncedCallback } from './hooks/use-debounced-callback'
 import type { SearchState } from './types/data-grid'
+import { Button } from './ui/button'
+import { Input } from './ui/input'
+import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group'
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 
 interface DataGridSearchProps extends SearchState {}
 
@@ -529,8 +531,9 @@ function DataGridSearchImpl({
 	)
 }
 
-interface SelectionTooltipProps
-	extends React.ComponentProps<typeof TooltipTrigger> {
+interface SelectionTooltipProps extends React.ComponentProps<
+	typeof TooltipTrigger
+> {
 	label: string
 }
 

@@ -1,6 +1,7 @@
 import type { StreamChunk } from '@tanstack/ai'
 import { EventType } from '@tanstack/ai'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vite-plus/test'
+
 import { forwardSubAgentStream } from '../forward-subagent'
 
 async function* streamOf(

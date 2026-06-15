@@ -2,10 +2,11 @@
 
 import { DirectionProvider } from '@base-ui/react/direction-provider'
 import { HotkeysProvider } from '@tanstack/react-hotkeys'
-import { Spinner } from './ui/spinner'
 import { Plus } from 'lucide-react'
 import * as React from 'react'
+
 import { cn } from '#/lib/utils'
+
 import {
 	DataGridActionsProvider,
 	FilterMenuRequestBusProvider,
@@ -37,13 +38,15 @@ import type {
 	InfiniteScrollOptions,
 	TableVariant,
 } from './types/data-grid'
+import { Spinner } from './ui/spinner'
 
 const EMPTY_CELL_SELECTION_SET = new Set<string>()
 
 type UseDataGridReturn<TData> = ReturnType<typeof useDataGrid<TData>>
 
 interface DataGridProps<TData>
-	extends Omit<
+	extends
+		Omit<
 			UseDataGridReturn<TData>,
 			'dir' | 'showPagination' | 'paginationProps'
 		>,

@@ -3,7 +3,9 @@
 import { cn } from '@lib/utils'
 import { Navigate, useRouteContext } from '@tanstack/react-router'
 import { Shield, User2 } from 'lucide-react'
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
 import { AccountSettings } from './account/account-settings'
 import { SecuritySettings } from './security/security-settings'
 

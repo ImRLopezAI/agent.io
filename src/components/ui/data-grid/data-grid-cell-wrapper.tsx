@@ -2,7 +2,9 @@
 
 import { useComposedRefs } from '@ui/data-grid/lib/compose-refs'
 import * as React from 'react'
+
 import { cn } from '#/lib/utils'
+
 import { useDataGridActions } from './contexts/data-grid-actions-context'
 import { useDataGridState } from './contexts/data-grid-state-context'
 import { getCellKey } from './lib/data-grid'
@@ -10,8 +12,7 @@ import { dataGridCellVariants } from './lib/data-grid-variants'
 import type { DataGridCellProps } from './types/data-grid'
 
 interface DataGridCellWrapperProps<TData>
-	extends DataGridCellProps<TData>,
-		React.ComponentProps<'div'> {}
+	extends DataGridCellProps<TData>, React.ComponentProps<'div'> {}
 
 type DataGridCellWrapperComponent = <TData>(
 	props: DataGridCellWrapperProps<TData> & React.RefAttributes<HTMLDivElement>,

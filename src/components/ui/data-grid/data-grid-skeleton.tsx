@@ -1,6 +1,8 @@
-import { Skeleton } from './ui/skeleton'
 import type * as React from 'react'
+
 import { cn } from '#/lib/utils'
+
+import { Skeleton } from './ui/skeleton'
 
 interface DivProps extends React.ComponentProps<'div'> {}
 

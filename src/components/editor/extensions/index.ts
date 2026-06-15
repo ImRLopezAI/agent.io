@@ -32,10 +32,12 @@ import { CharacterCount, Focus, Selection } from '@tiptap/extensions'
 import { Markdown } from '@tiptap/markdown'
 import { StarterKit } from '@tiptap/starter-kit'
 import { common, createLowlight } from 'lowlight'
+
 import { NodeBackground } from '#/components/editor/tiptap-extension/node-background-extension'
 import { HorizontalRule } from '#/components/editor/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension'
 import { ImageUploadNode } from '#/components/editor/tiptap-node/image-upload-node/image-upload-node-extension'
 import { handleImageUpload, MAX_FILE_SIZE } from '#/lib/tiptap-utils'
+
 import type { EditorMember } from '../types'
 import { createFileHandler } from './file-handler'
 import { createMention, type MentionSuggestionContext } from './mention-config'

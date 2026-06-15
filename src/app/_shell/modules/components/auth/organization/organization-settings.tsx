@@ -2,6 +2,7 @@
 
 import { cn } from '@lib/utils'
 import type { ComponentProps } from 'react'
+
 import { OrganizationDangerZone } from './organization-danger-zone'
 import { OrganizationProfile } from './organization-profile'
 

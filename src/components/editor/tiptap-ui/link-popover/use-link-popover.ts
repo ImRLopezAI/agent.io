@@ -2,11 +2,11 @@
 
 import type { Editor } from '@tiptap/react'
 import { useCallback, useEffect, useState } from 'react'
-// --- Icons ---
-import { LinkIcon } from '#/components/editor/tiptap-icons/link-icon'
+
 // --- Hooks ---
 import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
-
+// --- Icons ---
+import { LinkIcon } from '#/components/editor/tiptap-icons/link-icon'
 // --- Lib ---
 import {
 	isMarkInSchema,

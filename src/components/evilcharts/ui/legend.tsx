@@ -1,6 +1,7 @@
 import { cn } from '@lib/utils'
 import type * as React from 'react'
 import * as RechartsPrimitive from 'recharts'
+
 import {
 	getColorsCount,
 	getPayloadConfigFromPayload,

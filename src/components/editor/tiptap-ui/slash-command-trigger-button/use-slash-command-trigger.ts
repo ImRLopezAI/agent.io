@@ -5,10 +5,11 @@ import { useHotkey } from '@tanstack/react-hotkeys'
 import type { Node } from '@tiptap/pm/model'
 import type { Editor } from '@tiptap/react'
 import { type RefObject, useCallback } from 'react'
-// --- Icons ---
-import { PlusIcon } from '#/components/editor/tiptap-icons/plus-icon'
+
 // --- Hooks ---
 import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
+// --- Icons ---
+import { PlusIcon } from '#/components/editor/tiptap-icons/plus-icon'
 
 export interface UseSlashCommandTriggerConfig {
 	/**

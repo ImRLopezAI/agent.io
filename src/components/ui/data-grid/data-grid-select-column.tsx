@@ -5,13 +5,15 @@ import type {
 	ColumnDef,
 	HeaderContext,
 } from '@tanstack/react-table'
-import { Checkbox } from './ui/checkbox'
 import * as React from 'react'
+
 import { cn } from '#/lib/utils'
+
 import { useDataGridActions } from './contexts/data-grid-actions-context'
 import { useDataGridSelectors } from './contexts/data-grid-selectors-context'
 import { useDataGridState } from './contexts/data-grid-state-context'
 import { useStore } from './hooks/use-data-grid-store'
+import { Checkbox } from './ui/checkbox'
 
 type HitboxSize = 'default' | 'sm' | 'lg'
 
@@ -52,8 +54,10 @@ function DataGridSelectHitbox({
 	)
 }
 
-interface DataGridSelectCheckboxProps
-	extends Omit<React.ComponentProps<typeof Checkbox>, 'id'> {
+interface DataGridSelectCheckboxProps extends Omit<
+	React.ComponentProps<typeof Checkbox>,
+	'id'
+> {
 	rowNumber?: number
 	hitboxSize?: HitboxSize
 	debug?: boolean
@@ -122,8 +126,10 @@ function DataGridSelectCheckbox({
 	)
 }
 
-interface DataGridSelectHeaderProps<TData>
-	extends Pick<HeaderContext<TData, unknown>, 'table'> {
+interface DataGridSelectHeaderProps<TData> extends Pick<
+	HeaderContext<TData, unknown>,
+	'table'
+> {
 	hitboxSize?: HitboxSize
 	readOnly?: boolean
 	debug?: boolean
@@ -173,8 +179,10 @@ function DataGridSelectHeader<TData>({
 	)
 }
 
-interface DataGridSelectCellProps<TData>
-	extends Pick<CellContext<TData, unknown>, 'row'> {
+interface DataGridSelectCellProps<TData> extends Pick<
+	CellContext<TData, unknown>,
+	'row'
+> {
 	hitboxSize?: HitboxSize
 	enableRowMarkers?: boolean
 	readOnly?: boolean
@@ -245,8 +253,10 @@ function DataGridSelectCell<TData>({
 	)
 }
 
-interface GetDataGridSelectColumnOptions<TData>
-	extends Omit<Partial<ColumnDef<TData>>, 'id' | 'header' | 'cell'> {
+interface GetDataGridSelectColumnOptions<TData> extends Omit<
+	Partial<ColumnDef<TData>>,
+	'id' | 'header' | 'cell'
+> {
 	enableRowMarkers?: boolean
 	readOnly?: boolean
 	hitboxSize?: HitboxSize
@@ -270,7 +280,7 @@ export function getDataGridSelectColumn<TData>({
 		id: 'select',
 		meta: {
 			customCell: true,
-			...(props.meta ?? {}),
+			...props.meta,
 		},
 		header: ({ table }) => (
 			<DataGridSelectHeader

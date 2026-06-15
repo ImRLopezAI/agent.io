@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Spinner } from '@/components/ui/spinner'
 import { TableCell, TableRow } from '@/components/ui/table'
+
 import { UserView } from '../user/user-view'
 
 export type OrganizationMemberRowProps = {

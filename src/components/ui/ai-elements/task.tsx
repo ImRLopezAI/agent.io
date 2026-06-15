@@ -7,6 +7,7 @@ import {
 } from '@ui/collapsible'
 import { ChevronDownIcon, SearchIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
+
 import { cn } from '#/lib/utils'
 
 export type TaskItemFileProps = ComponentProps<'div'>

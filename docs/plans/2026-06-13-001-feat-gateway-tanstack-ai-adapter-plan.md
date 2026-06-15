@@ -1,5 +1,5 @@
 ---
-title: "feat: Vercel AI Gateway provider for TanStack AI"
+title: 'feat: Vercel AI Gateway provider for TanStack AI'
 type: feat
 status: completed
 date: 2026-06-13
@@ -132,16 +132,16 @@ glossary in `src/server/ai/gateway/CONTEXT.md`.
 
 - **Wrap, don't reimplement** (see origin ADR): call
   `gateway(modelId).doStream()` / `.doGenerate()`; never re-implement
-  transport/auth. *Rationale:* reuse Vercel's connector wholesale.
+  transport/auth. _Rationale:_ reuse Vercel's connector wholesale.
 - **Pure, separately-tested converters.** Message, tool, options, and
   stream converters are pure functions in their own files with their own
-  tests. *Rationale:* the converters are the risk surface; isolate and unit-test
+  tests. _Rationale:_ the converters are the risk surface; isolate and unit-test
   them without network.
 - **Adapter owns the AG-UI lifecycle.** The stream converter emits
   `RUN_STARTED` … `RUN_FINISHED`/`RUN_ERROR` itself (no base class does it for
-  us). *Rationale:* we extend `BaseTextAdapter`, not `openai-base`.
+  us). _Rationale:_ we extend `BaseTextAdapter`, not `openai-base`.
 - **`modelOptions` → V3 `providerOptions` passthrough**, keyed by provider
-  (`{ anthropic, openai, google, gateway }`). *Rationale:* matches existing
+  (`{ anthropic, openai, google, gateway }`). _Rationale:_ matches existing
   `PROVIDER_OPTIONS` shape; lets the gateway forward provider knobs untouched.
 - **Structured output via `responseFormat: json_schema`.** Declare
   `supportsCombinedToolsAndSchema()` per upstream capability; otherwise the
@@ -200,7 +200,7 @@ glossary in `src/server/ai/gateway/CONTEXT.md`.
 
 ## High-Level Technical Design
 
-> *This illustrates the intended approach and is directional guidance for review, not implementation specification. The implementing agent should treat it as context, not code to reproduce.*
+> _This illustrates the intended approach and is directional guidance for review, not implementation specification. The implementing agent should treat it as context, not code to reproduce._
 
 ```mermaid
 sequenceDiagram
@@ -220,16 +220,16 @@ sequenceDiagram
 
 Bridge mapping (out-converter, the risk surface):
 
-| LanguageModelV3StreamPart | AG-UI StreamChunk |
-|---|---|
-| `stream-start` (first emission) | `RUN_STARTED` |
-| `text-start` / `text-delta` / `text-end` | `TEXT_MESSAGE_START` / `_CONTENT` / `_END` |
-| `reasoning-start` / `reasoning-delta` / `reasoning-end` | `REASONING_START` / `_CONTENT`/`MESSAGE_*` / `_END` |
-| `tool-input-start` / `tool-input-delta` / `tool-input-end` + `tool-call` | `TOOL_CALL_START` / `_ARGS` / `_END` |
-| `tool-result` (provider-executed) | `TOOL_CALL_RESULT` |
-| `file` / `source` | source/citation events (or carry on message) |
-| `finish` (usage, finishReason) | `RUN_FINISHED` (+ usage) |
-| `error` / thrown `GatewayError` | `RUN_ERROR` |
+| LanguageModelV3StreamPart                                                | AG-UI StreamChunk                                   |
+| ------------------------------------------------------------------------ | --------------------------------------------------- |
+| `stream-start` (first emission)                                          | `RUN_STARTED`                                       |
+| `text-start` / `text-delta` / `text-end`                                 | `TEXT_MESSAGE_START` / `_CONTENT` / `_END`          |
+| `reasoning-start` / `reasoning-delta` / `reasoning-end`                  | `REASONING_START` / `_CONTENT`/`MESSAGE_*` / `_END` |
+| `tool-input-start` / `tool-input-delta` / `tool-input-end` + `tool-call` | `TOOL_CALL_START` / `_ARGS` / `_END`                |
+| `tool-result` (provider-executed)                                        | `TOOL_CALL_RESULT`                                  |
+| `file` / `source`                                                        | source/citation events (or carry on message)        |
+| `finish` (usage, finishReason)                                           | `RUN_FINISHED` (+ usage)                            |
+| `error` / thrown `GatewayError`                                          | `RUN_ERROR`                                         |
 
 ## Implementation Units
 
@@ -243,10 +243,12 @@ Bridge mapping (out-converter, the risk surface):
 **Dependencies:** None
 
 **Files:**
+
 - Create: `src/server/ai/gateway/provider.ts`
 - Test: `src/server/ai/gateway/__tests__/provider.test.ts`
 
 **Approach:**
+
 - `createGatewayProvider(config?)`: when config is absent, return the default
   `gateway` singleton (env auth); when present, return `createGateway(config)`.
 - `GatewayProviderConfig` mirrors `GatewayProviderSettings` (apiKey, baseURL,
@@ -256,6 +258,7 @@ Bridge mapping (out-converter, the risk surface):
 **Patterns to follow:** `createGateway` settings surface in `@ai-sdk/gateway`.
 
 **Test scenarios:**
+
 - Happy path: no config → returns a provider that calls models without throwing
   when `AI_GATEWAY_API_KEY` is set (mock env).
 - Edge case: explicit `apiKey` in config overrides env.
@@ -276,10 +279,12 @@ multimodal and tool round-trips.
 **Dependencies:** None
 
 **Files:**
+
 - Create: `src/server/ai/gateway/text/convert-messages.ts`
 - Test: `src/server/ai/gateway/__tests__/convert-messages.test.ts`
 
 **Approach:**
+
 - Map roles system/user/assistant/tool; content parts text → V3 text,
   `ImagePart` (data/url source) → V3 `file` (mediaType `image/*`),
   `ToolCallPart` → V3 `tool-call`, `ToolResultPart` → V3 `tool-result`,
@@ -293,6 +298,7 @@ multimodal and tool round-trips.
 **Patterns to follow:** V3 `LanguageModelV3Message` content-part shapes.
 
 **Test scenarios:**
+
 - Happy path: system + user(text) + assistant(text) → correct V3 roles/parts.
 - Happy path: user with text + image source → V3 user with text + file part.
 - Integration: assistant tool-call followed by tool-role result round-trips to
@@ -313,10 +319,12 @@ multimodal and tool round-trips.
 **Dependencies:** None
 
 **Files:**
+
 - Create: `src/server/ai/gateway/text/convert-tools.ts`
 - Test: `src/server/ai/gateway/__tests__/convert-tools.test.ts`
 
 **Approach:**
+
 - Function tools → V3 `function` tools `{ name, description, inputSchema }`
   (input schema via `@tanstack/ai`'s `convertSchemaToJsonSchema`).
 - Provider-executed/provider tools → V3 provider-defined tool passthrough
@@ -327,6 +335,7 @@ multimodal and tool round-trips.
 in `@tanstack/openai-base`; V3 `LanguageModelV3FunctionTool` / provider tool.
 
 **Test scenarios:**
+
 - Happy path: one function tool → V3 function tool with JSON-schema input.
 - Happy path: provider-executed tool → V3 provider tool passthrough.
 - Edge case: no tools → undefined (not an empty array that clobbers options).
@@ -345,13 +354,15 @@ pass-through fields.
 **Dependencies:** Units 2, 3
 
 **Files:**
+
 - Create: `src/server/ai/gateway/text/map-options.ts`
 - Create: `src/server/ai/gateway/text/provider-options.ts`
 - Test: `src/server/ai/gateway/__tests__/map-options.test.ts`
 
 **Approach:**
+
 - Build `{ prompt, tools, toolChoice, providerOptions, responseFormat?,
-  abortSignal, headers }` from `TextOptions`.
+abortSignal, headers }` from `TextOptions`.
 - `systemPrompts` → leading V3 system message(s).
 - `modelOptions` → V3 `providerOptions` keyed by provider.
 - `outputSchema` (when present) → `responseFormat: { type:'json', schema }`.
@@ -361,6 +372,7 @@ pass-through fields.
 (structure reference — spreads modelOptions, conditional tools).
 
 **Test scenarios:**
+
 - Happy path: messages+system+modelOptions → correct V3 call options with
   providerOptions populated.
 - Edge case: no tools, no schema → fields omitted, not set to undefined-clobber.
@@ -380,10 +392,12 @@ adapter owns. Highest-risk unit.
 **Dependencies:** None (consumes a V3 stream; testable with synthetic parts)
 
 **Files:**
+
 - Create: `src/server/ai/gateway/text/stream-to-agui.ts`
 - Test: `src/server/ai/gateway/__tests__/stream-to-agui.test.ts`
 
 **Approach:**
+
 - Async generator: read V3 parts, emit AG-UI events per the mapping table in
   High-Level Technical Design.
 - Own the lifecycle: emit `RUN_STARTED` once before first content, `RUN_FINISHED`
@@ -400,9 +414,10 @@ sequences; no network.
 constructors.
 
 **Test scenarios:**
+
 - Happy path: text-start/delta/delta/end → RUN_STARTED + TEXT_MESSAGE_START/
   CONTENT×2/END + RUN_FINISHED, in order.
-- Happy path: reasoning parts → REASONING_* events interleaved correctly.
+- Happy path: reasoning parts → REASONING\_\* events interleaved correctly.
 - Integration: tool-input-start/delta/end + tool-call → TOOL_CALL_START/ARGS/END
   with a single stable toolCallId.
 - Happy path: `finish` carries usage + finishReason onto RUN_FINISHED.
@@ -423,12 +438,14 @@ ordered AG-UI event stream with exactly one terminal event.
 **Dependencies:** Units 1, 4, 5
 
 **Files:**
+
 - Create: `src/server/ai/gateway/text/adapter.ts`
 - Create: `src/server/ai/gateway/text/structured-output.ts`
 - Modify: `src/server/ai/gateway/index.ts`
 - Test: `src/server/ai/gateway/__tests__/text-adapter.test.ts`
 
 **Approach:**
+
 - `class GatewayTextAdapter extends BaseTextAdapter` with `kind='text'`,
   `name='gateway'`; ctor builds/accepts a provider via Unit 1.
 - `chatStream`: map options (Unit 4) → `provider(model).doStream()` →
@@ -443,6 +460,7 @@ ordered AG-UI event stream with exactly one terminal event.
 `TextAdapter` structured-output contract.
 
 **Test scenarios:**
+
 - Happy path: `chatStream` over a mocked provider stream yields AG-UI events
   end-to-end (wires Units 4+5).
 - Integration: `chat({ adapter: gatewayText('anthropic/claude-haiku-4.5') })`
@@ -468,11 +486,13 @@ Gateway — a real streaming round-trip, not a mock. The project already has
 **Dependencies:** Unit 6
 
 **Files:**
+
 - Create: `src/server/ai/gateway/__tests__/text-adapter.live.test.ts`
 - Modify (if needed): `vitest.config.ts` / test setup to load `.env.local` into
   `process.env` (so `@ai-sdk/gateway` resolves `AI_GATEWAY_API_KEY`).
 
 **Approach:**
+
 - Run a real streaming `chat({ adapter: gatewayText('anthropic/claude-haiku-4.5') })`
   turn with a tiny deterministic prompt (e.g. "Reply with the single word OK").
 - Assert the real response: ≥1 `TEXT_MESSAGE_CONTENT` delta, accumulated text is
@@ -489,6 +509,7 @@ file / the project `dotenv` setup) so `process.env.AI_GATEWAY_API_KEY` is
 populated at test time.
 
 **Test scenarios:**
+
 - Happy path (real network): real streamed response yields ≥1
   `TEXT_MESSAGE_CONTENT`, non-empty accumulated text, and a terminal
   `RUN_FINISHED` with non-zero usage.
@@ -511,11 +532,13 @@ skips this file only.
 **Dependencies:** Unit 1
 
 **Files:**
+
 - Create: `src/server/ai/gateway/image/adapter.ts`
 - Modify: `src/server/ai/gateway/index.ts`
 - Test: `src/server/ai/gateway/__tests__/image-adapter.test.ts`
 
 **Approach:**
+
 - `class GatewayImageAdapter extends BaseImageAdapter` (`kind='image'`).
 - `generateImages`: map TanStack `ImageGenerationOptions` →
   `ImageModelV3.doGenerate`; map result (images, warnings, providerMetadata) →
@@ -525,6 +548,7 @@ skips this file only.
 **Patterns to follow:** `@tanstack/ai-openai` image adapter (result-mapping shape).
 
 **Test scenarios:**
+
 - Happy path: prompt → one image; result fields mapped from a mocked
   `doGenerate`.
 - Edge case: size/n/providerOptions forwarded into the V3 call.
@@ -543,11 +567,13 @@ shape.
 **Dependencies:** Unit 1
 
 **Files:**
+
 - Create: `src/server/ai/gateway/video/adapter.ts`
 - Modify: `src/server/ai/gateway/index.ts`
 - Test: `src/server/ai/gateway/__tests__/video-adapter.test.ts`
 
 **Approach:**
+
 - `class GatewayVideoAdapter extends BaseVideoAdapter` (`kind='video'`).
 - `createVideoJob` → `Experimental_VideoModelV3` create; `getVideoStatus` →
   status mapping (`pending|running|completed|failed`); `getVideoUrl` → url result.
@@ -555,6 +581,7 @@ shape.
 - Factory `gatewayVideo(model, config?)`.
 
 **Test scenarios:**
+
 - Happy path: `createVideoJob` returns a job id from a mocked provider.
 - Integration: status transitions pending → completed map to
   `VideoStatusResult`; `getVideoUrl` returns a url post-completion.
@@ -583,23 +610,25 @@ shape.
 
 ## Risks & Dependencies
 
-| Risk | Mitigation |
-|------|------------|
-| V3→AG-UI tool-streaming correspondence is subtle (id threading, ordering) | Isolate in Unit 5 as a pure function with an exhaustive synthetic-sequence test matrix; never test it only through the live adapter |
-| Provider-executed tool fidelity varies per upstream provider | Generic V3 provider-tool passthrough first; refine per provider once observed; out-of-band from function tools |
-| `@ai-sdk/provider` `LanguageModelV3` spec churn (future V4) | Keep the bridge localized to `stream-to-agui.ts` + `map-options.ts`; spec bump becomes a contained edit |
-| Video API is experimental and may shift | Mark experimental; tolerate shape variance; lowest sequencing priority |
-| Live network test is non-deterministic / flaky | Keep Unit 7 the *only* network test, with a tiny deterministic prompt, generous timeout, and assertions on event shape (not exact wording); all other units mock the provider. It runs for real locally (key in `.env.local`) and skips in CI when the secret is absent |
-| `.env.local` not visible to vitest by default | Ensure the test runner loads `.env.local` into `process.env` (vite `loadEnv` / setup file / project `dotenv` config) so `@ai-sdk/gateway` resolves the key; verify in Unit 7 |
-| Structured-output capability differs by upstream model | Default `supportsCombinedToolsAndSchema()`; let the engine fall back to post-loop `structuredOutput` |
+| Risk                                                                      | Mitigation                                                                                                                                                                                                                                                              |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| V3→AG-UI tool-streaming correspondence is subtle (id threading, ordering) | Isolate in Unit 5 as a pure function with an exhaustive synthetic-sequence test matrix; never test it only through the live adapter                                                                                                                                     |
+| Provider-executed tool fidelity varies per upstream provider              | Generic V3 provider-tool passthrough first; refine per provider once observed; out-of-band from function tools                                                                                                                                                          |
+| `@ai-sdk/provider` `LanguageModelV3` spec churn (future V4)               | Keep the bridge localized to `stream-to-agui.ts` + `map-options.ts`; spec bump becomes a contained edit                                                                                                                                                                 |
+| Video API is experimental and may shift                                   | Mark experimental; tolerate shape variance; lowest sequencing priority                                                                                                                                                                                                  |
+| Live network test is non-deterministic / flaky                            | Keep Unit 7 the _only_ network test, with a tiny deterministic prompt, generous timeout, and assertions on event shape (not exact wording); all other units mock the provider. It runs for real locally (key in `.env.local`) and skips in CI when the secret is absent |
+| `.env.local` not visible to vitest by default                             | Ensure the test runner loads `.env.local` into `process.env` (vite `loadEnv` / setup file / project `dotenv` config) so `@ai-sdk/gateway` resolves the key; verify in Unit 7                                                                                            |
+| Structured-output capability differs by upstream model                    | Default `supportsCombinedToolsAndSchema()`; let the engine fall back to post-loop `structuredOutput`                                                                                                                                                                    |
 
 ## Phased Delivery
 
 ### Phase 1 — Text adapter (Units 1–7)
+
 The core value: `chat()` on any gateway chat model with full fidelity. Ships and
 is verifiable on its own.
 
 ### Phase 2 — Image + Video (Units 8–9)
+
 Additive, independent of Phase 1 beyond the shared provider (Unit 1). Video last
 (experimental, no caller yet).
 

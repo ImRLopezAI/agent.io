@@ -3,12 +3,10 @@
 import type { Menu as MenuPrimitive } from '@base-ui/react/menu'
 import { forwardRef, useCallback } from 'react'
 
+// --- Hooks ---
+import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
 // --- Icons ---
 import { ChevronDownIcon } from '#/components/editor/tiptap-icons/chevron-down-icon'
-// --- Tiptap UI ---
-import { HeadingButton } from '#/components/editor/tiptap-ui/heading-button'
-import type { UseHeadingDropdownMenuConfig } from '#/components/editor/tiptap-ui/heading-dropdown-menu'
-import { useHeadingDropdownMenu } from '#/components/editor/tiptap-ui/heading-dropdown-menu'
 // --- UI Primitives ---
 import type { ButtonProps } from '#/components/editor/tiptap-ui-primitive/button'
 import { Button } from '#/components/editor/tiptap-ui-primitive/button'
@@ -19,12 +17,13 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from '#/components/editor/tiptap-ui-primitive/dropdown-menu'
-// --- Hooks ---
-import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
+// --- Tiptap UI ---
+import { HeadingButton } from '#/components/editor/tiptap-ui/heading-button'
+import type { UseHeadingDropdownMenuConfig } from '#/components/editor/tiptap-ui/heading-dropdown-menu'
+import { useHeadingDropdownMenu } from '#/components/editor/tiptap-ui/heading-dropdown-menu'
 
 export interface HeadingDropdownMenuProps
-	extends Omit<ButtonProps, 'type'>,
-		UseHeadingDropdownMenuConfig {
+	extends Omit<ButtonProps, 'type'>, UseHeadingDropdownMenuConfig {
 	/**
 	 * Callback for when the dropdown opens or closes
 	 */

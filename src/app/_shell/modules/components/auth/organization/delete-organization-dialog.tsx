@@ -3,6 +3,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useAuth } from '@workos/authkit-tanstack-react-start/client'
 import { TriangleAlert } from 'lucide-react'
+
 import { mapOrpcError } from '@/app/_shell/modules/utils/map-orpc-error'
 import { useOrgDialogs } from '@/app/_shell/modules/utils/org-dialogs.atoms'
 import { useOnOrgChanged } from '@/app/_shell/modules/utils/use-on-org-changed'
@@ -21,6 +22,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
 import { $api } from '@/lib/rpc/client'
+
 import { landAfterLeavingActiveOrg } from './org-landing'
 import { OrganizationView } from './organization-view'
 

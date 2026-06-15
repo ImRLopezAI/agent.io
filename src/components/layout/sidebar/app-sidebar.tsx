@@ -8,6 +8,7 @@ import {
 	useSidebar,
 } from '@ui/sidebar'
 import * as React from 'react'
+
 import { NavMain } from '@/components/layout/sidebar/nav-main'
 
 import {
@@ -17,8 +18,7 @@ import {
 } from './context'
 
 interface AppSidebarProps
-	extends React.ComponentProps<typeof Sidebar>,
-		SidebarContextProps {}
+	extends React.ComponentProps<typeof Sidebar>, SidebarContextProps {}
 
 type AppSidebarHeaderProps = React.ComponentProps<typeof SidebarHeader>
 
@@ -106,9 +106,7 @@ function AppSidebarRoot({
 	)
 
 	return (
-		<AppSidebarContext
-			value={{ items, pathname, navigate: handleNavigate }}
-		>
+		<AppSidebarContext value={{ items, pathname, navigate: handleNavigate }}>
 			<Sidebar {...props}>
 				{header}
 				<SidebarContent>

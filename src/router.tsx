@@ -1,9 +1,9 @@
 import { ErrorComponent } from '@components/layout/errors/error'
 import { NotFoundComponent } from '@components/layout/errors/not-found'
 import { getContext } from '@lib/rpc/context'
-// import * as Sentry from '@sentry/tanstackstart-react'
 import { createRouter as createTanStackRouter } from '@tanstack/react-router'
 import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query'
+
 import { routeTree } from './routeTree.gen'
 
 export function getRouter() {

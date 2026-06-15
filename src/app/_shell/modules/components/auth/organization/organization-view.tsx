@@ -3,7 +3,9 @@
 import { cn } from '@lib/utils'
 import { useRouteContext } from '@tanstack/react-router'
 import type { ComponentProps } from 'react'
+
 import { Badge } from '@/components/ui/badge'
+
 import { OrganizationViewSkeleton } from './organization-view-skeleton'
 
 /**
