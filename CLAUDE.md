@@ -25,14 +25,6 @@ For globals context, data fetching use the `useRouteContext` hook to get the con
 use Jotai for UI state management.
 dont use useEffect to fetch data, use the `useQuery` hook to fetch the data.
 
-## Design Guidelines Skills
-
-This skills are used to review the design of the feature and to hand off the design to the designer and create better designs and works specially together as plugin.
-
-Have in mind this
-AI Slop Web Design Guide:
-https://markdown.new/https://www.925studios.co/blog/ai-slop-web-design-guide
-
 <!-- convex-ai-start -->
 
 This project uses [Convex](https://convex.dev) as its backend.
