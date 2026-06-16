@@ -1,6 +1,6 @@
 'use client'
 
-import { useChat } from '@tanstack/ai-react'
+import { useChat } from '@ai-sdk/react'
 import React from 'react'
 import { toast } from 'sonner'
 
@@ -16,13 +16,8 @@ import {
 
 interface AIChatInterfaceProps extends React.PropsWithChildren {
 	/**
-	 * Forwarded to `useChat`. `UseChatOptions` accepts either a `ChatInit`
-	 * (`{ id, transport, … }`) **or** a shared `Chat` instance
-	 * (`{ chat: chatInstance }`) — the spread below preserves both shapes,
-	 * so callers can pass `{ chat: new Chat({ id }) }` to share state with
-	 * another `useChat` consumer (e.g. the active-voice overlay) without
-	 * disturbing existing call sites.
-	 * See https://ai-sdk.dev/cookbook/next/use-shared-chat-context.
+	 * Forwarded to `@ai-sdk/react` `useChat` — `{ transport, id, … }`. Callers
+	 * pass a `DefaultChatTransport` (see `useAgent` and `Ai`).
 	 */
 	chat: Parameters<typeof useChat>[0]
 	initialState?: AiUiInitialState
@@ -55,13 +50,9 @@ export function useAi({
 	const { state: ui, dispatch } = useAiUiStore(initialState)
 	const { model, webSearch, artifact, modelSelectorOpen, models } = ui
 
-	// Per-request body (model / webSearch) flows through the `body` option;
-	// `@tanstack/ai-react` re-reads it when it changes, so each send carries the
-	// current selection. TanStack auto-resumes the agent loop after
-	// `addToolApprovalResponse`, so no `sendAutomaticallyWhen` equivalent is
-	// needed.
-	const body = React.useMemo(() => ({ model, webSearch }), [model, webSearch])
-	const { sendMessage, isLoading, ...ai } = useChat({ ...chat, body })
+	const { sendMessage, status, regenerate, ...ai } = useChat(chat)
+	// v7 exposes `status`; derive the boolean the UI consumes.
+	const isLoading = status === 'submitted' || status === 'streaming'
 
 	const reset = React.useCallback(() => {
 		dispatch({ type: 'reset' })
@@ -82,9 +73,7 @@ export function useAi({
 				return
 			}
 
-			const text = message.text?.trim()
-				? message.text
-				: 'Sent with attachments'
+			const text = message.text?.trim() ? message.text : 'Sent with attachments'
 
 			// Clear immediately so the user can draft the next message while the
 			// assistant streams. sendMessage resolves only after the full turn.
@@ -93,7 +82,8 @@ export function useAi({
 			reset()
 
 			try {
-				await sendMessage(text)
+				// Per-request model / webSearch ride the send `body` (v7).
+				await sendMessage({ text }, { body: { model, webSearch } })
 			} catch (error) {
 				if (message.text?.trim()) {
 					input.setInput(message.text)
@@ -103,7 +93,7 @@ export function useAi({
 				)
 			}
 		},
-		[sendMessage, reset, isLoading, input, attachments],
+		[sendMessage, reset, isLoading, input, attachments, model, webSearch],
 	)
 
 	const changeModel = React.useCallback(
@@ -130,6 +120,13 @@ export function useAi({
 	return {
 		input,
 		isLoading,
+		status,
+		regenerate,
+		// v7 renamed `reload` -> `regenerate`; keep `reload` for existing consumers
+		// (ChatConversation, drawer, sheet, messages).
+		reload: async () => {
+			await regenerate()
+		},
 		model,
 		webSearch,
 		artifact,

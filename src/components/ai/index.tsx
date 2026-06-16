@@ -1,22 +1,26 @@
 'use client'
 
 import { MODELS } from '@server/ai/constants'
-import { fetchServerSentEvents } from '@tanstack/ai-react'
 import { useAi } from '@ui/ai/use-ai'
+import { DefaultChatTransport } from 'ai'
+import { useMemo } from 'react'
 
 import { ChatPrompt } from './chat'
 import { AiChatProvider } from './context'
 import { ChatMessages } from './messages'
+
 const CHAT_URL = `${import.meta.env.VITE_CONVEX_SITE_URL}/api/chat`
 if (!CHAT_URL) {
 	throw new Error('VITE_CONVEX_SITE_URL is not defined')
 }
 
 export function Ai() {
+	const transport = useMemo(
+		() => new DefaultChatTransport({ api: CHAT_URL }),
+		[],
+	)
 	const handler = useAi({
-		chat: {
-			connection: fetchServerSentEvents(CHAT_URL),
-		},
+		chat: { transport },
 		initialState: {
 			model: 'anthropic/claude-haiku-4.5',
 			models: MODELS,

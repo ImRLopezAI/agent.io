@@ -18,6 +18,7 @@
 	},
 	"dependencies": {
 		"@ai-sdk/gateway": "4.0.0-beta.109",
+		"@ai-sdk/react": "4.0.0-beta.182",
 		"@base-ui/react": "1.5.0",
 		"@convex-dev/react-query": "0.1.0",
 		"@convex-dev/resend": "^0.2.4",

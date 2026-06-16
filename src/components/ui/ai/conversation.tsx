@@ -1,4 +1,4 @@
-import type { UIMessage } from '@tanstack/ai-react'
+import type { UIMessage } from 'ai'
 import { CopyIcon, RefreshCcwIcon } from 'lucide-react'
 import { useMemo } from 'react'
 
@@ -50,7 +50,7 @@ export function ChatConversation({
 									return (
 										<Message key={`${id}-text-${partIndex}`} from={role}>
 											<MessageContent>
-												<MessageResponse>{part.content}</MessageResponse>
+												<MessageResponse>{part.text}</MessageResponse>
 											</MessageContent>
 											{role === 'assistant' &&
 												partIndex === parts.length - 1 && (
@@ -60,7 +60,7 @@ export function ChatConversation({
 														</MessageAction>
 														<MessageAction
 															onClick={() =>
-																navigator.clipboard.writeText(part.content)
+																navigator.clipboard.writeText(part.text)
 															}
 															label='Copy'
 														>
@@ -70,10 +70,10 @@ export function ChatConversation({
 												)}
 										</Message>
 									)
-								case 'thinking':
+								case 'reasoning':
 									return (
 										<Reasoning
-											key={`${id}-thinking-${partIndex}`}
+											key={`${id}-reasoning-${partIndex}`}
 											className='w-full'
 											isStreaming={
 												isLoading &&
@@ -82,7 +82,7 @@ export function ChatConversation({
 											}
 										>
 											<ReasoningTrigger />
-											<ReasoningContent>{part.content}</ReasoningContent>
+											<ReasoningContent>{part.text}</ReasoningContent>
 										</Reasoning>
 									)
 								default:

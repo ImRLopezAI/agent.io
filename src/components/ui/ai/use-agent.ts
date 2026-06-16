@@ -1,6 +1,4 @@
-import type { FetchConnectionOptions } from '@tanstack/ai-react'
-import { fetchServerSentEvents } from '@tanstack/ai-react'
-import type React from 'react'
+import { DefaultChatTransport } from 'ai'
 import { useMemo, useRef } from 'react'
 
 import { useAi } from './use-ai'
@@ -12,31 +10,22 @@ if (!AGENTS_URL) {
 
 interface UseAgentProps extends Omit<Parameters<typeof useAi>[0], 'chat'> {
 	/**
-	 * Per-request fetch options (headers/body) passed to
-	 * `fetchServerSentEvents('/api/agent', …)`, or a function that derives them
-	 * from the context ref.
+	 * Extra `DefaultChatTransport` options (e.g. `headers`, `body`,
+	 * `prepareSendMessagesRequest`) merged onto the `/api/agents` endpoint.
 	 */
-	transport?:
-		| FetchConnectionOptions
-		| ((
-				contextRef: React.MutableRefObject<any | null>,
-		  ) => FetchConnectionOptions)
+	transport?: Omit<ConstructorParameters<typeof DefaultChatTransport>[0], 'api'>
 }
 
 export function useAgent({ transport, ...rest }: UseAgentProps) {
-	const contextRef = useRef<any | null>(null)
+	const contextRef = useRef<unknown | null>(null)
 
-	const resolvedOptions = useMemo(() => {
-		return typeof transport === 'function' ? transport(contextRef) : transport
-	}, [transport, contextRef])
-
-	const connection = useMemo(
-		() => fetchServerSentEvents(AGENTS_URL, resolvedOptions),
-		[resolvedOptions],
+	const chatTransport = useMemo(
+		() => new DefaultChatTransport({ api: AGENTS_URL, ...transport }),
+		[transport],
 	)
 
 	const handler = useAi({
-		chat: { connection },
+		chat: { transport: chatTransport },
 		...rest,
 	})
 	const handlerRef = useRef(handler)
