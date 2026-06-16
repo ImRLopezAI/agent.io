@@ -1,53 +1,49 @@
+import { gateway } from '@ai-sdk/gateway'
 import {
-	chat,
-	chatParamsFromRequestBody,
-	maxIterations,
-	toServerSentEventsResponse,
-} from '@tanstack/ai'
+	convertToModelMessages,
+	createUIMessageStreamResponse,
+	isStepCount,
+	streamText,
+	toUIMessageStream,
+	type UIMessage,
+} from 'ai'
 
 import type { Models } from './constants'
-import { gatewayText } from './gateway'
 
 /**
- * Chat request handler — drives the Vercel AI Gateway through `@tanstack/ai`'s
- * `chat()` and streams AG-UI Server-Sent Events back to the client.
+ * Chat request handler — drives the Vercel AI Gateway through the Vercel AI SDK
+ * (v7) `streamText` loop and streams a UI message stream back to the client.
  *
- * Parses the AG-UI `RunAgentInput` body from `@tanstack/ai-client` so the
- * full message thread (with `parts`) is preserved on every turn.
+ * The client (`@ai-sdk/react` `useChat` + `DefaultChatTransport`) POSTs
+ * `{ messages: UIMessage[], model? }`; we convert the UI thread to model
+ * messages, run the model through the gateway, and return a UI-message-stream
+ * `Response`. The request's `AbortSignal` is threaded straight into
+ * `streamText` (v7 takes a signal directly — no AbortController bridge needed).
  */
 export async function agentRequestHandler(req: Request) {
-	const rawBody: unknown = await req.json()
-	const { messages, forwardedProps } = await chatParamsFromRequestBody(rawBody)
+	const body = (await req.json()) as { messages?: UIMessage[]; model?: string }
+	const messages = body.messages ?? []
 
 	const model =
-		(typeof forwardedProps.model === 'string'
-			? forwardedProps.model
-			: undefined) ?? ('anthropic/claude-haiku-4.5' satisfies Models)
+		(typeof body.model === 'string' ? body.model : undefined) ??
+		('anthropic/claude-haiku-4.5' satisfies Models)
 
-	// Bridge the request's AbortSignal to an AbortController for chat() + the
-	// SSE response (both accept an AbortController, not a raw signal).
-	const abortController = new AbortController()
-	if (req.signal.aborted) {
-		abortController.abort()
-	} else {
-		req.signal.addEventListener('abort', () => abortController.abort(), {
-			once: true,
-		})
-	}
-
-	const stream = chat({
-		adapter: gatewayText(model as Models),
-		systemPrompts: ['You are a helpful assistant.'],
-		messages,
-		agentLoopStrategy: maxIterations(10),
-		abortController,
+	const result = streamText({
+		model: gateway(model),
+		instructions: 'You are a helpful assistant.',
+		messages: await convertToModelMessages(messages),
+		stopWhen: isStepCount(10),
+		abortSignal: req.signal,
 	})
 
-	return toServerSentEventsResponse(stream, {
+	return createUIMessageStreamResponse({
+		stream: toUIMessageStream({
+			stream: result.stream,
+			originalMessages: messages,
+		}),
 		headers: {
 			'x-sunday-agent': 'orchestrator',
 			'x-model': model,
 		},
-		abortController,
 	})
 }

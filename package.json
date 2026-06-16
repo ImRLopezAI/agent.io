@@ -17,7 +17,7 @@
 		"db:dev": "convex dev"
 	},
 	"dependencies": {
-		"@ai-sdk/gateway": "3.0.131",
+		"@ai-sdk/gateway": "4.0.0-beta.109",
 		"@base-ui/react": "1.5.0",
 		"@convex-dev/react-query": "0.1.0",
 		"@convex-dev/resend": "^0.2.4",
@@ -59,10 +59,6 @@
 		"@streamdown/math": "^1.0.2",
 		"@streamdown/mermaid": "^1.0.2",
 		"@tailwindcss/vite": "^4.3.0",
-		"@tanstack/ai": "0.28.0",
-		"@tanstack/ai-client": "0.16.3",
-		"@tanstack/ai-react": "0.15.4",
-		"@tanstack/ai-utils": "0.2.1",
 		"@tanstack/pacer": "^0.21.1",
 		"@tanstack/react-devtools": "latest",
 		"@tanstack/react-hotkeys": "0.10.0",
@@ -119,6 +115,7 @@
 		"@workos-inc/widgets": "^1.14.0",
 		"@workos/authkit-tanstack-react-start": "^0.8.6",
 		"@xyflow/react": "^12.10.2",
+		"ai": "7.0.0-beta.178",
 		"ansi-to-react": "^6.2.6",
 		"border-beam": "^1.0.1",
 		"bowser": "^2.14.1",
