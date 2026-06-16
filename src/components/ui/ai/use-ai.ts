@@ -82,14 +82,28 @@ export function useAi({
 				return
 			}
 
-			// Text path migrated. Attachment file -> ContentPart mapping is a
-			// follow-up (needs the upload/source format); body (model/webSearch)
-			// rides the useChat `body` option.
-			await sendMessage(message.text || 'Sent with attachments')
+			const text = message.text?.trim()
+				? message.text
+				: 'Sent with attachments'
+
+			// Clear immediately so the user can draft the next message while the
+			// assistant streams. sendMessage resolves only after the full turn.
 			input.clear()
+			attachments.clear()
 			reset()
+
+			try {
+				await sendMessage(text)
+			} catch (error) {
+				if (message.text?.trim()) {
+					input.setInput(message.text)
+				}
+				toast.error(
+					error instanceof Error ? error.message : 'Failed to send message',
+				)
+			}
 		},
-		[sendMessage, reset, isLoading, input],
+		[sendMessage, reset, isLoading, input, attachments],
 	)
 
 	const changeModel = React.useCallback(
