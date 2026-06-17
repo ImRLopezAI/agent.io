@@ -30,10 +30,10 @@ const ORCHESTRATOR_INSTRUCTIONS = `You are an orchestrator. Choose the right spe
  * runs). The request `AbortSignal` threads straight through (v7).
  */
 export async function agentRequestHandler(req: Request) {
-	const body = (await req.json()) as {
+	const body: {
 		messages?: AgentUIMessage[]
 		model?: string
-	}
+	} = await req.json()
 	const messages = body.messages ?? []
 
 	const model =

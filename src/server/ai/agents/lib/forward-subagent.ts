@@ -24,9 +24,10 @@ interface ForwardSubAgentArgs<TOOLS extends ToolSet> {
  * orchestrator loop. The chat UI groups everything between the boundary markers
  * into one collapsible agent run (see `src/components/ai/segment-parts.ts`).
  *
- * v7 note: we drain the SDK-produced UIMessageChunk stream directly (rather than
- * hand-mapping provider stream parts) so the chunk shapes are guaranteed correct
- * and the closing boundary is written strictly AFTER the sub-agent's last chunk.
+ * v7 note: we drain the SDK-produced UIMessageChunk stream via a reader (a
+ * `ReadableStream` is not guaranteed async-iterable under every TS lib config)
+ * so the chunk shapes are guaranteed correct and the closing boundary is written
+ * strictly AFTER the sub-agent's last chunk.
  */
 export async function forwardSubAgentStream<TOOLS extends ToolSet>({
 	agent,
@@ -42,21 +43,24 @@ export async function forwardSubAgentStream<TOOLS extends ToolSet>({
 
 	let ok = true
 	let text = ''
+	const reader = toUIMessageStream<TOOLS, AgentUIMessage>({
+		stream: result.stream,
+		sendStart: false,
+		sendFinish: false,
+	}).getReader()
 	try {
-		const uiStream = toUIMessageStream<TOOLS, AgentUIMessage>({
-			stream: result.stream,
-			sendStart: false,
-			sendFinish: false,
-		})
-		for await (const chunk of uiStream) {
+		while (true) {
 			if (signal?.aborted) break
-			if (chunk.type === 'text-delta') text += chunk.delta
-			if (chunk.type === 'error') ok = false
-			writer.write(chunk)
+			const { done, value } = await reader.read()
+			if (done || value === undefined) break
+			if (value.type === 'text-delta') text += value.delta
+			if (value.type === 'error') ok = false
+			writer.write(value)
 		}
 	} catch {
 		ok = false
 	} finally {
+		reader.releaseLock()
 		writer.write({
 			type: 'data-agent-boundary',
 			data: { agent, toolCallId, phase: 'end' },
