@@ -5,7 +5,6 @@ import {
 } from 'convex-helpers/server/hono'
 import type { GenericDataModel, GenericMutationCtx } from 'convex/server'
 import { cors } from 'hono/cors'
-import { logger } from 'hono/logger'
 import { requestId } from 'hono/request-id'
 import { Hono } from 'hono/tiny'
 
@@ -16,7 +15,6 @@ import { resend } from './resend'
 const app: HonoWithConvex<ActionCtx> = new Hono()
 
 app.use(requestId())
-app.use(logger())
 app.use(cors())
 app.on('POST', ['/api/agents', '/api/chat'], async (c) => {
 	const request = c.req.raw
