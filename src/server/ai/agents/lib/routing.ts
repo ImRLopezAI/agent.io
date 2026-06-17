@@ -1,53 +1,27 @@
 import { gateway } from '@ai-sdk/gateway'
 import {
-	streamText,
+	ToolLoopAgent,
 	tool,
-	type UIMessage,
+	toUIMessageStream,
+	type UIMessageChunk,
 	type UIMessageStreamWriter,
 } from 'ai'
 import { z } from 'zod'
 
-import type { Models } from '../../constants'
-import { forwardSubAgentStream } from './forward-subagent'
-
-/**
- * Custom data parts the orchestrator + sub-agents stream to the chat UI. The
- * client groups everything between `data-agent-boundary` start/end markers into
- * one collapsible agent run and renders `data-agent-step` rows — see
- * `src/components/ai/segment-parts.ts` (the contract lives there).
- */
-export type AgentDataParts = {
-	'agent-boundary': {
-		agent: string
-		toolCallId?: string
-		phase: 'start' | 'end'
-	}
-	'agent-step': {
-		agent: string
-		toolName: string
-		toolCallId: string
-		state: string
-		input?: unknown
-		output?: unknown
-		cached?: boolean
-	}
-}
-
-export type AgentUIMessage = UIMessage<unknown, AgentDataParts>
+import { drainIntoWriter, prefixTextPartIds } from './drain'
 
 export interface SpecialistConfig {
 	key: string
 	description: string
 	instructions: string
-	model?: Models
+	model?: string
 }
 
 /**
  * Starter specialist registry. Extend here, or later load per-tenant from the
- * Convex `agents.specialists[]` config. Each entry becomes ONE routing-tool on
- * the orchestrator; the orchestrator routes to a specialist instead of doing
- * the work itself (the "one agent with all tools" anti-pattern the rebuild
- * design calls out).
+ * Convex `agents.specialists[]` config. Each becomes its own built-in
+ * `ToolLoopAgent` sub-agent (give it its own `tools` as needed), wrapped as one
+ * routing-tool on the orchestrator.
  */
 export const SPECIALISTS: SpecialistConfig[] = [
 	{
@@ -65,50 +39,75 @@ export const SPECIALISTS: SpecialistConfig[] = [
 	},
 ]
 
+/** Build a specialist as its own built-in `ToolLoopAgent` (ontology pattern). */
+export function createSpecialistAgent(spec: SpecialistConfig, model: string) {
+	return new ToolLoopAgent({
+		id: spec.key,
+		model: gateway(spec.model ?? model),
+		instructions: spec.instructions,
+		tools: {},
+	})
+}
+
+export type SpecialistAgent = ReturnType<typeof createSpecialistAgent>
+
+const routingInputSchema = z.object({ prompt: z.string().min(1) })
+const routingOutputSchema = z.object({ ok: z.literal(true), text: z.string() })
+
 /**
- * Builds one routing-tool per specialist. The orchestrator sees these as its
- * tools; each runs its specialist via `streamText` and forwards the sub-agent
- * stream into the parent UI stream (agent boundary + narration), returning the
- * accumulated text for the orchestrator to compose its final answer from.
+ * Wrap a sub-agent `ToolLoopAgent` as a routing-tool the orchestrator registers.
+ * Mirrors ontology's `dbDoctorRoutingTool` / `rendererRoutingTool`: writes paired
+ * `data-agent-boundary` markers around the sub-agent run, namespaces its part
+ * ids, drains the sub-agent stream into the outer writer (AWAITING EOS so the
+ * closing marker stays ordered), and returns the sub-agent's prose so the
+ * orchestrator can compose follow-up delegations. The chat UI groups everything
+ * between the boundary markers into one collapsible agent run.
  */
-export function buildRoutingTools({
-	writer,
-	model,
-	signal,
-}: {
-	writer: UIMessageStreamWriter<AgentUIMessage>
-	model: string
-	signal?: AbortSignal
+export function subAgentRoutingTool(opts: {
+	agentName: string
+	description: string
+	agent: SpecialistAgent
+	writer: UIMessageStreamWriter
+	abortSignal?: AbortSignal
 }) {
-	return Object.fromEntries(
-		SPECIALISTS.map((spec) => [
-			spec.key,
-			tool({
-				description: spec.description,
-				inputSchema: z.object({
-					task: z
-						.string()
-						.describe('A clear, self-contained task for this specialist.'),
-				}),
-				execute: async ({ task }, { toolCallId }) => {
-					const sub = streamText({
-						model: gateway(spec.model ?? model),
-						instructions: spec.instructions,
-						prompt: task,
-						abortSignal: signal,
-					})
-					const { ok, text } = await forwardSubAgentStream({
-						agent: spec.key,
-						toolCallId,
-						writer,
-						result: sub,
-						signal,
-					})
-					return ok
-						? { success: true, text }
-						: { success: false, error: `${spec.key} specialist failed` }
-				},
-			}),
-		]),
-	)
+	return tool({
+		description: opts.description,
+		inputSchema: routingInputSchema,
+		outputSchema: routingOutputSchema,
+		execute: async ({ prompt }, { toolCallId, abortSignal }) => {
+			const signal = abortSignal ?? opts.abortSignal
+
+			opts.writer.write({
+				type: 'data-agent-boundary',
+				id: `${toolCallId}-start`,
+				data: { agent: opts.agentName, toolCallId, phase: 'start' },
+			} as unknown as Parameters<typeof opts.writer.write>[0])
+
+			let text = ''
+			try {
+				const result = await opts.agent.stream({ prompt, abortSignal: signal })
+				const subStream = toUIMessageStream({
+					stream: result.stream,
+					sendStart: false,
+					sendFinish: false,
+				}) as unknown as ReadableStream<UIMessageChunk>
+				const namespaced = prefixTextPartIds(
+					subStream,
+					`${opts.agentName}-${toolCallId}`,
+				)
+				await drainIntoWriter(namespaced, opts.writer, signal, {
+					onText: (delta) => {
+						text += delta
+					},
+				})
+				return { ok: true as const, text }
+			} finally {
+				opts.writer.write({
+					type: 'data-agent-boundary',
+					id: `${toolCallId}-end`,
+					data: { agent: opts.agentName, toolCallId, phase: 'end' },
+				} as unknown as Parameters<typeof opts.writer.write>[0])
+			}
+		},
+	})
 }
