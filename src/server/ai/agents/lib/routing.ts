@@ -5,16 +5,19 @@ import {
 	toUIMessageStream,
 	type UIMessageChunk,
 	type UIMessageStreamWriter,
+	type ToolSet,
 } from 'ai'
 import { z } from 'zod'
 
 import { drainIntoWriter, prefixTextPartIds } from './drain'
+import type { Models } from '../../constants'
 
 export interface SpecialistConfig {
 	key: string
 	description: string
 	instructions: string
-	model?: string
+	model?: Models
+	tools?: ToolSet
 }
 
 /**
@@ -40,12 +43,12 @@ export const SPECIALISTS: SpecialistConfig[] = [
 ]
 
 /** Build a specialist as its own built-in `ToolLoopAgent` (ontology pattern). */
-export function createSpecialistAgent(spec: SpecialistConfig, model: string) {
+export function createSpecialistAgent(spec: SpecialistConfig, model?: Models) {
 	return new ToolLoopAgent({
 		id: spec.key,
-		model: gateway(spec.model ?? model),
+		model: gateway(model ?? spec.model ?? 'anthropic/claude-haiku-4.5'),
 		instructions: spec.instructions,
-		tools: {},
+		tools: spec.tools ?? {},
 	})
 }
 
