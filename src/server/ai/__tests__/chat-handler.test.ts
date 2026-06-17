@@ -56,7 +56,7 @@ describe('agentRequestHandler', () => {
 		)
 		expect(res.headers.get('content-type')).toContain('text/event-stream')
 		expect(res.headers.get('x-model')).toBe('anthropic/claude-haiku-4.5')
-		expect(res.headers.get('x-sunday-agent')).toBe('orchestrator')
+		expect(res.headers.get('x-agent.io')).toBe('orchestrator')
 		const body = await res.text()
 		expect(body).toContain('Hello')
 	})
