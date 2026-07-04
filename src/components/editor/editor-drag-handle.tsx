@@ -2,9 +2,8 @@
 
 import DragHandle from '@tiptap/extension-drag-handle-react'
 import { useCurrentEditor } from '@tiptap/react'
+import { cn } from 'cnfast'
 import { GripVertical } from 'lucide-react'
-
-import { cn } from '#/lib/utils'
 
 import { isEditorReady } from './editor-utils'
 

@@ -8,6 +8,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@ui/select'
+import { cn } from 'cnfast'
 import { CheckIcon, CopyIcon } from 'lucide-react'
 import type { ComponentProps, CSSProperties, HTMLAttributes } from 'react'
 import {
@@ -27,8 +28,6 @@ import type {
 	ThemedToken,
 } from 'shiki'
 import { createHighlighter } from 'shiki'
-
-import { cn } from '#/lib/utils'
 
 // Shiki uses bitflags for font styles: 1=italic, 2=bold, 4=underline
 // oxlint-disable-next-line eslint(no-bitwise)

@@ -7,11 +7,10 @@ import {
 	AccordionTrigger,
 } from '@ui/accordion'
 import { Badge } from '@ui/badge'
+import { cn } from 'cnfast'
 import { BotIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
 import { memo } from 'react'
-
-import { cn } from '#/lib/utils'
 
 import type { Tool } from './ai-compat-types'
 import { CodeBlock } from './code-block'

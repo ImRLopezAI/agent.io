@@ -1,5 +1,6 @@
 'use client'
 
+import { cn } from 'cnfast'
 import {
 	OTPInput,
 	OTPInputContext,
@@ -7,8 +8,6 @@ import {
 } from 'input-otp'
 import { MinusIcon } from 'lucide-react'
 import * as React from 'react'
-
-import { cn } from '#/lib/utils'
 
 type InputOTPSharedProps = Omit<
 	OTPInputPrimitiveProps,

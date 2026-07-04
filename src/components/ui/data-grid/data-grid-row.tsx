@@ -9,10 +9,9 @@ import type { VirtualItem } from '@tanstack/react-virtual'
 import { DataGridCell } from '@ui/data-grid/data-grid-cell'
 import { DataGridCellWrapper } from '@ui/data-grid/data-grid-cell-wrapper'
 import { DataGridPreviewCellTrigger } from '@ui/data-grid/data-grid-preview'
+import { cn } from 'cnfast'
 import { motion, type Variants } from 'motion/react'
 import * as React from 'react'
-
-import { cn } from '#/lib/utils'
 
 import { useComposedRefs } from './lib/compose-refs'
 import {
@@ -387,15 +386,18 @@ function DataGridRowImpl<TData>({
 								data-highlighted={isCellFocused ? '' : undefined}
 								data-slot='grid-cell'
 								tabIndex={-1}
-								className={cn({
-									grow: stretchColumns && columnId !== 'select',
-									'border-border': showEndBorder || showStartBorder,
-									'border-e': showEndBorder,
-									'border-s': showStartBorder && columnId !== 'select',
-									'rounded-s-lg': isCardVariant && colIndex === 0,
-									'rounded-e-lg': isCardVariant && isLastColumn,
-									'group/grid-cell relative': hasPreview,
-								})}
+								className={cn(
+									{
+										grow: stretchColumns && columnId !== 'select',
+										'border-border': showEndBorder || showStartBorder,
+										'border-e': showEndBorder,
+										'border-s': showStartBorder && columnId !== 'select',
+										'rounded-s-lg': isCardVariant && colIndex === 0,
+										'rounded-e-lg': isCardVariant && isLastColumn,
+										'group/grid-cell relative': hasPreview,
+									},
+									className,
+								)}
 								style={{
 									...getColumnPinningStyle({ column: cell.column, dir }),
 									width: `calc(var(--col-${columnSizeId}-size) * 1px)`,

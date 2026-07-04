@@ -1,3 +1,4 @@
+import { SpinnerVerbsShimmer, StreamingFooterIndicator } from '@ui/ai/loading'
 import {
 	Confirmation,
 	ConfirmationAccepted,
@@ -27,7 +28,6 @@ import {
 	ReasoningTrigger,
 } from '@ui/ai-elements/reasoning'
 import { Shimmer } from '@ui/ai-elements/shimmer'
-import { SpinnerVerbsShimmer, StreamingFooterIndicator } from '@ui/ai/loading'
 import { Badge } from '@ui/badge'
 import {
 	Collapsible,
@@ -35,6 +35,7 @@ import {
 	CollapsibleTrigger,
 } from '@ui/collapsible'
 import JsonViewer from '@ui/json-viewer'
+import { cn } from 'cnfast'
 import {
 	AlertTriangleIcon,
 	CheckCircle2Icon,
@@ -54,8 +55,6 @@ import {
 	useMemo,
 	useState,
 } from 'react'
-
-import { cn } from '#/lib/utils'
 
 import { useAiChat } from './context'
 import { AGENTS, MENTION_CONFIGS, MENTION_TRIGGERS } from './mentions'

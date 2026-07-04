@@ -15,25 +15,24 @@ import {
 	ComboBox,
 	CustomFormContext,
 	DatePicker,
+	type FormComponent,
+	type FormComponentStatics,
 	FormControl,
 	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
 	FormMessage,
+	type FormProps,
 	FormSubmit,
 	Select,
-	type FormComponent,
-	type FormComponentStatics,
-	type FormProps,
 } from './form-components'
 import { Input } from './input'
 import { Switch } from './switch'
 import { Textarea } from './textarea'
 
-interface CreateFormProps<
-	TFieldValues extends FieldValues = FieldValues,
-> extends UseFormProps<TFieldValues> {
+interface CreateFormProps<TFieldValues extends FieldValues = FieldValues>
+	extends UseFormProps<TFieldValues> {
 	onSubmit: (data: TFieldValues, form: UseFormReturn<TFieldValues>) => void
 }
 

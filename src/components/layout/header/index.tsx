@@ -17,6 +17,7 @@ import { Separator } from '@/components/ui/separator'
 import { useSidebar } from '@/components/ui/sidebar'
 
 import { Menu } from './navigation'
+
 function HeaderAiAssistant() {
 	const transport = useMemo(
 		() => ({

@@ -17,10 +17,9 @@ import {
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from '@ui/dropdown-menu'
+import { cn } from 'cnfast'
 import { CheckIcon } from 'lucide-react'
 import type * as React from 'react'
-
-import { cn } from '#/lib/utils'
 
 function Menubar({ className, ...props }: MenubarPrimitive.Props) {
 	return (

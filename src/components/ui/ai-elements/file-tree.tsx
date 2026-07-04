@@ -5,6 +5,7 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from '@ui/collapsible'
+import { cn } from 'cnfast'
 import {
 	ChevronRightIcon,
 	FileIcon,
@@ -19,8 +20,6 @@ import {
 	useMemo,
 	useState,
 } from 'react'
-
-import { cn } from '#/lib/utils'
 
 interface FileTreeContextType {
 	expandedPaths: Set<string>

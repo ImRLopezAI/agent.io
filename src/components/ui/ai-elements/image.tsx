@@ -1,4 +1,4 @@
-import { cn } from '#/lib/utils'
+import { cn } from 'cnfast'
 
 import type { Experimental_GeneratedImage } from './ai-compat-types'
 

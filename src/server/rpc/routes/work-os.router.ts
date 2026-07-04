@@ -91,8 +91,8 @@ export const workOsRouter = os.workOs.router({
 				context.workOs.userManagement
 					.listOrganizationMemberships({ organizationId })
 					.then((page) => page.autoPagination()),
-				context.workOs.organizations
-					.listOrganizationRoles({ organizationId })
+				context.workOs.authorization
+					.listOrganizationRoles(organizationId)
 					.then((list) => list.data),
 			])
 			return Promise.all(
@@ -118,8 +118,8 @@ export const workOsRouter = os.workOs.router({
 					context.workOs.userManagement.getOrganizationMembership(
 						input.membershipId,
 					),
-					context.workOs.organizations
-						.listOrganizationRoles({ organizationId })
+					context.workOs.authorization
+						.listOrganizationRoles(organizationId)
 						.then((list) => list.data),
 				])
 				return enrichMember(context.workOs, membership, roles)
@@ -200,10 +200,8 @@ export const workOsRouter = os.workOs.router({
 	},
 	roles: {
 		list: org.workOs.roles.list.handler(async ({ context }) => {
-			const { data } = await context.workOs.organizations.listOrganizationRoles(
-				{
-					organizationId: context.organizationId,
-				},
+			const { data } = await context.workOs.authorization.listOrganizationRoles(
+				context.organizationId,
 			)
 			return data.map(
 				(r): OrgRole => ({

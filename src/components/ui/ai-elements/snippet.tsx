@@ -7,6 +7,7 @@ import {
 	InputGroupInput,
 	InputGroupText,
 } from '@ui/input-group'
+import { cn } from 'cnfast'
 import { CheckIcon, CopyIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
 import {
@@ -18,8 +19,6 @@ import {
 	useRef,
 	useState,
 } from 'react'
-
-import { cn } from '#/lib/utils'
 
 interface SnippetContextType {
 	code: string

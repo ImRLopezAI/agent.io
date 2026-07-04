@@ -5,10 +5,9 @@ import { mergeProps } from '@base-ui/react/merge-props'
 import { useRender } from '@base-ui/react/use-render'
 import type { Cell } from '@tanstack/react-table'
 import { cva, type VariantProps } from 'class-variance-authority'
+import { cn } from 'cnfast'
 import { Eye, X } from 'lucide-react'
 import * as React from 'react'
-
-import { cn } from '#/lib/utils'
 
 /**
  * Sentinel tag identifying a `<Preview>` element returned from a column's

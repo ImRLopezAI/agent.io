@@ -1,8 +1,7 @@
 'use client'
 
+import { cn } from 'cnfast'
 import * as React from 'react'
-
-import { cn } from '#/lib/utils'
 
 import { useDataGridActions } from './contexts/data-grid-actions-context'
 import { useAsRef } from './hooks/use-as-ref'

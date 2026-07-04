@@ -3,11 +3,10 @@
 import { Button } from '@ui/button'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@ui/hover-card'
 import { Progress } from '@ui/progress'
+import { cn } from 'cnfast'
 import type { ComponentProps } from 'react'
 import { createContext, useContext, useMemo } from 'react'
 import { getUsage } from 'tokenlens'
-
-import { cn } from '#/lib/utils'
 
 import type { LanguageModelUsage } from './ai-compat-types'
 

@@ -1,5 +1,4 @@
-import { useLocation, useRouter } from '@tanstack/react-router'
-import { Link } from '@tanstack/react-router'
+import { Link, useLocation, useRouter } from '@tanstack/react-router'
 import {
 	SidebarInset,
 	SidebarMenu,

@@ -5,8 +5,8 @@ import {
 	useAccessToken,
 	useAuth,
 } from '@workos/authkit-tanstack-react-start/client'
-import { ConvexQueryCacheProvider } from 'convex-helpers/react/cache/provider'
 import { ConvexProviderWithAuth } from 'convex/react'
+import { ConvexQueryCacheProvider } from 'convex-helpers/react/cache/provider'
 import { useCallback, useMemo } from 'react'
 
 interface ProvidersProps extends React.PropsWithChildren {

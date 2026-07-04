@@ -1,9 +1,8 @@
 'use client'
 
 import { formatters } from '@ui/data-grid/lib/data-grid-utils'
+import { cn } from 'cnfast'
 import * as React from 'react'
-
-import { cn } from '#/lib/utils'
 
 import { useDataGridActions } from '../contexts/data-grid-actions-context'
 import { DataGridCellWrapper } from '../data-grid-cell-wrapper'

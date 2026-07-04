@@ -2,9 +2,8 @@
 
 import { Button } from '@ui/button'
 import { ScrollArea, ScrollBar } from '@ui/scroll-area'
+import { cn } from 'cnfast'
 import type { ComponentProps } from 'react'
-
-import { cn } from '#/lib/utils'
 
 export type SuggestionsProps = ComponentProps<typeof ScrollArea>
 

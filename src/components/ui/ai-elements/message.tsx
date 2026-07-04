@@ -14,6 +14,7 @@ import {
 } from '@ui/tooltip'
 import type { UIMessage } from 'ai'
 import { cva, type VariantProps } from 'class-variance-authority'
+import { cn } from 'cnfast'
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 import type { ComponentProps, HTMLAttributes, ReactElement } from 'react'
 import {
@@ -26,8 +27,6 @@ import {
 	useState,
 } from 'react'
 import { Streamdown } from 'streamdown'
-
-import { cn } from '#/lib/utils'
 
 export { Streamdown }
 

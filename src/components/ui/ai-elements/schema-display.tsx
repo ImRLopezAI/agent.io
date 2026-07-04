@@ -6,11 +6,10 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from '@ui/collapsible'
+import { cn } from 'cnfast'
 import { ChevronRightIcon } from 'lucide-react'
 import type { ComponentProps, HTMLAttributes } from 'react'
 import { createContext, useContext, useMemo } from 'react'
-
-import { cn } from '#/lib/utils'
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 

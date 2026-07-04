@@ -1,11 +1,10 @@
 'use client'
 
 import { Badge } from '@ui/badge'
+import { cn } from 'cnfast'
 import { ArrowRightIcon, MinusIcon, PackageIcon, PlusIcon } from 'lucide-react'
 import type { HTMLAttributes } from 'react'
 import { createContext, useContext, useMemo } from 'react'
-
-import { cn } from '#/lib/utils'
 
 type ChangeType = 'major' | 'minor' | 'patch' | 'added' | 'removed'
 

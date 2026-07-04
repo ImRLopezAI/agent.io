@@ -97,14 +97,18 @@ export function readServerFilterStateFromUrl({
 	const hasSearch = searchParams.has(params.search)
 	const hasFilters = searchParams.has(params.filters)
 	const hasSorting = searchParams.has(params.sorting)
+	const parsedColumnFilters = hasFilters
+		? parseFilters(searchParams.get(params.filters) ?? '')
+		: fallbackState.columnFilters
 
 	return {
 		globalFilter: hasSearch
 			? (searchParams.get(params.search) ?? '')
 			: fallbackState.globalFilter,
-		columnFilters: hasFilters
-			? parseFilters(searchParams.get(params.filters) ?? '')
-			: fallbackState.columnFilters,
+		columnFilters:
+			hasFilters && parsedColumnFilters.length === 0
+				? fallbackState.columnFilters
+				: parsedColumnFilters,
 		sorting: hasSorting
 			? parseSorting(searchParams.get(params.sorting) ?? '')
 			: fallbackState.sorting,
@@ -175,7 +179,9 @@ export function syncServerFilterUrl({
 		nextSearchParams.delete(params.search)
 	}
 
-	const serializedFilters = serializeFilters(state.columnFilters)
+	const serializedFilters = serializeFilters(
+		getServerReadyFilters(state.columnFilters),
+	)
 	if (serializedFilters) {
 		nextSearchParams.set(params.filters, serializedFilters)
 	} else {

@@ -6,6 +6,7 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from '@ui/collapsible'
+import { cn } from 'cnfast'
 import {
 	CheckCircle2Icon,
 	ChevronRightIcon,
@@ -15,8 +16,6 @@ import {
 } from 'lucide-react'
 import type { ComponentProps, HTMLAttributes } from 'react'
 import { createContext, useContext, useMemo } from 'react'
-
-import { cn } from '#/lib/utils'
 
 type TestStatus = 'passed' | 'failed' | 'skipped' | 'running'
 

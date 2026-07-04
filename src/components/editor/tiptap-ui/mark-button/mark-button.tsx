@@ -4,10 +4,6 @@ import { forwardRef, useCallback } from 'react'
 
 // --- Hooks ---
 import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
-import { Badge } from '#/components/editor/tiptap-ui-primitive/badge'
-// --- UI Primitives ---
-import type { ButtonProps } from '#/components/editor/tiptap-ui-primitive/button'
-import { Button } from '#/components/editor/tiptap-ui-primitive/button'
 // --- Tiptap UI ---
 import type {
 	Mark,
@@ -17,11 +13,16 @@ import {
 	MARK_SHORTCUT_KEYS,
 	useMark,
 } from '#/components/editor/tiptap-ui/mark-button'
+import { Badge } from '#/components/editor/tiptap-ui-primitive/badge'
+// --- UI Primitives ---
+import type { ButtonProps } from '#/components/editor/tiptap-ui-primitive/button'
+import { Button } from '#/components/editor/tiptap-ui-primitive/button'
 // --- Lib ---
 import { parseShortcutKeys } from '#/lib/tiptap-utils'
 
 export interface MarkButtonProps
-	extends Omit<ButtonProps, 'type'>, UseMarkConfig {
+	extends Omit<ButtonProps, 'type'>,
+		UseMarkConfig {
 	/**
 	 * Optional text to display alongside the icon.
 	 */

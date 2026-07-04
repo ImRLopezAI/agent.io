@@ -37,10 +37,9 @@ import {
 	verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { cn } from 'cnfast'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
-
-import { cn } from '#/lib/utils'
 
 import { useComposedRefs } from '../lib/compose-refs'
 
@@ -543,10 +542,8 @@ const dropAnimation: DropAnimation = {
 	}),
 }
 
-interface SortableOverlayProps extends Omit<
-	React.ComponentProps<typeof DragOverlay>,
-	'children'
-> {
+interface SortableOverlayProps
+	extends Omit<React.ComponentProps<typeof DragOverlay>, 'children'> {
 	container?: Element | DocumentFragment | null
 	children?:
 		| ((params: { value: UniqueIdentifier }) => React.ReactNode)

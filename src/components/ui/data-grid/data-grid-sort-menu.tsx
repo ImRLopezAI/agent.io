@@ -1,11 +1,11 @@
 'use client'
 
 import { useDirection } from '@base-ui/react/direction-provider'
+import { useHotkey } from '@tanstack/react-hotkeys'
 import type { ColumnSort, Table } from '@tanstack/react-table'
+import { cn } from 'cnfast'
 import { ArrowDownUp, ChevronsUpDown, GripVertical, Trash2 } from 'lucide-react'
 import * as React from 'react'
-
-import { cn } from '#/lib/utils'
 
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
@@ -33,7 +33,6 @@ import {
 	SortableOverlay,
 } from './ui/sortable'
 
-const SORT_SHORTCUT_KEY = 's'
 const REMOVE_SORT_SHORTCUTS = ['backspace', 'delete']
 
 const SORT_ORDERS = [
@@ -41,9 +40,8 @@ const SORT_ORDERS = [
 	{ label: 'Desc', value: 'desc' },
 ]
 
-interface DataGridSortMenuProps<TData> extends React.ComponentProps<
-	typeof PopoverContent
-> {
+interface DataGridSortMenuProps<TData>
+	extends React.ComponentProps<typeof PopoverContent> {
 	table: Table<TData>
 	disabled?: boolean
 }
@@ -121,30 +119,22 @@ export function DataGridSortMenu<TData>({
 		[onSortingChange, table.initialState.sorting],
 	)
 
-	React.useEffect(() => {
-		function onKeyDown(event: KeyboardEvent) {
-			if (
-				event.target instanceof HTMLInputElement ||
-				event.target instanceof HTMLTextAreaElement ||
-				(event.target instanceof HTMLElement &&
-					event.target.contentEditable === 'true')
-			) {
-				return
-			}
-
-			if (
-				event.key.toLowerCase() === SORT_SHORTCUT_KEY &&
-				(event.ctrlKey || event.metaKey) &&
-				event.shiftKey
-			) {
-				event.preventDefault()
-				setOpen((prev) => !prev)
-			}
-		}
-
-		window.addEventListener('keydown', onKeyDown)
-		return () => window.removeEventListener('keydown', onKeyDown)
-	}, [])
+	useHotkey(
+		'Mod+Shift+S',
+		() => {
+			setOpen((prev) => !prev)
+		},
+		{
+			enabled: !disabled,
+			ignoreInputs: true,
+			preventDefault: true,
+			meta: {
+				name: 'Toggle sort menu',
+				description: 'Toggle the sort menu',
+				group: 'Misc',
+			},
+		},
+	)
 
 	const onTriggerKeyDown = React.useCallback(
 		(event: React.KeyboardEvent<HTMLButtonElement>) => {

@@ -5,10 +5,9 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from '@ui/collapsible'
+import { cn } from 'cnfast'
 import { BookIcon, ChevronDownIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
-
-import { cn } from '#/lib/utils'
 
 export type SourcesProps = ComponentProps<'div'>
 

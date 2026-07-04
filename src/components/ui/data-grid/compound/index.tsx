@@ -32,10 +32,9 @@ import type {
 	SelectionState,
 	TableVariant,
 } from '@ui/data-grid/types/data-grid'
+import { cn } from 'cnfast'
 import { Search } from 'lucide-react'
 import * as React from 'react'
-
-import { cn } from '#/lib/utils'
 
 import {
 	ActionBar,
@@ -56,10 +55,8 @@ type RowClassName<TData extends object> =
 	| string
 	| ((row: TData, rowIndex: number) => string | undefined)
 
-interface CreateDataGridProps<TData extends object> extends Omit<
-	UseDataGridProps<TData>,
-	'columns'
-> {
+interface CreateDataGridProps<TData extends object>
+	extends Omit<UseDataGridProps<TData>, 'columns'> {
 	data: TData[]
 	isLoading?: boolean
 	emptyMessage?: React.ReactNode
@@ -168,7 +165,8 @@ type DataGridToolbarToggleProps = {
 }
 
 interface DataGridToolbarProps<TData extends object>
-	extends React.ComponentProps<'div'>, DataGridToolbarToggleProps {
+	extends React.ComponentProps<'div'>,
+		DataGridToolbarToggleProps {
 	align?: 'start' | 'center' | 'end'
 	exportProps?: Omit<DataGridExportProps<TData>, 'table'>
 }
@@ -517,6 +515,10 @@ function collectGridSlots<TData extends object>(children: React.ReactNode) {
 				}
 				variant = slotProps.variant
 				rowHeight = slotProps.rowHeight
+				return
+			}
+
+			if (child.type === DataGridActionBar) {
 				return
 			}
 

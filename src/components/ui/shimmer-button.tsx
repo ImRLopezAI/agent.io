@@ -1,6 +1,5 @@
+import { cn } from 'cnfast'
 import React, { type ComponentPropsWithoutRef, type CSSProperties } from 'react'
-
-import { cn } from '#/lib/utils'
 
 import { Button } from './button'
 

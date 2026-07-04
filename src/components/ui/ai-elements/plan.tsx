@@ -14,11 +14,10 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from '@ui/collapsible'
+import { cn } from 'cnfast'
 import { ChevronsUpDownIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
 import { createContext, useContext, useMemo } from 'react'
-
-import { cn } from '#/lib/utils'
 
 import { Shimmer } from './shimmer'
 

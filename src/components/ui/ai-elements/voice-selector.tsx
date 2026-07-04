@@ -15,6 +15,7 @@ import {
 } from '@ui/command'
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@ui/dialog'
 import { Spinner } from '@ui/spinner'
+import { cn } from 'cnfast'
 import {
 	CircleSmallIcon,
 	MarsIcon,
@@ -28,8 +29,6 @@ import {
 } from 'lucide-react'
 import type { ComponentProps, ReactNode } from 'react'
 import { createContext, useCallback, useContext, useMemo } from 'react'
-
-import { cn } from '#/lib/utils'
 
 interface VoiceSelectorContextValue {
 	value: string | undefined

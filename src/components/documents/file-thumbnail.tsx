@@ -57,8 +57,8 @@ export function FileThumbnail({
 	)
 	const isImageLoading = Boolean(
 		previewImageUrl &&
-		loadedPreviewImageUrl !== previewImageUrl &&
-		!imageFailed,
+			loadedPreviewImageUrl !== previewImageUrl &&
+			!imageFailed,
 	)
 	const showLoading = isLoading || isImageLoading
 	const hasPreviewContent = Boolean(previewContent)
@@ -140,7 +140,7 @@ export function FileThumbnail({
 						decoding='async'
 						className={cx(
 							'absolute inset-0 block size-full object-cover transition-[opacity,filter] duration-[160ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
-							showLoading ? 'opacity-0 blur-sm' : 'blur-0 opacity-100',
+							showLoading ? 'opacity-0 blur-sm' : 'opacity-100 blur-0',
 						)}
 						onLoad={(event) => {
 							markImageLoaded(event.currentTarget, previewImageUrl)
@@ -160,7 +160,7 @@ export function FileThumbnail({
 					<div
 						className={cx(
 							'absolute inset-0 size-full transition-[opacity,filter] duration-[160ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none',
-							showLoading ? 'opacity-0 blur-sm' : 'blur-0 opacity-100',
+							showLoading ? 'opacity-0 blur-sm' : 'opacity-100 blur-0',
 						)}
 					>
 						{previewContent}

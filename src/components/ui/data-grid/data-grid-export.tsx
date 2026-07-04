@@ -1,11 +1,10 @@
 'use client'
 
 import type { Table } from '@tanstack/react-table'
+import { cn } from 'cnfast'
 import { ChevronDownIcon, DownloadIcon } from 'lucide-react'
 import * as React from 'react'
 import { toast } from 'sonner'
-
-import { cn } from '#/lib/utils'
 
 import { Button } from './ui/button'
 import { ButtonGroup, ButtonGroupSeparator } from './ui/button-group'

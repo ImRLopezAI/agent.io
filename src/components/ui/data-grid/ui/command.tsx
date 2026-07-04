@@ -1,10 +1,9 @@
 'use client'
 
 import { Command as CommandPrimitive } from 'cmdk'
+import { cn } from 'cnfast'
 import { CheckIcon, SearchIcon } from 'lucide-react'
 import * as React from 'react'
-
-import { cn } from '@/lib/utils'
 
 import {
 	Dialog,

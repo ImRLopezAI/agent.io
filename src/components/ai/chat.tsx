@@ -31,10 +31,9 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '@ui/dropdown-menu'
+import { cn } from 'cnfast'
 import { ArrowUp, ChevronDown, LayoutPanelLeft, Mic } from 'lucide-react'
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
-
-import { cn } from '#/lib/utils'
 
 import { useChatPromptStore } from './chat-prompt-store'
 import { useAiChat } from './context'

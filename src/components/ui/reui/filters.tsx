@@ -27,6 +27,7 @@ import { Kbd } from '@ui/kbd'
 import { ScrollArea } from '@ui/scroll-area'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@ui/tooltip'
 import { cva } from 'class-variance-authority'
+import { cn } from 'cnfast'
 import { AlertCircleIcon, CheckIcon, XIcon } from 'lucide-react'
 import type React from 'react'
 import {
@@ -39,8 +40,6 @@ import {
 	useRef,
 	useState,
 } from 'react'
-
-import { cn } from '#/lib/utils'
 
 // i18n Configuration Interface
 export interface FilterI18nConfig {
@@ -384,7 +383,8 @@ function FilterInput<T = unknown>({
 	)
 }
 
-interface FilterRemoveButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface FilterRemoveButtonProps
+	extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 	icon?: React.ReactNode
 }
 
@@ -498,20 +498,20 @@ export interface FilterFieldConfig<T = unknown> {
 }
 
 // Helper functions to handle both flat and grouped field configurations
-const isFieldGroup = <T = unknown,>(
+const isFieldGroup = <T = unknown>(
 	item: FilterFieldConfig<T> | FilterFieldGroup<T>,
 ): item is FilterFieldGroup<T> => {
 	return 'fields' in item && Array.isArray(item.fields)
 }
 
 // Helper function to check if a FilterFieldConfig is a group-level configuration
-const isGroupLevelField = <T = unknown,>(
+const isGroupLevelField = <T = unknown>(
 	field: FilterFieldConfig<T>,
 ): boolean => {
 	return Boolean(field.group && field.fields)
 }
 
-const flattenFields = <T = unknown,>(
+const flattenFields = <T = unknown>(
 	fields: FilterFieldsConfig<T>,
 ): FilterFieldConfig<T>[] => {
 	return fields.reduce<FilterFieldConfig<T>[]>((acc, item) => {
@@ -526,7 +526,7 @@ const flattenFields = <T = unknown,>(
 	}, [])
 }
 
-const getFieldsMap = <T = unknown,>(
+const getFieldsMap = <T = unknown>(
 	fields: FilterFieldsConfig<T>,
 ): Record<string, FilterFieldConfig<T>> => {
 	const flatFields = flattenFields(fields)
@@ -584,7 +584,7 @@ export const DEFAULT_OPERATORS: Record<string, FilterOperator[]> =
 	createOperatorsFromI18n(DEFAULT_I18N)
 
 // Helper function to get operators for a field
-const getOperatorsForField = <T = unknown,>(
+const getOperatorsForField = <T = unknown>(
 	field: FilterFieldConfig<T>,
 	values: T[],
 	i18n: FilterI18nConfig,
@@ -822,7 +822,7 @@ function SelectOptionsPopover<T = unknown>({
 			)}
 			<div className='relative flex max-h-full'>
 				<ul
-					className='flex max-h-[min(var(--available-height),24rem)] w-full list-none scroll-pt-2 scroll-pb-2 flex-col overscroll-contain'
+					className='flex max-h-[min(var(--available-height),24rem)] w-full scroll-pt-2 scroll-pb-2 list-none flex-col overscroll-contain'
 					role='listbox'
 					id={`${baseId}-listbox`}
 				>
@@ -1056,7 +1056,7 @@ interface FiltersContentProps<T = unknown> {
 	onChange: (filters: Filter<T>[]) => void
 }
 
-export const FiltersContent = <T = unknown,>({
+export const FiltersContent = <T = unknown>({
 	filters,
 	fields,
 	onChange,
@@ -1297,7 +1297,7 @@ function FilterSubmenuContent<T = unknown>({
 			)}
 			<div className='relative flex max-h-full'>
 				<ul
-					className='flex max-h-[min(var(--available-height),24rem)] w-full list-none scroll-pt-2 scroll-pb-2 flex-col overscroll-contain outline-hidden'
+					className='flex max-h-[min(var(--available-height),24rem)] w-full scroll-pt-2 scroll-pb-2 list-none flex-col overscroll-contain outline-hidden'
 					role='listbox'
 					id={`${baseId}-listbox`}
 					tabIndex={field.searchable === false ? 0 : -1}
@@ -1704,7 +1704,7 @@ export function Filters<T = unknown>({
 
 							<div className='relative flex max-h-full'>
 								<ul
-									className='flex max-h-[min(var(--available-height),24rem)] w-full list-none scroll-pt-2 scroll-pb-2 flex-col overscroll-contain'
+									className='flex max-h-[min(var(--available-height),24rem)] w-full scroll-pt-2 scroll-pb-2 list-none flex-col overscroll-contain'
 									role='listbox'
 									id={`${rootId}-listbox`}
 									onMouseEnter={() => setActiveMenu('root')}
@@ -1897,7 +1897,7 @@ export function Filters<T = unknown>({
 	)
 }
 
-export const createFilter = <T = unknown,>(
+export const createFilter = <T = unknown>(
 	field: string,
 	operator?: string,
 	values: T[] = [],
@@ -1908,7 +1908,7 @@ export const createFilter = <T = unknown,>(
 	values,
 })
 
-export const createFilterGroup = <T = unknown,>(
+export const createFilterGroup = <T = unknown>(
 	id: string,
 	label: string,
 	fields: FilterFieldConfig<T>[],

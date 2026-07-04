@@ -1,5 +1,6 @@
 'use client'
 
+import { cn } from 'cnfast'
 import {
 	ChevronDownIcon,
 	ChevronLeftIcon,
@@ -12,8 +13,6 @@ import {
 	getDefaultClassNames,
 	type Locale,
 } from 'react-day-picker'
-
-import { cn } from '@/lib/utils'
 
 import { Button } from './button'
 import { buttonVariants } from './button-variants'

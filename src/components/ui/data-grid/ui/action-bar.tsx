@@ -2,13 +2,13 @@
 
 import { useDirection } from '@base-ui/react/direction-provider'
 import { useRender } from '@base-ui/react/use-render'
+import { useHotkey } from '@tanstack/react-hotkeys'
 import { useAsRef } from '@ui/data-grid/hooks/use-as-ref'
 import { useIsomorphicLayoutEffect } from '@ui/data-grid/hooks/use-isomorphic-layout-effect'
 import { useComposedRefs } from '@ui/data-grid/lib/compose-refs'
+import { cn } from 'cnfast'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
-
-import { cn } from '#/lib/utils'
 
 import { Button } from './button'
 
@@ -157,23 +157,16 @@ function ActionBar(props: ActionBarProps) {
 		setMounted(true)
 	}, [])
 
-	React.useEffect(() => {
-		if (!open) return
-
-		const ownerDocument = rootRef.current?.ownerDocument ?? document
-
-		function onKeyDown(event: KeyboardEvent) {
-			if (event.key === 'Escape') {
-				propsRef.current.onEscapeKeyDown?.(event)
-				if (!event.defaultPrevented) {
-					propsRef.current.onOpenChange?.(false)
-				}
+	useHotkey(
+		'Escape',
+		(event) => {
+			propsRef.current.onEscapeKeyDown?.(event)
+			if (!event.defaultPrevented) {
+				propsRef.current.onOpenChange?.(false)
 			}
-		}
-
-		ownerDocument.addEventListener('keydown', onKeyDown)
-		return () => ownerDocument.removeEventListener('keydown', onKeyDown)
-	}, [open, propsRef])
+		},
+		{ enabled: open },
+	)
 
 	const contextValue = React.useMemo<ActionBarContextValue>(
 		() => ({
@@ -425,10 +418,8 @@ function ActionBarGroup(props: DivProps) {
 	)
 }
 
-interface ActionBarItemProps extends Omit<
-	React.ComponentProps<typeof Button>,
-	'onSelect'
-> {
+interface ActionBarItemProps
+	extends Omit<React.ComponentProps<typeof Button>, 'onSelect'> {
 	onSelect?: (event: Event) => void
 	closeOnSelect?: boolean
 }

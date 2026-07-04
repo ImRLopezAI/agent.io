@@ -10,6 +10,7 @@ import {
 	CommandList,
 } from '@ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@ui/popover'
+import { cn } from 'cnfast'
 import { ChevronsUpDownIcon } from 'lucide-react'
 import type { ComponentProps, ReactNode } from 'react'
 import {
@@ -21,8 +22,6 @@ import {
 	useRef,
 	useState,
 } from 'react'
-
-import { cn } from '#/lib/utils'
 
 const deviceIdRegex = /\(([\da-fA-F]{4}:[\da-fA-F]{4})\)$/
 

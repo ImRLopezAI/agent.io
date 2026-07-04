@@ -1,23 +1,23 @@
 'use client'
 
 import {
+	type CollisionDetection,
 	closestCenter,
 	DndContext,
+	type DragEndEvent,
+	type DragOverEvent,
 	DragOverlay,
+	type DragStartEvent,
 	getFirstCollision,
 	KeyboardSensor,
 	MeasuringStrategy,
 	PointerSensor,
 	pointerWithin,
 	rectIntersection,
+	type UniqueIdentifier,
 	useDroppable,
 	useSensor,
 	useSensors,
-	type CollisionDetection,
-	type DragEndEvent,
-	type DragOverEvent,
-	type DragStartEvent,
-	type UniqueIdentifier,
 } from '@dnd-kit/core'
 import {
 	arrayMove,
@@ -31,10 +31,10 @@ import { cn } from '@lib/utils'
 import { Virtualizer as DiffsVirtualizer } from '@pierre/diffs'
 import {
 	File,
-	VirtualizerContext,
-	WorkerPoolContextProvider,
 	type VirtualFileMetrics,
+	VirtualizerContext,
 	type WorkerInitializationRenderOptions,
+	WorkerPoolContextProvider,
 	type WorkerPoolOptions,
 } from '@pierre/diffs/react'
 import {
@@ -44,12 +44,12 @@ import {
 	GripVertical,
 	Hash,
 	List,
+	type LucideIcon,
 	Plus,
 	SquareCode,
 	Table,
 	ToggleLeft,
 	Type,
-	type LucideIcon,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import * as React from 'react'
@@ -1139,7 +1139,7 @@ function SchemaTypeBadge({
 	return (
 		<span
 			className={cn(
-				'inline-flex min-w-0 shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
+				'inline-flex min-w-0 shrink-0 items-center gap-1 rounded-full px-2 py-0.5 font-medium text-xs',
 				style.badge,
 				className,
 			)}
@@ -1421,7 +1421,7 @@ function EnumEditor({
 			<div className='overflow-visible rounded-lg border bg-background'>
 				<table className='w-full table-fixed border-collapse text-sm'>
 					<thead>
-						<tr className='border-b bg-muted/55 text-xs text-muted-foreground'>
+						<tr className='border-b bg-muted/55 text-muted-foreground text-xs'>
 							<th className='w-[34%] px-3 py-2 text-left font-medium'>Value</th>
 							<th className='border-l px-3 py-2 text-left font-medium'>
 								Description
@@ -1445,7 +1445,7 @@ function EnumEditor({
 								<td colSpan={2} className='p-0'>
 									<button
 										type='button'
-										className='flex h-9 w-full items-center justify-center gap-2 text-sm text-muted-foreground transition-colors outline-none hover:bg-muted/55 hover:text-foreground focus-visible:bg-muted/55 focus-visible:text-foreground'
+										className='flex h-9 w-full items-center justify-center gap-2 text-muted-foreground text-sm outline-none transition-colors hover:bg-muted/55 hover:text-foreground focus-visible:bg-muted/55 focus-visible:text-foreground'
 										onClick={() => onChange([...values, createEnumValue()])}
 									>
 										<Plus className='size-4' />
@@ -1501,7 +1501,7 @@ function SortableEnumRow({
 				<button
 					type='button'
 					className={cn(
-						'absolute top-1/2 left-0 z-50 grid size-5 -translate-x-1/2 -translate-y-1/2 cursor-grab place-items-center rounded-md border bg-background text-muted-foreground opacity-0 shadow-sm transition-[opacity,color,box-shadow] outline-none group-hover/enum-row:opacity-100 hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing',
+						'absolute top-1/2 left-0 z-50 grid size-5 -translate-x-1/2 -translate-y-1/2 cursor-grab place-items-center rounded-md border bg-background text-muted-foreground opacity-0 shadow-sm outline-none transition-[opacity,color,box-shadow] hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing group-hover/enum-row:opacity-100',
 						isDragging && 'opacity-100',
 					)}
 					aria-label={`Drag enum value ${value.value || 'empty value'}`}
@@ -1701,7 +1701,7 @@ function SchemaBuilderTable({
 		>
 			<table className='w-full table-fixed border-collapse text-sm'>
 				<thead>
-					<tr className='border-b bg-muted/55 text-xs text-muted-foreground'>
+					<tr className='border-b bg-muted/55 text-muted-foreground text-xs'>
 						<th className='w-[24%] px-3 py-2 text-left font-medium sm:w-[27%]'>
 							Property key
 						</th>
@@ -1748,7 +1748,7 @@ function SchemaBuilderTable({
 						<td colSpan={3} className='p-0'>
 							<button
 								type='button'
-								className='flex h-9 w-full items-center justify-center gap-2 text-sm text-muted-foreground transition-colors outline-none hover:bg-muted/55 hover:text-foreground focus-visible:bg-muted/55 focus-visible:text-foreground'
+								className='flex h-9 w-full items-center justify-center gap-2 text-muted-foreground text-sm outline-none transition-colors hover:bg-muted/55 hover:text-foreground focus-visible:bg-muted/55 focus-visible:text-foreground'
 								onClick={addProperty}
 							>
 								<Plus className='size-4' />
@@ -1815,7 +1815,7 @@ function SortablePropertyRows({
 					<button
 						type='button'
 						className={cn(
-							'absolute top-1/2 left-0 z-50 grid size-5 -translate-x-1/2 -translate-y-1/2 cursor-grab place-items-center rounded-md border bg-background text-muted-foreground opacity-0 shadow-sm transition-[opacity,color,box-shadow] outline-none group-hover/property-row:opacity-100 hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing',
+							'absolute top-1/2 left-0 z-50 grid size-5 -translate-x-1/2 -translate-y-1/2 cursor-grab place-items-center rounded-md border bg-background text-muted-foreground opacity-0 shadow-sm outline-none transition-[opacity,color,box-shadow] hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing group-hover/property-row:opacity-100',
 							isDragging && 'opacity-100',
 						)}
 						aria-label={`Drag ${property.key || 'property'}`}
@@ -1866,7 +1866,7 @@ function SortablePropertyRows({
 						>
 							<div className='group/collapsible-trigger-row flex h-8 w-full items-center transition-colors focus-within:bg-muted/55 hover:bg-muted/55'>
 								<CollapsibleTrigger
-									className='flex h-full min-w-0 flex-1 items-center gap-2 px-3 text-left text-xs font-medium text-muted-foreground transition-colors outline-none group-hover/collapsible-trigger-row:text-foreground focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset'
+									className='flex h-full min-w-0 flex-1 items-center gap-2 px-3 text-left font-medium text-muted-foreground text-xs outline-none transition-colors focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset group-hover/collapsible-trigger-row:text-foreground'
 									type='button'
 								>
 									<ChevronDown
@@ -1972,7 +1972,7 @@ function SchemaPropertyDragOverlay({
 			</div>
 			{hasNestedEditor ? (
 				<div className='border-t bg-muted/20'>
-					<div className='flex h-8 items-center gap-2 px-3 text-xs font-medium text-muted-foreground'>
+					<div className='flex h-8 items-center gap-2 px-3 font-medium text-muted-foreground text-xs'>
 						<ChevronDown
 							className={cn(
 								'size-3.5 shrink-0',
@@ -2047,7 +2047,7 @@ function NestedEditorPreview({
 function EnumValuesPreview({ values }: { values: SchemaBuilderEnumValue[] }) {
 	return (
 		<div className='overflow-hidden rounded-lg border bg-background'>
-			<div className='grid grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] border-b bg-muted/55 text-xs font-medium text-muted-foreground'>
+			<div className='grid grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] border-b bg-muted/55 font-medium text-muted-foreground text-xs'>
 				<div className='px-3 py-2'>Value</div>
 				<div className='border-l px-3 py-2'>Description</div>
 			</div>
@@ -2079,7 +2079,7 @@ function SchemaPropertiesPreview({
 }) {
 	return (
 		<div className='overflow-hidden rounded-lg border bg-background'>
-			<div className='grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1.25fr)] border-b bg-muted/55 text-xs font-medium text-muted-foreground'>
+			<div className='grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1.25fr)] border-b bg-muted/55 font-medium text-muted-foreground text-xs'>
 				<div className='px-3 py-2'>Property key</div>
 				<div className='border-l px-3 py-2'>Type</div>
 				<div className='border-l px-3 py-2'>Description</div>
@@ -2113,7 +2113,7 @@ function SchemaPropertiesPreview({
 						</div>
 						{hasNestedEditor ? (
 							<div className='border-t bg-muted/20'>
-								<div className='flex h-7 items-center gap-2 px-3 text-xs font-medium text-muted-foreground'>
+								<div className='flex h-7 items-center gap-2 px-3 font-medium text-muted-foreground text-xs'>
 									<ChevronDown
 										className={cn(
 											'size-3.5 shrink-0',

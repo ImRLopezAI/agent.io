@@ -10,15 +10,17 @@ import { contract } from '@server/rpc/contracts'
 import { createRpcContext } from '@server/rpc/init'
 import { createIsomorphicFn } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
+import { getAuth } from '@workos/authkit-tanstack-react-start'
 
 export const getRPCClient = createIsomorphicFn()
 	.server(() =>
 		createRouterClient(router, {
 			// Lazy: resolved per call inside the request's AsyncLocalStorage.
 			// Eager evaluation at module load throws "No Start context found".
-			context: () =>
+			context: async () =>
 				createRpcContext({
 					headers: getRequestHeaders(),
+					session: await getAuth(),
 				}),
 		}),
 	)

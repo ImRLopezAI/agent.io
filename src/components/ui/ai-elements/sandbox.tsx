@@ -6,10 +6,9 @@ import {
 	CollapsibleTrigger,
 } from '@ui/collapsible'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/tabs'
+import { cn } from 'cnfast'
 import { ChevronDownIcon, Code } from 'lucide-react'
 import type { ComponentProps } from 'react'
-
-import { cn } from '#/lib/utils'
 
 import type { ToolUIPart } from './ai-compat-types'
 import { getStatusBadge } from './tool'

@@ -2,10 +2,9 @@
 
 import { DirectionProvider } from '@base-ui/react/direction-provider'
 import { HotkeysProvider } from '@tanstack/react-hotkeys'
+import { cn } from 'cnfast'
 import { Plus } from 'lucide-react'
 import * as React from 'react'
-
-import { cn } from '#/lib/utils'
 
 import {
 	DataGridActionsProvider,
@@ -45,8 +44,7 @@ const EMPTY_CELL_SELECTION_SET = new Set<string>()
 type UseDataGridReturn<TData> = ReturnType<typeof useDataGrid<TData>>
 
 interface DataGridProps<TData>
-	extends
-		Omit<
+	extends Omit<
 			UseDataGridReturn<TData>,
 			'dir' | 'showPagination' | 'paginationProps'
 		>,
@@ -244,7 +242,7 @@ export function DataGrid<TData>({
 									dir={dir}
 									{...props}
 									className={cn(
-										'scrollbar-background relative flex w-full flex-col space-y-3',
+										'scroll-foreground/10 scrollbar-thin relative flex w-full flex-col space-y-3',
 										className,
 									)}
 								>

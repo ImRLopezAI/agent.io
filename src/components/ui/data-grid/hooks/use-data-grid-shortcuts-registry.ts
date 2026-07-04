@@ -1,8 +1,6 @@
-// Lightweight typed catalog of every keyboard shortcut the data grid will own
-// once `onDataGridKeyDown` and the global keydown listener migrate to the
-// `@tanstack/react-hotkeys` registry. The hook (`use-data-grid-keyboard.ts`)
-// will iterate this list to register handlers; the help dialog reads live
-// registrations from `useHotkeyRegistrations()` instead of a static array.
+// Typed catalog of every keyboard shortcut the data grid registers via
+// `@tanstack/react-hotkeys`. The keyboard hook iterates this list; the help
+// dialog reads live registrations from `useHotkeyRegistrations()`.
 
 type GridShortcutGroup =
 	| 'Navigation'

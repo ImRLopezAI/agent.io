@@ -3,6 +3,7 @@
 import { Badge } from '@ui/badge'
 import { Button } from '@ui/button'
 import { Switch } from '@ui/switch'
+import { cn } from 'cnfast'
 import { CheckIcon, CopyIcon, EyeIcon, EyeOffIcon } from 'lucide-react'
 import type { ComponentProps, HTMLAttributes } from 'react'
 import {
@@ -14,8 +15,6 @@ import {
 	useRef,
 	useState,
 } from 'react'
-
-import { cn } from '#/lib/utils'
 
 interface EnvironmentVariablesContextType {
 	showValues: boolean

@@ -376,7 +376,7 @@ export function CsvViewer({ className, data }: CsvViewerProps) {
 			</div>
 			<div className='min-h-0 flex-1'>
 				{parsed.error ? (
-					<div className='flex h-full items-center justify-center px-4 text-center text-sm text-destructive'>
+					<div className='flex h-full items-center justify-center px-4 text-center text-destructive text-sm'>
 						{parsed.error}
 					</div>
 				) : parsed.rows.length === 0 ? (

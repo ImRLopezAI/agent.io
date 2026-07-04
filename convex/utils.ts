@@ -1,11 +1,6 @@
-import { NoOp } from 'convex-helpers/server/customFunctions'
-import {
-	type ZCustomCtx,
-	zCustomMutation,
-	zCustomQuery,
-} from 'convex-helpers/server/zod4'
 import type {
 	DocumentByInfo,
+	GenericActionCtx,
 	GenericMutationCtx,
 	GenericQueryCtx,
 	GenericTableInfo,
@@ -15,9 +10,17 @@ import type {
 	NamedIndex,
 	QueryInitializer,
 } from 'convex/server'
+import { NoOp } from 'convex-helpers/server/customFunctions'
+import {
+	type ZCustomCtx,
+	zCustomAction,
+	zCustomMutation,
+	zCustomQuery,
+} from 'convex-helpers/server/zod4'
 
 import type { DataModel } from './_generated/dataModel'
 import {
+	action as convexAction,
 	mutation as convexMutation,
 	query as convexQuery,
 } from './_generated/server'
@@ -128,6 +131,21 @@ export const authMutation = zCustomMutation(convexMutation, {
 	},
 })
 
+export const action = zCustomAction(convexAction, NoOp)
+export const authAction = zCustomAction(convexAction, {
+	args: {},
+	input: async (ctx) => {
+		const user = await getAuthUser(ctx)
+		return {
+			ctx: {
+				...ctx,
+				...user,
+			},
+			args: {},
+		}
+	},
+})
+
 export type AuthCtx<T extends 'query' | 'mutation' = 'query'> =
 	T extends 'query'
 		? ZCustomCtx<typeof authQuery>
@@ -142,7 +160,10 @@ type JwtOrganizationClaims = {
 }
 
 async function getAuthUser(
-	ctx: GenericQueryCtx<DataModel> | GenericMutationCtx<DataModel>,
+	ctx:
+		| GenericQueryCtx<DataModel>
+		| GenericMutationCtx<DataModel>
+		| GenericActionCtx<DataModel>,
 ) {
 	const identity = await ctx.auth.getUserIdentity()
 	if (!identity) {

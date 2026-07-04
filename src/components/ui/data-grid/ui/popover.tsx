@@ -1,9 +1,8 @@
 'use client'
 
 import { Popover as PopoverPrimitive } from '@base-ui/react/popover'
+import { cn } from 'cnfast'
 import * as React from 'react'
-
-import { cn } from '@/lib/utils'
 
 type AnchorElement = Element | null
 type VirtualAnchor = { current: AnchorElement }

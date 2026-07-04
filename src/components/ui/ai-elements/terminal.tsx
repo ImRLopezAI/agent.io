@@ -2,6 +2,7 @@
 
 import { Button } from '@ui/button'
 import Ansi from 'ansi-to-react'
+import { cn } from 'cnfast'
 import { CheckIcon, CopyIcon, TerminalIcon, Trash2Icon } from 'lucide-react'
 import type { ComponentProps, HTMLAttributes } from 'react'
 import {
@@ -13,8 +14,6 @@ import {
 	useRef,
 	useState,
 } from 'react'
-
-import { cn } from '#/lib/utils'
 
 interface TerminalContextType {
 	output: string

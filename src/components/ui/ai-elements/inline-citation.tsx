@@ -4,6 +4,7 @@ import { Badge } from '@ui/badge'
 import type { CarouselApi } from '@ui/carousel'
 import { Carousel, CarouselContent, CarouselItem } from '@ui/carousel'
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@ui/hover-card'
+import { cn } from 'cnfast'
 import { ArrowLeftIcon, ArrowRightIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
 import {
@@ -13,8 +14,6 @@ import {
 	useEffect,
 	useState,
 } from 'react'
-
-import { cn } from '#/lib/utils'
 
 export type InlineCitationProps = ComponentProps<'span'>
 

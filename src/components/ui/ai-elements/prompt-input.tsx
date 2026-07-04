@@ -31,6 +31,7 @@ import {
 } from '@ui/select'
 import { Spinner } from '@ui/spinner'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@ui/tooltip'
+import { cn } from 'cnfast'
 import {
 	CornerDownLeftIcon,
 	ImageIcon,
@@ -63,8 +64,6 @@ import {
 	useRef,
 	useState,
 } from 'react'
-
-import { cn } from '#/lib/utils'
 
 import type {
 	ChatStatus,

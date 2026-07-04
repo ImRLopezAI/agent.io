@@ -3,7 +3,7 @@ import { useRender } from '@base-ui/react/use-render'
 import { Separator } from '@ui/separator'
 import type { VariantProps } from 'class-variance-authority'
 
-import { cn } from '#/lib/utils'
+import { cn } from 'cnfast'
 
 import { buttonGroupVariants } from './button-group-variants'
 

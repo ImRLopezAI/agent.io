@@ -10,6 +10,16 @@ import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
 // --- Icons ---
 import { BanIcon } from '#/components/editor/tiptap-icons/ban-icon'
 import { HighlighterIcon } from '#/components/editor/tiptap-icons/highlighter-icon'
+// --- Tiptap UI ---
+import type {
+	HighlightColor,
+	UseColorHighlightConfig,
+} from '#/components/editor/tiptap-ui/color-highlight-button'
+import {
+	ColorHighlightButton,
+	pickHighlightColorsByValue,
+	useColorHighlight,
+} from '#/components/editor/tiptap-ui/color-highlight-button'
 // --- UI Primitives ---
 import type { ButtonProps } from '#/components/editor/tiptap-ui-primitive/button'
 import { Button } from '#/components/editor/tiptap-ui-primitive/button'
@@ -25,16 +35,6 @@ import {
 	PopoverTrigger,
 } from '#/components/editor/tiptap-ui-primitive/popover'
 import { Separator } from '#/components/editor/tiptap-ui-primitive/separator'
-// --- Tiptap UI ---
-import type {
-	HighlightColor,
-	UseColorHighlightConfig,
-} from '#/components/editor/tiptap-ui/color-highlight-button'
-import {
-	ColorHighlightButton,
-	pickHighlightColorsByValue,
-	useColorHighlight,
-} from '#/components/editor/tiptap-ui/color-highlight-button'
 
 export interface ColorHighlightPopoverContentProps {
 	/**
@@ -54,8 +54,7 @@ export interface ColorHighlightPopoverContentProps {
 }
 
 export interface ColorHighlightPopoverProps
-	extends
-		Omit<ButtonProps, 'type'>,
+	extends Omit<ButtonProps, 'type'>,
 		Pick<
 			UseColorHighlightConfig,
 			'editor' | 'hideWhenUnavailable' | 'onApplied'

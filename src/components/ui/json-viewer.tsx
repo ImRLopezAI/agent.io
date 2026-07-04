@@ -3,12 +3,11 @@
 import { Button } from '@ui/button'
 import { Collapsible, CollapsibleContent } from '@ui/collapsible'
 import { Separator } from '@ui/separator'
+import { cn } from 'cnfast'
 import { Check, ChevronRight, Copy } from 'lucide-react'
 import type { JSX } from 'react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-
 import { useIsMobile } from '#/hooks/use-mobile'
-import { cn } from '#/lib/utils'
 
 interface JsonViewerProps {
 	data: Record<string, any>

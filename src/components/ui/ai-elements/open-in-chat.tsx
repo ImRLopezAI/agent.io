@@ -9,6 +9,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '@ui/dropdown-menu'
+import { cn } from 'cnfast'
 import {
 	ChevronDownIcon,
 	ExternalLinkIcon,
@@ -16,8 +17,6 @@ import {
 } from 'lucide-react'
 import type { ComponentProps } from 'react'
 import { createContext, useContext, useMemo } from 'react'
-
-import { cn } from '#/lib/utils'
 
 const providers = {
 	chatgpt: {

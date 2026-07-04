@@ -18,7 +18,8 @@ import {
 } from './context'
 
 interface AppSidebarProps
-	extends React.ComponentProps<typeof Sidebar>, SidebarContextProps {}
+	extends React.ComponentProps<typeof Sidebar>,
+		SidebarContextProps {}
 
 type AppSidebarHeaderProps = React.ComponentProps<typeof SidebarHeader>
 

@@ -12,6 +12,7 @@ import {
 	AlertDialogTitle,
 } from '@ui/alert-dialog'
 import { Button } from '@ui/button'
+import { cn } from 'cnfast'
 import { CheckIcon, CopyIcon, ExternalLinkIcon, XIcon } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
@@ -19,8 +20,6 @@ import {
 	type LinkSafetyConfig,
 	type LinkSafetyModalProps,
 } from 'streamdown'
-
-import { cn } from '#/lib/utils'
 
 function StreamdownLinkSafetyModalContent({
 	isOpen,

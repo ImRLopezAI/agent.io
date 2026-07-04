@@ -393,7 +393,7 @@ function PDFSidebarThumbnail({
 					pageNumber={pageNumber}
 					width={THUMBNAIL_WIDTH}
 					rotate={effectiveRotation}
-					className='flex size-full items-center justify-center [&_.react-pdf__Thumbnail__page]:!m-0 [&_.react-pdf__Thumbnail__page]:!h-auto [&_.react-pdf__Thumbnail__page]:!w-full [&_.react-pdf__Thumbnail__page]:overflow-hidden [&_canvas]:!h-auto [&_canvas]:!w-full'
+					className='[&_.react-pdf__Thumbnail__page]:!m-0 [&_.react-pdf__Thumbnail__page]:!h-auto [&_.react-pdf__Thumbnail__page]:!w-full [&_canvas]:!h-auto [&_canvas]:!w-full flex size-full items-center justify-center [&_.react-pdf__Thumbnail__page]:overflow-hidden'
 				/>
 			}
 			className='w-[92px] rounded-md border-0 shadow-xs ring-0'
@@ -1600,7 +1600,7 @@ export const PDFViewer = React.forwardRef<PDFViewerHandle, PDFViewerProps>(
 								</Button>
 							</ToolbarTooltip>
 						</TooltipProvider>
-						<div className='text-sm whitespace-nowrap text-primary'>
+						<div className='whitespace-nowrap text-primary text-sm'>
 							Page {activePage} of {numPages || '-'}
 						</div>
 					</div>
@@ -1807,7 +1807,7 @@ export const PDFViewer = React.forwardRef<PDFViewerHandle, PDFViewerProps>(
 					className='relative flex min-h-0 flex-1 overflow-hidden bg-muted/30'
 				>
 					{!hasPdfFile ? (
-						<div className='absolute inset-0 z-20 grid place-items-center bg-background p-6 text-center text-sm text-muted-foreground'>
+						<div className='absolute inset-0 z-20 grid place-items-center bg-background p-6 text-center text-muted-foreground text-sm'>
 							<div className='max-w-sm space-y-3'>
 								<div className='font-medium text-foreground'>
 									Upload a PDF to preview
@@ -1826,7 +1826,7 @@ export const PDFViewer = React.forwardRef<PDFViewerHandle, PDFViewerProps>(
 						/>
 					) : null}
 					{loadError ? (
-						<div className='absolute inset-0 z-20 grid place-items-center bg-background p-6 text-sm text-muted-foreground'>
+						<div className='absolute inset-0 z-20 grid place-items-center bg-background p-6 text-muted-foreground text-sm'>
 							Unable to load the PDF preview.
 						</div>
 					) : null}

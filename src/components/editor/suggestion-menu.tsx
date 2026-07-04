@@ -1,9 +1,8 @@
 'use client'
 
+import { cn } from 'cnfast'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-
-import { cn } from '#/lib/utils'
 
 function getSuggestionPosition(clientRect: (() => DOMRect | null) | null) {
 	const rect = clientRect?.()

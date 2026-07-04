@@ -13,6 +13,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from '@ui/tooltip'
+import { cn } from 'cnfast'
 import { ChevronDownIcon } from 'lucide-react'
 import type { ComponentProps, ReactNode } from 'react'
 import {
@@ -22,8 +23,6 @@ import {
 	useMemo,
 	useState,
 } from 'react'
-
-import { cn } from '#/lib/utils'
 
 export interface WebPreviewContextValue {
 	url: string

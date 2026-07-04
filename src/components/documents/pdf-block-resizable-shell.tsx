@@ -3,9 +3,9 @@
 import { cn } from '@lib/utils'
 import * as React from 'react'
 import {
-	useDefaultLayout,
 	type GroupImperativeHandle,
 	type LayoutStorage,
+	useDefaultLayout,
 } from 'react-resizable-panels'
 
 import {

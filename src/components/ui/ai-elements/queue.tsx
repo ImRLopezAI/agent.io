@@ -7,10 +7,9 @@ import {
 	CollapsibleTrigger,
 } from '@ui/collapsible'
 import { ScrollArea } from '@ui/scroll-area'
+import { cn } from 'cnfast'
 import { ChevronDownIcon, PaperclipIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
-
-import { cn } from '#/lib/utils'
 
 export interface QueueMessagePart {
 	type: string

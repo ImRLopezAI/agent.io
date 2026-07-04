@@ -3,7 +3,6 @@ import {
 	type HonoWithConvex,
 	HttpRouterWithHono,
 } from 'convex-helpers/server/hono'
-import type { GenericDataModel, GenericMutationCtx } from 'convex/server'
 import { cors } from 'hono/cors'
 import { requestId } from 'hono/request-id'
 import { Hono } from 'hono/tiny'
@@ -22,16 +21,9 @@ app.on('POST', ['/api/agents', '/api/chat'], async (c) => {
 })
 
 app.post('/resend/events', async (c) => {
-	return await resend.handleResendEventWebhook(
-		c.env as unknown as RunMutationCtx,
-		c.req.raw,
-	)
+	return await resend.handleResendEventWebhook(c.env, c.req.raw)
 })
 
 const http = new HttpRouterWithHono(app)
 authKit.registerRoutes(http)
 export default http
-
-type RunMutationCtx = {
-	runMutation: GenericMutationCtx<GenericDataModel>['runMutation']
-}

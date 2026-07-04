@@ -1,7 +1,7 @@
 'use client'
 
-import { PromptInputProvider } from '@ui/ai-elements/prompt-input'
 import type { useAi } from '@ui/ai/use-ai'
+import { PromptInputProvider } from '@ui/ai-elements/prompt-input'
 import { createContext, use } from 'react'
 
 type AiChatHandler = ReturnType<typeof useAi>

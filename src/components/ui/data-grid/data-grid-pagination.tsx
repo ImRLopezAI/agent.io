@@ -1,11 +1,10 @@
 'use client'
 
 import type { Table } from '@tanstack/react-table'
+import { cn } from 'cnfast'
 import { ChevronLeftIcon, ChevronRightIcon, Loader2 } from 'lucide-react'
 import { motion } from 'motion/react'
 import * as React from 'react'
-
-import { cn } from '#/lib/utils'
 
 import { Button } from './ui/button'
 import {

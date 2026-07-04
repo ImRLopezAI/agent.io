@@ -8,9 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/tabs'
 import {
 	ApiKeys,
 	Pipes,
-	UserProfile as WorkOsUserProfile,
 	UserSecurity,
 	UserSessions,
+	UserProfile as WorkOsUserProfile,
 	WorkOsWidgets,
 	type WorkOsWidgetsProps,
 } from '@workos-inc/widgets'
@@ -19,10 +19,10 @@ import {
 	CreditCard,
 	KeyRound,
 	Link2,
+	type LucideIcon,
 	MonitorSmartphone,
 	Shield,
 	UserCircle,
-	type LucideIcon,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { createElement, type ReactElement, type ReactNode } from 'react'
@@ -155,11 +155,11 @@ function UserProfilePanel({
 					onValueChange={(value) =>
 						setActiveTab(value as UserProfileBuiltInTabId)
 					}
-					className='flex min-h-0 flex-1 flex-col gap-6 lg:flex-row lg:gap-8 bg-none'
+					className='flex min-h-0 flex-1 flex-col gap-6 bg-none lg:flex-row lg:gap-8'
 				>
 					<TabsList
 						variant='line'
-						className='flex h-auto flex-row items-stretch gap-1 p-0 w-fit'
+						className='flex h-auto w-fit flex-row items-stretch gap-1 p-0'
 						data-orientation='vertical'
 					>
 						{resolvedTabs.map((tab) => (

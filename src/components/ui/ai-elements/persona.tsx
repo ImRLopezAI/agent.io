@@ -8,10 +8,9 @@ import {
 	useViewModelInstance,
 	useViewModelInstanceColor,
 } from '@rive-app/react-webgl2'
+import { cn } from 'cnfast'
 import type { FC, ReactNode } from 'react'
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
-
-import { cn } from '#/lib/utils'
 
 // Delays Rive initialization by one frame so that React Strict Mode's
 // immediate unmount cycle never creates a WebGL2 context. Only the

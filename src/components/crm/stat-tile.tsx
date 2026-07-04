@@ -38,7 +38,7 @@ export function StatTile({
 				<span className='font-bold font-caption text-[9px] text-muted-foreground/70 tracking-[1.2px]'>
 					{label}
 				</span>
-				<span className='font-bold font-heading text-[1.125rem] text-foreground tabular-nums flex items-center gap-1.5'>
+				<span className='flex items-center gap-1.5 font-bold font-heading text-[1.125rem] text-foreground tabular-nums'>
 					{value}
 					{(delta || note) && (
 						<div className='flex items-center gap-1.5'>

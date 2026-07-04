@@ -296,7 +296,7 @@ function SignatureDialog({
 					>
 						<div
 							className={cn(
-								'relative overflow-hidden rounded-[3px] border border-dashed border-blue-500/70 bg-white',
+								'relative overflow-hidden rounded-[3px] border border-blue-500/70 border-dashed bg-white',
 								isReady ? 'cursor-crosshair' : 'cursor-wait',
 							)}
 							style={{
@@ -371,7 +371,7 @@ function SignatureFieldOverlay({
 		<button
 			type='button'
 			className={cn(
-				'absolute z-20 overflow-hidden rounded-[3px] border border-blue-500/70 transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+				'absolute z-20 overflow-hidden rounded-[3px] border border-blue-500/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
 				field.imageDataUrl
 					? 'bg-transparent shadow-none hover:bg-blue-500/5'
 					: 'bg-blue-500/10 hover:bg-blue-500/15',
@@ -387,7 +387,7 @@ function SignatureFieldOverlay({
 					draggable={false}
 				/>
 			) : (
-				<span className='flex size-full items-center justify-center gap-1.5 px-2 text-[11px] font-medium text-blue-700 dark:text-blue-300'>
+				<span className='flex size-full items-center justify-center gap-1.5 px-2 font-medium text-[11px] text-blue-700 dark:text-blue-300'>
 					<Pen className='size-3.5' />
 					Signature
 				</span>
@@ -460,8 +460,8 @@ function SignatureFieldsPanel({
 			<ScrollArea className='min-h-0 flex-1'>
 				<div className='space-y-4 p-4'>
 					<div className='space-y-1'>
-						<h3 className='text-sm font-medium'>Signature fields</h3>
-						<p className='text-xs text-muted-foreground'>
+						<h3 className='font-medium text-sm'>Signature fields</h3>
+						<p className='text-muted-foreground text-xs'>
 							Review fields, collect signatures, and export a signed PDF.
 						</p>
 					</div>
@@ -472,7 +472,7 @@ function SignatureFieldsPanel({
 							</div>
 							<div className='min-w-0 flex-1'>
 								<div className='flex items-center justify-between gap-2'>
-									<div className='text-sm font-medium'>{field.label}</div>
+									<div className='font-medium text-sm'>{field.label}</div>
 									<div
 										className={cn(
 											'rounded-full px-2 py-0.5 text-xs',
@@ -484,7 +484,7 @@ function SignatureFieldsPanel({
 										{field.imageDataUrl ? 'Signed' : 'Unsigned'}
 									</div>
 								</div>
-								<div className='mt-2 text-xs text-muted-foreground'>
+								<div className='mt-2 text-muted-foreground text-xs'>
 									{Math.round(field.bbox.width)} x{' '}
 									{Math.round(field.bbox.height)} on page {field.page}
 								</div>

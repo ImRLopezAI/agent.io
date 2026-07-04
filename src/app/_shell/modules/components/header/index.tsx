@@ -15,6 +15,7 @@ import { useSidebar } from '@/components/ui/sidebar'
 
 import { UserButton } from '../auth/user/user-button'
 import { Menu } from './navigation'
+
 function HeaderAiAssistant() {
 	const { handler } = useAgent({
 		transport: {

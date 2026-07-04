@@ -66,10 +66,8 @@ const DEFAULT_ROW_HEIGHT = 'short'
 const OVERSCAN = 6
 const NON_NAVIGABLE_COLUMN_IDS = ['select', 'actions']
 
-interface UseDataGridProps<TData> extends Omit<
-	TableOptions<TData>,
-	'getCoreRowModel' | 'onColumnOrderChange'
-> {
+interface UseDataGridProps<TData>
+	extends Omit<TableOptions<TData>, 'getCoreRowModel' | 'onColumnOrderChange'> {
 	/**
 	 * Called when the user reorders columns (drag-and-drop or context menu).
 	 * Receives the resolved next column order so consumers can persist it

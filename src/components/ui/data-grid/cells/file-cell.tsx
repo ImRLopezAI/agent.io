@@ -1,10 +1,9 @@
 'use client'
 
+import { cn } from 'cnfast'
 import { Upload, X } from 'lucide-react'
 import * as React from 'react'
 import { toast } from 'sonner'
-
-import { cn } from '#/lib/utils'
 
 import { useDataGridActions } from '../contexts/data-grid-actions-context'
 import { DataGridCellWrapper } from '../data-grid-cell-wrapper'

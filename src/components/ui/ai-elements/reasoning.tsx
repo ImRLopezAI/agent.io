@@ -10,6 +10,7 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from '@ui/collapsible'
+import { cn } from 'cnfast'
 import { BrainIcon, ChevronDownIcon } from 'lucide-react'
 import type { ComponentProps, ReactNode } from 'react'
 import {
@@ -23,8 +24,6 @@ import {
 	useState,
 } from 'react'
 import { Streamdown } from 'streamdown'
-
-import { cn } from '#/lib/utils'
 
 import { Shimmer } from './shimmer'
 import { withDefaultPortaledLinkSafety } from './streamdown-link-safety-portal'

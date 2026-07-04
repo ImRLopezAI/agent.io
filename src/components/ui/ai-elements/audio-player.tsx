@@ -2,6 +2,7 @@
 
 import { Button } from '@ui/button'
 import { ButtonGroup, ButtonGroupText } from '@ui/button-group'
+import { cn } from 'cnfast'
 import {
 	MediaControlBar,
 	MediaController,
@@ -15,8 +16,6 @@ import {
 	MediaVolumeRange,
 } from 'media-chrome/react'
 import type { ComponentProps, CSSProperties } from 'react'
-
-import { cn } from '#/lib/utils'
 
 import type { Experimental_SpeechResult as SpeechResult } from './ai-compat-types'
 

@@ -2,10 +2,9 @@
 
 import { useDirection } from '@base-ui/react/direction-provider'
 import type { Column, Table } from '@tanstack/react-table'
+import { cn } from 'cnfast'
 import { Check, PinIcon, PinOffIcon, Settings2 } from 'lucide-react'
 import * as React from 'react'
-
-import { cn } from '#/lib/utils'
 
 import { Button } from './ui/button'
 import {
@@ -19,9 +18,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover'
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 
-interface DataGridViewMenuProps<TData> extends React.ComponentProps<
-	typeof PopoverContent
-> {
+interface DataGridViewMenuProps<TData>
+	extends React.ComponentProps<typeof PopoverContent> {
 	table: Table<TData>
 	disabled?: boolean
 	defaultOpen?: boolean

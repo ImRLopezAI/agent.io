@@ -1,6 +1,5 @@
+import { cn } from 'cnfast'
 import type React from 'react'
-
-import { cn } from '#/lib/utils'
 
 export const Logo: React.FC<React.SVGProps<SVGSVGElement>> = ({
 	className,

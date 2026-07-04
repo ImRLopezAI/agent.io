@@ -9,6 +9,7 @@ import {
 	CommandList,
 } from '@ui/command'
 import { Popover, PopoverContent } from '@ui/popover'
+import { cn } from 'cnfast'
 import type { LucideIcon } from 'lucide-react'
 import {
 	BrainCircuit,
@@ -31,8 +32,6 @@ import {
 	useState,
 } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-
-import { cn } from '#/lib/utils'
 // ─── Types ───
 
 export interface MentionOption {

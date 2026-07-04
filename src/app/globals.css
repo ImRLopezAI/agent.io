@@ -1,13 +1,13 @@
-@import 'tailwindcss';
-@import 'shadcn/tailwind.css';
-@import 'tw-animate-css';
+@import "tailwindcss";
+@import "shadcn/tailwind.css";
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 @utility scrollbar-* {
 	--scrollbar-track: --value(--color-*);
 }
-@import 'tailwindcss';
+@import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -45,10 +45,10 @@
 	--sidebar-border: oklch(0.9158 0 0);
 	--sidebar-ring: oklch(0.4467 0.1272 265.6182);
 	--font-sans: Inter, ui-sans-serif, sans-serif, system-ui;
-	--font-serif: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+	--font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 	--font-mono:
-		ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-		'Courier New', monospace;
+		ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+		"Courier New", monospace;
 	--radius: 0.5rem;
 	--shadow-x: 0;
 	--shadow-y: 1px;
@@ -112,10 +112,10 @@
 	--sidebar-border: oklch(0.2768 0 0);
 	--sidebar-ring: oklch(0.6497 0.1195 264.3295);
 	--font-sans: Inter, ui-sans-serif, sans-serif, system-ui;
-	--font-serif: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+	--font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 	--font-mono:
-		ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-		'Courier New', monospace;
+		ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+		"Courier New", monospace;
 	--radius: 0.5rem;
 	--shadow-x: 0;
 	--shadow-y: 1px;
@@ -223,7 +223,7 @@
 
 	.tabular,
 	[data-tabular],
-	[role='cell'],
+	[role="cell"],
 	td,
 	th {
 		font-variant-numeric: tabular-nums;
@@ -231,8 +231,8 @@
 
 	button,
 	a,
-	[role='button'],
-	[role='tab'],
+	[role="button"],
+	[role="tab"],
 	summary,
 	label[for] {
 		touch-action: manipulation;
@@ -243,16 +243,16 @@
 		scroll-margin-top: 5rem;
 	}
 
-	[data-slot='dialog-content'],
-	[data-slot='sheet-content'],
-	[data-slot='drawer-content'],
-	[data-slot='popover-content'],
-	[data-slot='dropdown-menu-content'],
-	[data-slot='command-list'] {
+	[data-slot="dialog-content"],
+	[data-slot="sheet-content"],
+	[data-slot="drawer-content"],
+	[data-slot="popover-content"],
+	[data-slot="dropdown-menu-content"],
+	[data-slot="command-list"] {
 		overscroll-behavior: contain;
 	}
 
-	[data-translate='no'] {
+	[data-translate="no"] {
 		translate: no;
 	}
 }

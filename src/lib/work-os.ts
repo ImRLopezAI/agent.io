@@ -1,4 +1,4 @@
-import { WorkOS, type OrganizationRole } from '@workos-inc/node'
+import { type OrganizationRole, WorkOS } from '@workos-inc/node'
 
 import { env } from './env'
 export const workOs = new WorkOS({

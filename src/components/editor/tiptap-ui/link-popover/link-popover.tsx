@@ -11,6 +11,9 @@ import { CornerDownLeftIcon } from '#/components/editor/tiptap-icons/corner-down
 import { ExternalLinkIcon } from '#/components/editor/tiptap-icons/external-link-icon'
 import { LinkIcon } from '#/components/editor/tiptap-icons/link-icon'
 import { TrashIcon } from '#/components/editor/tiptap-icons/trash-icon'
+// --- Tiptap UI ---
+import type { UseLinkPopoverConfig } from '#/components/editor/tiptap-ui/link-popover'
+import { useLinkPopover } from '#/components/editor/tiptap-ui/link-popover'
 // --- UI Primitives ---
 import type { ButtonProps } from '#/components/editor/tiptap-ui-primitive/button'
 import { Button } from '#/components/editor/tiptap-ui-primitive/button'
@@ -27,9 +30,6 @@ import {
 	PopoverTrigger,
 } from '#/components/editor/tiptap-ui-primitive/popover'
 import { Separator } from '#/components/editor/tiptap-ui-primitive/separator'
-// --- Tiptap UI ---
-import type { UseLinkPopoverConfig } from '#/components/editor/tiptap-ui/link-popover'
-import { useLinkPopover } from '#/components/editor/tiptap-ui/link-popover'
 
 export interface LinkMainProps {
 	/**
@@ -59,7 +59,8 @@ export interface LinkMainProps {
 }
 
 export interface LinkPopoverProps
-	extends Omit<ButtonProps, 'type'>, UseLinkPopoverConfig {
+	extends Omit<ButtonProps, 'type'>,
+		UseLinkPopoverConfig {
 	/**
 	 * Callback for when the popover opens or closes.
 	 */

@@ -310,7 +310,8 @@ export interface DataGridServerStructuredFilter {
 	value: FilterValue
 }
 
-export interface DataGridServerFilterCommitState extends DataGridServerFilterState {
+export interface DataGridServerFilterCommitState
+	extends DataGridServerFilterState {
 	search?: string
 	structuredFilters?: DataGridServerStructuredFilter[]
 	orderBy?: DataGridServerOrderBy

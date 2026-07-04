@@ -86,8 +86,9 @@ vi.mock('@tanstack/react-router', () => ({
 }))
 
 const { useOrgOpts } = await import('@/app/_shell/modules/utils/use-org-opts')
-const { OrganizationInvitationRow } =
-	await import('../organization-invitation-row')
+const { OrganizationInvitationRow } = await import(
+	'../organization-invitation-row'
+)
 
 // --- fixtures ---
 

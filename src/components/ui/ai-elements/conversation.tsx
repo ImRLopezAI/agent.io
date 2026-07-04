@@ -2,12 +2,11 @@
 
 import { Button } from '@ui/button'
 import type { UIMessage } from 'ai'
+import { cn } from 'cnfast'
 import { ArrowDownIcon, DownloadIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
 import { useCallback } from 'react'
 import { StickToBottom, useStickToBottomContext } from 'use-stick-to-bottom'
-
-import { cn } from '#/lib/utils'
 
 export type ConversationProps = ComponentProps<typeof StickToBottom>
 

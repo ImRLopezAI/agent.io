@@ -210,7 +210,7 @@ export function parseFilters(raw: string): ColumnFiltersState {
 		pushValidatedFilter(filters, field, { operator, value })
 	}
 
-	return filters
+	return getServerReadyFilters(filters)
 }
 
 export function serializeFilters(filters: ColumnFiltersState): string {

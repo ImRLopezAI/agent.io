@@ -1,5 +1,6 @@
 'use client'
 
+import { cn } from 'cnfast'
 import {
 	Children,
 	createContext,
@@ -13,8 +14,6 @@ import {
 	useRef,
 	useState,
 } from 'react'
-
-import { cn } from '#/lib/utils'
 
 // Types
 type StepperOrientation = 'horizontal' | 'vertical'
@@ -214,7 +213,8 @@ function StepperItem({
 	)
 }
 
-interface StepperTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface StepperTriggerProps
+	extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 	asChild?: boolean
 }
 

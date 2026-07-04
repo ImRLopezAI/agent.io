@@ -4,21 +4,22 @@ import { forwardRef, useCallback } from 'react'
 
 // --- Hooks ---
 import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
-import { Badge } from '#/components/editor/tiptap-ui-primitive/badge'
-// --- UI Primitives ---
-import type { ButtonProps } from '#/components/editor/tiptap-ui-primitive/button'
-import { Button } from '#/components/editor/tiptap-ui-primitive/button'
 // --- Tiptap UI ---
 import type { UseBlockquoteConfig } from '#/components/editor/tiptap-ui/blockquote-button'
 import {
 	BLOCKQUOTE_SHORTCUT_KEY,
 	useBlockquote,
 } from '#/components/editor/tiptap-ui/blockquote-button'
+import { Badge } from '#/components/editor/tiptap-ui-primitive/badge'
+// --- UI Primitives ---
+import type { ButtonProps } from '#/components/editor/tiptap-ui-primitive/button'
+import { Button } from '#/components/editor/tiptap-ui-primitive/button'
 // --- Lib ---
 import { parseShortcutKeys } from '#/lib/tiptap-utils'
 
 export interface BlockquoteButtonProps
-	extends Omit<ButtonProps, 'type'>, UseBlockquoteConfig {
+	extends Omit<ButtonProps, 'type'>,
+		UseBlockquoteConfig {
 	/**
 	 * Optional text to display alongside the icon.
 	 */

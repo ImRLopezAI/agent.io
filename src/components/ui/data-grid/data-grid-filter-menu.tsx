@@ -3,6 +3,7 @@
 import { useDirection } from '@base-ui/react/direction-provider'
 import { useHotkey } from '@tanstack/react-hotkeys'
 import type { Column, ColumnFilter, Table } from '@tanstack/react-table'
+import { cn } from 'cnfast'
 import {
 	CalendarIcon,
 	Check,
@@ -12,8 +13,6 @@ import {
 	Trash2,
 } from 'lucide-react'
 import * as React from 'react'
-
-import { cn } from '#/lib/utils'
 
 import { useFilterMenuRequestBus } from './contexts/data-grid-actions-context'
 import { safeParseFilterValue } from './lib/data-grid-filter-schema'
@@ -59,9 +58,8 @@ function escapeSelectorValue(value: string) {
 	return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 }
 
-interface DataGridFilterMenuProps<TData> extends React.ComponentProps<
-	typeof PopoverContent
-> {
+interface DataGridFilterMenuProps<TData>
+	extends React.ComponentProps<typeof PopoverContent> {
 	table: Table<TData>
 	disabled?: boolean
 }

@@ -3,7 +3,7 @@
 import { Badge } from '@ui/badge'
 import { Separator } from '@ui/separator'
 
-import { cn } from '#/lib/utils'
+import { cn } from 'cnfast'
 
 type ChangelogCategory = {
 	id: string

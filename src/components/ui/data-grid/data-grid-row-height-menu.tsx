@@ -40,9 +40,8 @@ const rowHeights = [
 	},
 ] as const
 
-interface DataGridRowHeightMenuProps<TData> extends React.ComponentProps<
-	typeof SelectContent
-> {
+interface DataGridRowHeightMenuProps<TData>
+	extends React.ComponentProps<typeof SelectContent> {
 	table: Table<TData>
 	disabled?: boolean
 }

@@ -1,5 +1,7 @@
 'use client'
 
+import { useHotkey } from '@tanstack/react-hotkeys'
+import { cn } from 'cnfast'
 import {
 	ArrowDown,
 	ArrowUp,
@@ -12,8 +14,6 @@ import {
 	X,
 } from 'lucide-react'
 import * as React from 'react'
-
-import { cn } from '#/lib/utils'
 
 import { useAsRef } from './hooks/use-as-ref'
 import { useDebouncedCallback } from './hooks/use-debounced-callback'
@@ -119,19 +119,14 @@ function DataGridSearchImpl({
 		if (!searchOpen) setShowReplace(false)
 	}, [searchOpen])
 
-	React.useEffect(() => {
-		if (!searchOpen) return
-
-		function onEscape(event: KeyboardEvent) {
-			if (event.key === 'Escape') {
-				event.preventDefault()
-				propsRef.current.onSearchOpenChange(false)
-			}
-		}
-
-		document.addEventListener('keydown', onEscape)
-		return () => document.removeEventListener('keydown', onEscape)
-	}, [searchOpen, propsRef])
+	useHotkey(
+		'Escape',
+		(event) => {
+			event.preventDefault()
+			propsRef.current.onSearchOpenChange(false)
+		},
+		{ enabled: searchOpen, preventDefault: true },
+	)
 
 	const onKeyDown = React.useCallback(
 		(event: React.KeyboardEvent) => {
@@ -531,9 +526,8 @@ function DataGridSearchImpl({
 	)
 }
 
-interface SelectionTooltipProps extends React.ComponentProps<
-	typeof TooltipTrigger
-> {
+interface SelectionTooltipProps
+	extends React.ComponentProps<typeof TooltipTrigger> {
 	label: string
 }
 

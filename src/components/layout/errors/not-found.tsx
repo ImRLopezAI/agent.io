@@ -30,7 +30,7 @@ export function NotFoundComponent() {
 					<div className='absolute right-0 bottom-0 left-0 h-1/3 bg-to-t from-background/80 to-transparent' />
 				</div>
 
-				<div className='flex justify-center flex-'>
+				<div className='flex- flex justify-center'>
 					<Link to='/' className='group flex items-center gap-2'>
 						Back to Home
 						<ArrowRight />

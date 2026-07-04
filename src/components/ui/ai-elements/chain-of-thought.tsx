@@ -7,12 +7,11 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from '@ui/collapsible'
+import { cn } from 'cnfast'
 import type { LucideIcon } from 'lucide-react'
 import { BrainIcon, ChevronDownIcon, DotIcon } from 'lucide-react'
 import type { ComponentProps, ReactNode } from 'react'
 import { createContext, memo, useContext, useMemo } from 'react'
-
-import { cn } from '#/lib/utils'
 
 interface ChainOfThoughtContextValue {
 	isOpen: boolean

@@ -1,9 +1,8 @@
 'use client'
 
 import type { Table } from '@tanstack/react-table'
+import { cn } from 'cnfast'
 import * as React from 'react'
-
-import { cn } from '#/lib/utils'
 
 import { useDataGridSelectionState } from './contexts/data-grid-state-context'
 import { parseLocalDate } from './lib/data-grid'

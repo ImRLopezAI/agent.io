@@ -65,8 +65,7 @@ export function useChart() {
 }
 
 interface ChartContainerProps
-	extends
-		Omit<React.ComponentProps<'div'>, 'children'>,
+	extends Omit<React.ComponentProps<'div'>, 'children'>,
 		Pick<
 			React.ComponentProps<typeof RechartsPrimitive.ResponsiveContainer>,
 			| 'initialDimension'
