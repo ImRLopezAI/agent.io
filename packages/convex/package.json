@@ -18,7 +18,8 @@
 		"ai": "catalog:ai",
 		"convex": "catalog:convex",
 		"convex-helpers": "catalog:convex",
-		"hono": "4.12.27"
+		"hono": "4.12.27",
+		"zod": "catalog:"
 	},
 	"devDependencies": {
 		"@agent.io/ts": "workspace:*",

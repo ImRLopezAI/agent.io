@@ -3,8 +3,7 @@ import { convexTest } from 'convex-test'
 import { describe, expect, test } from 'vite-plus/test'
 
 import schema from '../schema'
-
-export const modules = import.meta.glob('../**/*.ts')
+import { modules } from '../testModules'
 
 const ORG_A = 'org_aaaa'
 const ORG_B = 'org_bbbb'

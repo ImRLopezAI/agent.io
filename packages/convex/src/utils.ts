@@ -37,6 +37,8 @@ import {
 	query as convexQuery,
 } from './_generated/server'
 import { authKit } from './auth'
+// side-effect import: trigger registrations must load before any mutation runs
+import './api/registrations'
 import { TENANT_TABLES, type TenantTableName } from './schema'
 import { triggers } from './triggers'
 
