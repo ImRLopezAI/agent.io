@@ -1,4 +1,13 @@
-import { NoOp } from 'convex-helpers/server/customFunctions'
+import {
+	customCtx,
+	customMutation,
+	NoOp,
+} from 'convex-helpers/server/customFunctions'
+import {
+	type Rules,
+	wrapDatabaseReader,
+	wrapDatabaseWriter,
+} from 'convex-helpers/server/rowLevelSecurity'
 import {
 	type ZCustomCtx,
 	zCustomAction,
@@ -17,14 +26,19 @@ import type {
 	NamedIndex,
 	QueryInitializer,
 } from 'convex/server'
+import { v } from 'convex/values'
 
 import type { DataModel } from './_generated/dataModel'
 import {
 	action as convexAction,
+	internalMutation as convexInternalMutation,
+	internalQuery as convexInternalQuery,
 	mutation as convexMutation,
 	query as convexQuery,
 } from './_generated/server'
 import { authKit } from './auth'
+import { TENANT_TABLES, type TenantTableName } from './schema'
+import { triggers } from './triggers'
 
 type WithMatching<T extends GenericTableInfo> = QueryInitializer<T> & {
 	matching<IndexName extends IndexNames<T>>(
@@ -101,7 +115,124 @@ export function includes<T extends GenericTableInfo>(
 }
 
 export const query = zCustomQuery(convexQuery, NoOp)
-export const mutation = zCustomMutation(convexMutation, NoOp)
+/** Public mutation builder — triggers-wrapped so cascades/counters always fire. */
+export const mutation = zCustomMutation(
+	convexMutation,
+	customCtx(triggers.wrapDB),
+)
+
+// ---------------------------------------------------------------------------
+// Internal builders (the crud tier + machine paths receive THESE)
+// ---------------------------------------------------------------------------
+
+/** Plain internal query builder for the generated crud tier. */
+export const internalQuery = convexInternalQuery
+/**
+ * Triggers-wrapped internal mutation builder. Every `crud(schema, table,
+ * internalQuery, triggeredInternalMutation)` call MUST use this — the helper
+ * defaults to the raw builder, which would bypass cascades/denormalization.
+ */
+export const triggeredInternalMutation = customMutation(
+	convexInternalMutation,
+	customCtx(triggers.wrapDB),
+)
+
+// ---------------------------------------------------------------------------
+// Tenant scoping (ADR 0001): RLS-wrapped db — isolation at the db layer
+// ---------------------------------------------------------------------------
+
+type Ctx = Record<string, unknown>
+
+/** Per-document tenant rules for every tenant table. */
+const tenantRules = (tenant: string): Rules<Ctx, DataModel> =>
+	Object.fromEntries(
+		TENANT_TABLES.map((table) => [
+			table,
+			{
+				read: async (_ctx: Ctx, doc: { tenant?: string }) =>
+					doc.tenant === tenant,
+				insert: async (_ctx: Ctx, doc: { tenant?: string }) =>
+					doc.tenant === tenant,
+				modify: async (_ctx: Ctx, doc: { tenant?: string }) =>
+					doc.tenant === tenant,
+			},
+		]),
+	) as Rules<Ctx, DataModel>
+
+/**
+ * User-path query: `ctx.tenant` from the JWT org claim; `ctx.db` is
+ * RLS-wrapped — reads of another tenant's rows return null/empty.
+ */
+export const tenantQuery = zCustomQuery(convexQuery, {
+	args: {},
+	input: async (ctx) => {
+		const auth = await getAuthUser(ctx)
+		const tenant = auth.org.organizationId
+		return {
+			ctx: {
+				...ctx,
+				...auth,
+				tenant,
+				db: wrapDatabaseReader({}, ctx.db, tenantRules(tenant)),
+			},
+			args: {},
+		}
+	},
+})
+
+/**
+ * User-path mutation: triggers-wrapped THEN RLS-wrapped — every write fires
+ * triggers and is tenant-checked per document. Inserts must spread
+ * `{ tenant: ctx.tenant }` (RLS rejects mismatches).
+ */
+export const tenantMutation = zCustomMutation(convexMutation, {
+	args: {},
+	input: async (ctx) => {
+		const auth = await getAuthUser(ctx)
+		const tenant = auth.org.organizationId
+		const { db: triggeredDb } = triggers.wrapDB(ctx)
+		return {
+			ctx: {
+				...ctx,
+				...auth,
+				tenant,
+				db: wrapDatabaseWriter({}, triggeredDb, tenantRules(tenant)),
+			},
+			args: {},
+		}
+	},
+})
+
+/**
+ * Machine-path factory (ADR 0001): callers never pass `tenant` — they pass
+ * the OWNING resource id; the builder loads it and copies its tenant.
+ * Integrity convention, not authorization: these are internal functions,
+ * reachable only through the authenticated HTTP surface.
+ */
+export const machineMutation = <Table extends TenantTableName>(
+	ownerTable: Table,
+) =>
+	zCustomMutation(convexInternalMutation, {
+		args: { ownerId: v.id(ownerTable) },
+		input: async (ctx, { ownerId }) => {
+			const { db } = triggers.wrapDB(ctx)
+			const owner = await db.get(ownerId)
+			if (!owner) {
+				throw new Error(
+					`machineMutation(${ownerTable}): owner row ${ownerId} not found`,
+				)
+			}
+			const tenant = (owner as { tenant?: string }).tenant
+			if (!tenant) {
+				throw new Error(
+					`machineMutation(${ownerTable}): owner row has no tenant`,
+				)
+			}
+			return { ctx: { ...ctx, db, tenant, owner }, args: {} }
+		},
+	})
+
+export { assertSameTenant } from './tenancy'
 
 export const authQuery = zCustomQuery(convexQuery, {
 	args: {},

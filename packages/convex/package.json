@@ -7,7 +7,8 @@
 		"deploy": "convex deploy",
 		"codegen": "convex codegen",
 		"typecheck": "tsc --noEmit",
-		"clean": "rm -rf .convex node_modules .turbo"
+		"clean": "rm -rf .convex node_modules .turbo",
+		"test": "vp test run"
 	},
 	"dependencies": {
 		"@agent.io/domain": "workspace:*",
@@ -21,7 +22,10 @@
 	},
 	"devDependencies": {
 		"@agent.io/ts": "workspace:*",
+		"@edge-runtime/vm": "^5.0.0",
 		"@types/node": "26.1.0",
-		"typescript": "catalog:"
+		"convex-test": "^0.0.38",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
 	}
 }

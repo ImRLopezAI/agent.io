@@ -13,6 +13,8 @@ import type * as ai_index from "../ai/index.js";
 import type * as auth from "../auth.js";
 import type * as http from "../http.js";
 import type * as resend from "../resend.js";
+import type * as tenancy from "../tenancy.js";
+import type * as triggers from "../triggers.js";
 import type * as utils from "../utils.js";
 import type * as workos from "../workos.js";
 
@@ -28,6 +30,8 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   http: typeof http;
   resend: typeof resend;
+  tenancy: typeof tenancy;
+  triggers: typeof triggers;
   utils: typeof utils;
   workos: typeof workos;
 }>;

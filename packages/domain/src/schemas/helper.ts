@@ -1,5 +1,5 @@
 import { zid, zodToConvex } from 'convex-helpers/server/zod4'
-import { defineTable } from 'convex/server'
+import { defineTable, type TableDefinition } from 'convex/server'
 import type { GenericId } from 'convex/values'
 import { z } from 'zod'
 
@@ -13,17 +13,59 @@ const jsonSafeZid = <TableName extends string>(
 
 export interface TableIndexOptions {
 	/** Regular indexes, declared verbatim: { by_agent: ['agentId'] } */
-	indexes?: Record<string, string[]>
+	indexes?: Record<string, readonly string[]>
 	/** Full-text search indexes (Tantivy): { search_text: { searchField, filterFields } } */
 	searchIndexes?: Record<
 		string,
-		{ searchField: string; filterFields?: string[] }
+		{ searchField: string; filterFields?: readonly string[] }
 	>
 	/** Vector indexes: { by_embedding: { vectorField, dimensions, filterFields } } */
 	vectorIndexes?: Record<
 		string,
-		{ vectorField: string; dimensions: number; filterFields?: string[] }
+		{
+			vectorField: string
+			dimensions: number
+			filterFields?: readonly string[]
+		}
 	>
+}
+
+// Type-level index tracking: dataModel.d.ts derives types from schema.ts, so
+// the declarative specs must surface in TableDefinition's generic params —
+// applyIndexes is a runtime loop and would otherwise erase them.
+type IndexesOf<O extends TableIndexOptions> = {
+	[K in keyof O['indexes']]: O['indexes'][K] extends readonly string[]
+		? [...O['indexes'][K], '_creationTime']
+		: never
+}
+type SearchOf<O extends TableIndexOptions> = {
+	[K in keyof O['searchIndexes']]: O['searchIndexes'][K] extends {
+		searchField: infer S extends string
+	}
+		? {
+				searchField: S
+				filterFields: O['searchIndexes'][K] extends {
+					filterFields: readonly (infer F extends string)[]
+				}
+					? F
+					: never
+			}
+		: never
+}
+type VectorOf<O extends TableIndexOptions> = {
+	[K in keyof O['vectorIndexes']]: O['vectorIndexes'][K] extends {
+		vectorField: infer V extends string
+	}
+		? {
+				vectorField: V
+				dimensions: number
+				filterFields: O['vectorIndexes'][K] extends {
+					filterFields: readonly (infer F extends string)[]
+				}
+					? F
+					: never
+			}
+		: never
 }
 
 const applyIndexes = (
@@ -35,10 +77,20 @@ const applyIndexes = (
 		t = t.index(name, fields as [string, ...string[]])
 	}
 	for (const [name, spec] of Object.entries(options?.searchIndexes ?? {})) {
-		t = t.searchIndex(name, spec)
+		t = t.searchIndex(
+			name,
+			spec as { searchField: string; filterFields?: string[] },
+		)
 	}
 	for (const [name, spec] of Object.entries(options?.vectorIndexes ?? {})) {
-		t = t.vectorIndex(name, spec)
+		t = t.vectorIndex(
+			name,
+			spec as {
+				vectorField: string
+				dimensions: number
+				filterFields?: string[]
+			},
+		)
 	}
 	return t
 }
@@ -49,10 +101,11 @@ const applyIndexes = (
 export const zodTable = <
 	Table extends string,
 	T extends { [key: string]: z.ZodType },
+	const O extends TableIndexOptions = Record<never, never>,
 >(
 	tableName: Table,
 	schema: (id: typeof zid) => T,
-	options?: TableIndexOptions,
+	options?: O,
 ) => {
 	const baseSchema = z.object({
 		...schema(zid),
@@ -113,7 +166,16 @@ export const zodTable = <
 		insertSchema,
 		updateSchema,
 		table: () => {
-			return applyIndexes(defineTable(zodToConvex(baseSchema)), options)
+			const validator = zodToConvex(baseSchema)
+			return applyIndexes(
+				defineTable(validator),
+				options,
+			) as unknown as TableDefinition<
+				typeof validator,
+				IndexesOf<O>,
+				SearchOf<O>,
+				VectorOf<O>
+			>
 		},
 		insert,
 		update,
@@ -136,13 +198,20 @@ export const zodTable = <
  * are taken verbatim; search/vector indexes must carry `tenant` in their
  * `filterFields` (isolation happens inside the index).
  */
+type WithByTenant<O extends TableIndexOptions> = Omit<O, 'indexes'> & {
+	indexes: { by_tenant: readonly ['tenant'] } & (O['indexes'] extends object
+		? O['indexes']
+		: Record<never, never>)
+}
+
 export const tenantTable = <
 	Table extends string,
 	T extends { [key: string]: z.ZodType },
+	const O extends TableIndexOptions = Record<never, never>,
 >(
 	tableName: Table,
 	schema: (id: typeof zid) => T,
-	options?: TableIndexOptions,
+	options?: O,
 ) => {
 	const shape = schema(zid)
 	if ('tenant' in shape) {
@@ -163,7 +232,7 @@ export const tenantTable = <
 		}),
 		{
 			...options,
-			indexes: { by_tenant: ['tenant'], ...options?.indexes },
-		},
+			indexes: { by_tenant: ['tenant'] as const, ...options?.indexes },
+		} as WithByTenant<O>,
 	)
 }
