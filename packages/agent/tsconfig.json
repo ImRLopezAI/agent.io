@@ -1,0 +1,4 @@
+{
+	"extends": "@agent.io/ts/base.json",
+	"include": ["src/**/*.ts"]
+}

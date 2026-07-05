@@ -25,7 +25,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # caches
 .eslintcache
 .cache
-.turbo
 *.tsbuildinfo
 
 # IntelliJ based IDEs
@@ -33,6 +32,3 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Finder (MacOS) folder config
 .DS_Store
-
-# Vendor documentation snapshots (fetched, regenerable — see docs/reference/)
-docs/.references/

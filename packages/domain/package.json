@@ -12,7 +12,8 @@
 	},
 	"dependencies": {
 		"convex-helpers": "catalog:convex",
-		"zod": "catalog:"
+		"zod": "catalog:",
+		"convex": "catalog:convex"
 	},
 	"devDependencies": {
 		"@agent.io/ts": "workspace:*",
