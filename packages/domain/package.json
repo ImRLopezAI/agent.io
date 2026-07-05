@@ -4,19 +4,22 @@
 	"type": "module",
 	"exports": {
 		".": "./src/index.ts",
-		"./work-os": "./src/work-os/index.ts"
+		"./work-os": "./src/work-os/index.ts",
+		"./schemas": "./src/schemas/index.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit",
-		"clean": "rm -rf node_modules .turbo *.tsbuildinfo"
+		"clean": "rm -rf node_modules .turbo *.tsbuildinfo",
+		"test": "vp test run"
 	},
 	"dependencies": {
+		"convex": "catalog:convex",
 		"convex-helpers": "catalog:convex",
-		"zod": "catalog:",
-		"convex": "catalog:convex"
+		"zod": "catalog:"
 	},
 	"devDependencies": {
 		"@agent.io/ts": "workspace:*",
-		"typescript": "catalog:"
+		"typescript": "catalog:",
+		"vitest": "catalog:"
 	}
 }

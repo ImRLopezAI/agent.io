@@ -11,6 +11,38 @@ const jsonSafeZid = <TableName extends string>(
 		GenericId<TableName>
 	>
 
+export interface TableIndexOptions {
+	/** Regular indexes, declared verbatim: { by_agent: ['agentId'] } */
+	indexes?: Record<string, string[]>
+	/** Full-text search indexes (Tantivy): { search_text: { searchField, filterFields } } */
+	searchIndexes?: Record<
+		string,
+		{ searchField: string; filterFields?: string[] }
+	>
+	/** Vector indexes: { by_embedding: { vectorField, dimensions, filterFields } } */
+	vectorIndexes?: Record<
+		string,
+		{ vectorField: string; dimensions: number; filterFields?: string[] }
+	>
+}
+
+const applyIndexes = (
+	table: ReturnType<typeof defineTable>,
+	options?: TableIndexOptions,
+) => {
+	let t = table
+	for (const [name, fields] of Object.entries(options?.indexes ?? {})) {
+		t = t.index(name, fields as [string, ...string[]])
+	}
+	for (const [name, spec] of Object.entries(options?.searchIndexes ?? {})) {
+		t = t.searchIndex(name, spec)
+	}
+	for (const [name, spec] of Object.entries(options?.vectorIndexes ?? {})) {
+		t = t.vectorIndex(name, spec)
+	}
+	return t
+}
+
 /**
  * Defines a Convex table schema with automatic _id and _creationTime fields using convex-helpers.
  */
@@ -20,6 +52,7 @@ export const zodTable = <
 >(
 	tableName: Table,
 	schema: (id: typeof zid) => T,
+	options?: TableIndexOptions,
 ) => {
 	const baseSchema = z.object({
 		...schema(zid),
@@ -80,7 +113,7 @@ export const zodTable = <
 		insertSchema,
 		updateSchema,
 		table: () => {
-			return defineTable(zodToConvex(baseSchema))
+			return applyIndexes(defineTable(zodToConvex(baseSchema)), options)
 		},
 		insert,
 		update,
@@ -97,15 +130,40 @@ export const zodTable = <
 	}
 }
 
+/**
+ * Tenant-scoped table (ADR 0001): injects `tenant: z.string()` (the WorkOS
+ * `org_…` id) and always adds the `by_tenant` index. Caller-declared indexes
+ * are taken verbatim; search/vector indexes must carry `tenant` in their
+ * `filterFields` (isolation happens inside the index).
+ */
 export const tenantTable = <
 	Table extends string,
 	T extends { [key: string]: z.ZodType },
 >(
 	tableName: Table,
 	schema: (id: typeof zid) => T,
+	options?: TableIndexOptions,
 ) => {
-	return zodTable(tableName, (id) => ({
-		...schema(id),
-		tenant: z.string(),
-	}))
+	const shape = schema(zid)
+	if ('tenant' in shape) {
+		throw new Error(
+			`tenantTable('${tableName}'): shape already defines 'tenant' — the helper owns that field`,
+		)
+	}
+	if (options?.indexes && 'by_tenant' in options.indexes) {
+		throw new Error(
+			`tenantTable('${tableName}'): 'by_tenant' index is added automatically — remove it from options`,
+		)
+	}
+	return zodTable(
+		tableName,
+		(id) => ({
+			...schema(id),
+			tenant: z.string(),
+		}),
+		{
+			...options,
+			indexes: { by_tenant: ['tenant'], ...options?.indexes },
+		},
+	)
 }
