@@ -4,14 +4,15 @@ import { isTextSelection } from '@tiptap/core'
 import { useCurrentEditor } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
 import { cn } from 'cnfast'
-import { ColorHighlightPopover } from '#/components/editor/tiptap-ui/color-highlight-popover'
-import { LinkPopover } from '#/components/editor/tiptap-ui/link-popover'
-import { MarkButton } from '#/components/editor/tiptap-ui/mark-button'
+
 import {
 	Toolbar,
 	ToolbarGroup,
 	ToolbarSeparator,
 } from '#/components/editor/tiptap-ui-primitive/toolbar'
+import { ColorHighlightPopover } from '#/components/editor/tiptap-ui/color-highlight-popover'
+import { LinkPopover } from '#/components/editor/tiptap-ui/link-popover'
+import { MarkButton } from '#/components/editor/tiptap-ui/mark-button'
 
 import { isEditorReady } from './editor-utils'
 

@@ -57,8 +57,8 @@ export function FileThumbnail({
 	)
 	const isImageLoading = Boolean(
 		previewImageUrl &&
-			loadedPreviewImageUrl !== previewImageUrl &&
-			!imageFailed,
+		loadedPreviewImageUrl !== previewImageUrl &&
+		!imageFailed,
 	)
 	const showLoading = isLoading || isImageLoading
 	const hasPreviewContent = Boolean(previewContent)

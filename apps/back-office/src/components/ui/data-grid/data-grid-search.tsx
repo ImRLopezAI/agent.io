@@ -526,8 +526,9 @@ function DataGridSearchImpl({
 	)
 }
 
-interface SelectionTooltipProps
-	extends React.ComponentProps<typeof TooltipTrigger> {
+interface SelectionTooltipProps extends React.ComponentProps<
+	typeof TooltipTrigger
+> {
 	label: string
 }
 

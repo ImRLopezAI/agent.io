@@ -18,8 +18,9 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover'
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 
-interface DataGridViewMenuProps<TData>
-	extends React.ComponentProps<typeof PopoverContent> {
+interface DataGridViewMenuProps<TData> extends React.ComponentProps<
+	typeof PopoverContent
+> {
 	table: Table<TData>
 	disabled?: boolean
 	defaultOpen?: boolean

@@ -53,8 +53,10 @@ function DataGridSelectHitbox({
 	)
 }
 
-interface DataGridSelectCheckboxProps
-	extends Omit<React.ComponentProps<typeof Checkbox>, 'id'> {
+interface DataGridSelectCheckboxProps extends Omit<
+	React.ComponentProps<typeof Checkbox>,
+	'id'
+> {
 	rowNumber?: number
 	hitboxSize?: HitboxSize
 	debug?: boolean
@@ -123,8 +125,10 @@ function DataGridSelectCheckbox({
 	)
 }
 
-interface DataGridSelectHeaderProps<TData>
-	extends Pick<HeaderContext<TData, unknown>, 'table'> {
+interface DataGridSelectHeaderProps<TData> extends Pick<
+	HeaderContext<TData, unknown>,
+	'table'
+> {
 	hitboxSize?: HitboxSize
 	readOnly?: boolean
 	debug?: boolean
@@ -174,8 +178,10 @@ function DataGridSelectHeader<TData>({
 	)
 }
 
-interface DataGridSelectCellProps<TData>
-	extends Pick<CellContext<TData, unknown>, 'row'> {
+interface DataGridSelectCellProps<TData> extends Pick<
+	CellContext<TData, unknown>,
+	'row'
+> {
 	hitboxSize?: HitboxSize
 	enableRowMarkers?: boolean
 	readOnly?: boolean
@@ -246,8 +252,10 @@ function DataGridSelectCell<TData>({
 	)
 }
 
-interface GetDataGridSelectColumnOptions<TData>
-	extends Omit<Partial<ColumnDef<TData>>, 'id' | 'header' | 'cell'> {
+interface GetDataGridSelectColumnOptions<TData> extends Omit<
+	Partial<ColumnDef<TData>>,
+	'id' | 'header' | 'cell'
+> {
 	enableRowMarkers?: boolean
 	readOnly?: boolean
 	hitboxSize?: HitboxSize

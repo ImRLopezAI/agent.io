@@ -43,11 +43,11 @@ Six concerns drive the full cutover:
 
 ## Problem Frame
 
-The legacy app carries ~50 Convex tables, plaintext provider tokens embedded
-in company documents, scattered conversation data across seven storage
-locations, and a `calls.messages[]` hot-array that hits OCC and the 1 MiB doc
-limit (threads-model.md §1). None of these can be migrated as-is; they must be
-mapped to the new schema's clean shapes. Simultaneously, secrets (HubSpot
+The legacy app carries ~50 Convex tables, plaintext provider tokens embedded in
+company documents, scattered conversation data across seven storage locations,
+and a `calls.messages[]` hot-array that hits OCC and the 1 MiB doc limit
+(threads-model.md §1). None of these can be migrated as-is; they must be mapped
+to the new schema's clean shapes. Simultaneously, secrets (HubSpot
 `hubspot.accessToken`, Gmail `gmail.refreshToken`, Twilio `twilio.authToken`,
 WhatsApp `managementToken`/`messagingToken`) must move into Vault/Pipes before
 the legacy rows are decommissioned — this is the highest-risk step.
@@ -65,16 +65,16 @@ the legacy rows are decommissioned — this is the highest-risk step.
   new `calls`; `calls` (type=chat, WhatsApp) → `threads`; `calls.messages[]` +
   `transcripts` + `widgetSessions.transcript[]` → `messages` rows;
   `smsMessages`/`whatsappMessages` delivery status merged onto `messages`.
-- **R5** — Surveys and `surveyResponses` migrated; `callId` FK repointed to
-  new `calls._id`; `threadId` added where the source was a chat call.
+- **R5** — Surveys and `surveyResponses` migrated; `callId` FK repointed to new
+  `calls._id`; `threadId` added where the source was a chat call.
 - **R6** — `knowledgeBaseDocs` + `knowledgeBaseHistory` migrated;
   `elevenLabsDocId` (externalId) preserved; `companyId` → `tenantId`.
 - **R7** — All plaintext secrets (Twilio creds, Meta tokens, HubSpot tokens,
-  Gmail refresh tokens) moved to WorkOS Vault or Pipes; the `tenant` row
-  stores only Vault object IDs (or nothing, for Pipes-managed connections).
-- **R8** — Per-tenant webhook routes registered; Meta per-WABA callback
-  override (`override_callback_uri`) set to `/webhooks/whatsapp/{tenantId}`
-  for each WhatsApp account.
+  Gmail refresh tokens) moved to WorkOS Vault or Pipes; the `tenant` row stores
+  only Vault object IDs (or nothing, for Pipes-managed connections).
+- **R8** — Per-tenant webhook routes registered; Meta per-WABA callback override
+  (`override_callback_uri`) set to `/webhooks/whatsapp/{tenantId}` for each
+  WhatsApp account.
 - **R9** — Cutover verified (round-trip inbound message, ElevenLabs agent
   resolves, Polar subscription visible) before decommission.
 - **R10** — Migration is idempotent per tenant; safe to re-run without
@@ -121,9 +121,9 @@ In scope:
   full table definitions; VERIFIED key legacy shapes used below:
   - `companies` — `apiKey`, `timezone`, `branding`, `hubspot.accessToken`,
     `gmail.refreshToken`, `twilio.{accountSid,authToken}`, `status`.
-  - `companyPhoneNumbers` — `phoneNumberId`, `phoneNumber`, `label`,
-    `isDefault` (NO `capabilities`/`telephonyMode` — those are new-schema
-    defaults). Index: `by_company`.
+  - `companyPhoneNumbers` — `phoneNumberId`, `phoneNumber`, `label`, `isDefault`
+    (NO `capabilities`/`telephonyMode` — those are new-schema defaults). Index:
+    `by_company`.
   - `companyWhatsAppAccounts` — `accountId` (Meta phone_number_id), `wabaId`,
     `managementToken`, `messagingToken`, `phoneNumber`, `name`, `label`,
     `isDefault`, `metaUserId`, `tokenStatus`. Index: `by_company`.
@@ -160,16 +160,16 @@ In scope:
 - `convex/convex.config.ts` (agent.io) — VERIFIED currently registers
   `@convex-dev/workos-authkit` + `@convex-dev/resend`. `@convex-dev/migrations`
   is added in this phase.
-- `convex/auth.config.ts` (agent.io) — VERIFIED two `customJwt` providers
-  (SSO issuer `https://api.workos.com/` + user_management issuer
+- `convex/auth.config.ts` (agent.io) — VERIFIED two `customJwt` providers (SSO
+  issuer `https://api.workos.com/` + user_management issuer
   `https://api.workos.com/user_management/${clientId}`).
 
 **Design doc sections**:
 
 - `docs/rebuild-architecture.md §1` — WorkOS is the system of record; no
   `orgs`/`members` mirror; `tenant` table is app config only.
-- `docs/rebuild-architecture.md §2` — Pipes (OAuth) vs Vault (static/PII):
-  OAuth → Pipes, static credential → Vault.
+- `docs/rebuild-architecture.md §2` — Pipes (OAuth) vs Vault (static/PII): OAuth
+  → Pipes, static credential → Vault.
 - `docs/rebuild-architecture.md §5` — webhook ingress: tenant from the route,
   not a lookup table; Meta WABA per-tenant callback override.
 - `docs/rebuild-architecture.md §8` — per-tenant cutover strategy; phases.
@@ -183,10 +183,11 @@ In scope:
 
 **oRPC layer** (agent.io, VERIFIED — contract-first):
 
-- `src/server/rpc/init.ts` — `os = implement(contract).$context<RpcContextType>()`;
-  middleware ladder `auth` → `admin` (checks `context.session.role === 'admin'`,
-  throws `errors.NO_ADMIN_ROLE()`) → `org` (adds `organizationId`). Context
-  carries `workOs` (the `@/lib/work-os` client) and `session` (from
+- `src/server/rpc/init.ts` —
+  `os = implement(contract).$context<RpcContextType>()`; middleware ladder
+  `auth` → `admin` (checks `context.session.role === 'admin'`, throws
+  `errors.NO_ADMIN_ROLE()`) → `org` (adds `organizationId`). Context carries
+  `workOs` (the `@/lib/work-os` client) and `session` (from
   `@workos/authkit-tanstack-react-start` `getAuth()`).
 - `src/server/rpc/contracts/{base.ts,errors.ts,*.contract.ts,index.ts}` and
   `src/server/rpc/routes/*.router.ts` — naming convention is `*.contract.ts`
@@ -196,14 +197,14 @@ In scope:
 
 ### WorkOS Management API (VERIFIED against `@workos-inc/node` 8.13.0)
 
-> **Runtime correction:** `@workos-inc/node` ships a dedicated **`convex`
-> export condition** (`package.json` `exports["."].convex →
-./lib/index.worker.mjs`). The SDK therefore runs in the **Convex V8
-> runtime** — WorkOS Management API calls do **NOT** require a `"use node"`
-> action. Use plain `internalAction` (V8). (The `"use node"` requirement
-> applies only to genuinely Node-only deps, e.g. the AI SDK / MCP-stdio — not
-> here. Keep the V8-runtime spike + fallback noted in Risks as a safety net for
-> the cross-deployment `ConvexHttpClient`, which is the real runtime unknown.)
+> **Runtime correction:** `@workos-inc/node` ships a dedicated **`convex` export
+> condition** (`package.json` `exports["."].convex → ./lib/index.worker.mjs`).
+> The SDK therefore runs in the **Convex V8 runtime** — WorkOS Management API
+> calls do **NOT** require a `"use node"` action. Use plain `internalAction`
+> (V8). (The `"use node"` requirement applies only to genuinely Node-only deps,
+> e.g. the AI SDK / MCP-stdio — not here. Keep the V8-runtime spike + fallback
+> noted in Risks as a safety net for the cross-deployment `ConvexHttpClient`,
+> which is the real runtime unknown.)
 
 Migration uses the `WorkOS` client (`@/lib/work-os` in oRPC, or
 `new WorkOS(process.env.WORKOS_API_KEY!)` in Convex actions) for — VERIFIED
@@ -211,17 +212,18 @@ method names/signatures:
 
 - `organizations.createOrganization({ name })` → `Promise<Organization>`
   (`org.id` is the `tenantId`).
-- `userManagement.createOrganizationMembership({ organizationId, userId,
-roleSlug })` — adds an **existing** WorkOS user to the org.
+- `userManagement.createOrganizationMembership({ organizationId, userId, roleSlug })`
+  — adds an **existing** WorkOS user to the org.
 - `userManagement.sendInvitation({ email, organizationId, roleSlug })` — invites
   a user who does not yet exist (triggers a WorkOS invitation email).
 - `userManagement.listOrganizationMemberships({ organizationId })` — verify
   members present.
 - `featureFlags.addFlagTarget({ slug, targetId })` / `removeFlagTarget` /
-  `enableFeatureFlag(slug)` / `disableFeatureFlag(slug)` / `getFeatureFlag(slug)`
-  — per-org module access. **NOTE:** there is **NO**
+  `enableFeatureFlag(slug)` / `disableFeatureFlag(slug)` /
+  `getFeatureFlag(slug)` — per-org module access. **NOTE:** there is **NO**
   `createFeatureFlagVariation`; the flag _slug_ is created once in the WorkOS
-  Dashboard, then targeted per-org via `addFlagTarget({ slug, targetId: orgId })`.
+  Dashboard, then targeted per-org via
+  `addFlagTarget({ slug, targetId: orgId })`.
 - Vault: `vault.createObject({ name, value, context })` → `ObjectMetadata`
   (`.id` is the Vault object id); read via `vault.readObjectByName(name)` or
   `vault.readObject({ id })`; update via `vault.updateObject(...)`. **NOTE:**
@@ -270,64 +272,63 @@ export const backfillThreadCounts = migrations.define({
 })
 ```
 
-Run via CLI `bunx convex run migrations:run '{fn: "migrations:backfillThreadCounts"}'`
-(or the named export directly: `bunx convex run migrations:backfillThreadCounts`),
-or programmatically `await migrations.runSerially(ctx, [internal.migrations.backfillThreadCounts])`.
+Run via CLI
+`bunx convex run migrations:run '{fn: "migrations:backfillThreadCounts"}'` (or
+the named export directly: `bunx convex run migrations:backfillThreadCounts`),
+or programmatically
+`await migrations.runSerially(ctx, [internal.migrations.backfillThreadCounts])`.
 The component stores a cursor in its own table, runs in batches, and resumes
-from the last checkpoint on re-run. Supports `{dryRun: true}` and `{reset: true}`.
+from the last checkpoint on re-run. Supports `{dryRun: true}` and
+`{reset: true}`.
 
 ## Key Technical Decisions
 
 **Decision: Cross-deployment read + idempotent insert is the primary import
 mechanism; `@convex-dev/migrations` is used for new-table transform passes
-only.**
-Rationale (corrected): the legacy tables do not exist in the new deployment's
-schema, so `migrations.define({ table: 'companies' })` cannot walk them. Each
-import action pages legacy rows via a read-only `ConvexHttpClient`
+only.** Rationale (corrected): the legacy tables do not exist in the new
+deployment's schema, so `migrations.define({ table: 'companies' })` cannot walk
+them. Each import action pages legacy rows via a read-only `ConvexHttpClient`
 (`LEGACY_CONVEX_URL` + deploy key) and writes them with existence-checked
 inserts. `@convex-dev/migrations` then runs _over the new tables_ for FK
-repoints (e.g. `surveyResponses.callId/threadId`), `sequence` backfills, and
-the scratch-map drop.
+repoints (e.g. `surveyResponses.callId/threadId`), `sequence` backfills, and the
+scratch-map drop.
 
 **Decision: Build a `companyId → tenantId` lookup map as part of Unit 1; store
 it in a transient `_migrationMap` table (dropped by a final cleanup migration
-after all tenants migrate).**
-Rationale: import actions need to rewrite every `companyId` FK to a `tenantId`
-string. A pre-built in-Convex map avoids per-row WorkOS API calls during the
-hot import loop. Populated by Unit 1, consumed by Units 2–5.
+after all tenants migrate).** Rationale: import actions need to rewrite every
+`companyId` FK to a `tenantId` string. A pre-built in-Convex map avoids per-row
+WorkOS API calls during the hot import loop. Populated by Unit 1, consumed by
+Units 2–5.
 
-**Decision: Secrets move to Vault/Pipes in a dedicated Convex action BEFORE
-the legacy company data is written; the `tenant` row stores only Vault object
-IDs (or nothing for Pipes-managed tokens).**
-Rationale: the design doc (§2) names plaintext tokens in `companies` as "the
-single worst property of the legacy schema." The Vault write
-(`vault.createObject`) is auditable; if it fails, the migration aborts for that
-tenant before secrets land anywhere in plaintext.
+**Decision: Secrets move to Vault/Pipes in a dedicated Convex action BEFORE the
+legacy company data is written; the `tenant` row stores only Vault object IDs
+(or nothing for Pipes-managed tokens).** Rationale: the design doc (§2) names
+plaintext tokens in `companies` as "the single worst property of the legacy
+schema." The Vault write (`vault.createObject`) is auditable; if it fails, the
+migration aborts for that tenant before secrets land anywhere in plaintext.
 
 **Decision: `calls` (type=chat) and `widgetSessions` (mode=text) migrate to
 `threads`; `calls` (type=voice) and `widgetSessions` (mode=voice) migrate to
 `calls`; `calls.messages[]` + `transcripts` + `widgetSessions.transcript[]`
 migrate to `messages` rows with `sequence` assigned from array index / turn
-order.**
-Rationale: this follows threads-model.md §5 exactly. Sequence numbers derived
-from array index are monotonic within each parent and sufficient for ordered
-render (`by_parent_sequence` index).
+order.** Rationale: this follows threads-model.md §5 exactly. Sequence numbers
+derived from array index are monotonic within each parent and sufficient for
+ordered render (`by_parent_sequence` index).
 
-**Decision: `smsMessages` / `whatsappMessages` delivery rows are NOT migrated
-as separate `messages` inserts; delivery status is merged onto the
-corresponding `messages` row (matched by `providerMessageId`) during the
-messages pass.**
+**Decision: `smsMessages` / `whatsappMessages` delivery rows are NOT migrated as
+separate `messages` inserts; delivery status is merged onto the corresponding
+`messages` row (matched by `providerMessageId`) during the messages pass.**
 Rationale: avoids duplicate rows. New `messages.deliveryStatus`
 (`by_provider_message` index) is the correct home. Legacy match keys:
 `smsMessages.twilioMessageSid` and `whatsappMessages.metaMessageId`.
 
-**Decision: Meta per-WABA callback override is set programmatically via the
-Meta Graph API inside a Convex action during channel reconnection.**
-Rationale: per rebuild-architecture.md §5, each WhatsApp account needs its own
-callback. Override is `POST /<WABA_ID>/subscribed_apps` with body
+**Decision: Meta per-WABA callback override is set programmatically via the Meta
+Graph API inside a Convex action during channel reconnection.** Rationale: per
+rebuild-architecture.md §5, each WhatsApp account needs its own callback.
+Override is `POST /<WABA_ID>/subscribed_apps` with body
 `{ override_callback_uri, verify_token }` (CORRECTED key name — was
-`callback_url`), using a token with `whatsapp_business_management` scope
-(legacy `managementToken`, now fetched from Vault).
+`callback_url`), using a token with `whatsapp_business_management` scope (legacy
+`managementToken`, now fetched from Vault).
 
 ## Open Questions
 
@@ -350,20 +351,19 @@ callback. Override is `POST /<WABA_ID>/subscribed_apps` with body
 - VERIFY: whether legacy `companies.apiKey` moves to Vault or is regenerated
   fresh (recommend regenerate; surface as a cutover-checklist step).
 - VERIFY: WorkOS Management API rate limits during bulk org provisioning; add
-  `@convex-dev/rate-limiter` if needed (already installed — `node_modules/
-@convex-dev/rate-limiter` present).
+  `@convex-dev/rate-limiter` if needed (already installed —
+  `node_modules/ @convex-dev/rate-limiter` present).
 - VERIFY: cross-deployment read mechanism — confirm a read-only Convex deploy
-  key for the legacy deployment + that `ConvexHttpClient` from
-  `convex/browser` runs inside a V8 `internalAction` (it makes outbound HTTPS;
-  if blocked, fall back to a `"use node"` action). This is the real runtime
-  unknown for this phase.
+  key for the legacy deployment + that `ConvexHttpClient` from `convex/browser`
+  runs inside a V8 `internalAction` (it makes outbound HTTPS; if blocked, fall
+  back to a `"use node"` action). This is the real runtime unknown for this
+  phase.
 - VERIFY: whether `hubspotBookings` / `gmailEmails` migrate as `messages`
   (side-record referencing thread/call) or are archived as JSON in Convex
-  Storage. Default: HubSpot booking data as `messages` metadata; Gmail emails
-  as `messages` with `contentType: 'text'` + `metadata.kind: 'email'` (note:
-  the `messages.contentType` union in threads-model.md §2 has NO `"email"`
-  member — use `"text"` + `metadata.kind="email"`, matching §4's email metadata
-  shape).
+  Storage. Default: HubSpot booking data as `messages` metadata; Gmail emails as
+  `messages` with `contentType: 'text'` + `metadata.kind: 'email'` (note: the
+  `messages.contentType` union in threads-model.md §2 has NO `"email"` member —
+  use `"text"` + `metadata.kind="email"`, matching §4's email metadata shape).
 - VERIFY: exact `override_callback_uri` request shape against the live Meta doc
   (https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks/override) —
   WebFetch returned only nav chrome; the key name `override_callback_uri` and
@@ -456,24 +456,27 @@ deployment legacy read client (`_legacyClient.ts`). No prior phase dependency.
 1. Add `@convex-dev/migrations` to `convex.config.ts` and create the
    `migrations.ts` instance (`new Migrations(components.migrations)` +
    `migrations.runner()`).
-2. Define `_migrationMap` table: `{ companyId, tenantId, provisionedAt, status,
-notes? }` with `by_company` (unique) and `by_status` indexes. Scratch table;
-   dropped by a final cleanup migration after all tenants are `'decommissioned'`.
+2. Define `_migrationMap` table:
+   `{ companyId, tenantId, provisionedAt, status, notes? }` with `by_company`
+   (unique) and `by_status` indexes. Scratch table; dropped by a final cleanup
+   migration after all tenants are `'decommissioned'`.
 3. The provisioning action (V8 `internalAction`) reads the legacy `companies`
    doc via `_legacyClient`, calls
    `wos.organizations.createOrganization({ name })`
    (https://workos.com/docs/reference/organization), then:
    - For each legacy `companyUsers` member resolved to a WorkOS user → either
-     `userManagement.createOrganizationMembership({ organizationId, userId,
-roleSlug })` (existing user) or `userManagement.sendInvitation({ email,
-organizationId, roleSlug })` (new user). Map legacy role
-     `admin|agent|viewer` → WorkOS `roleSlug`.
-   - For each enabled `companyModules` row → `featureFlags.addFlagTarget({ slug,
-targetId: org.id })` (slug = the module's flag; see VERIFY in Open
-     Questions). NO `createFeatureFlagVariation`.
+     `userManagement.createOrganizationMembership({ organizationId, userId, roleSlug })`
+     (existing user) or
+     `userManagement.sendInvitation({ email, organizationId, roleSlug })` (new
+     user). Map legacy role `admin|agent|viewer` → WorkOS `roleSlug`.
+   - For each enabled `companyModules` row →
+     `featureFlags.addFlagTarget({ slug, targetId: org.id })` (slug = the
+     module's flag; see VERIFY in Open Questions). NO
+     `createFeatureFlagVariation`.
    - Write the `_migrationMap` entry via an `internalMutation`.
-4. Idempotent: if `_migrationMap` has a `companyId` row with `status:
-'provisioned'` (or later), return its `tenantId` and skip re-provisioning.
+4. Idempotent: if `_migrationMap` has a `companyId` row with
+   `status: 'provisioned'` (or later), return its `tenantId` and skip
+   re-provisioning.
 
 **Technical design (directional, not implementation spec):**
 
@@ -568,8 +571,9 @@ export const migrationMapTable = defineTable({
   status `provisioned`.
 - Re-run same `companyId` → returns existing `tenantId`, no second org.
 - Company with `companyModules` enabled → `addFlagTarget` called per slug.
-- Company with `companyUsers` → existing users get `createOrganizationMembership`,
-  new emails get `sendInvitation`, role mapping correct (`admin|agent|viewer`).
+- Company with `companyUsers` → existing users get
+  `createOrganizationMembership`, new emails get `sendInvitation`, role mapping
+  correct (`admin|agent|viewer`).
 - Missing `WORKOS_API_KEY` → action throws early; no partial state.
 
 **Verification:**
@@ -602,8 +606,8 @@ a new `tenant` row; embed `companyPhoneNumbers` → `tenant.phones[]`,
 **Approach:**
 
 1. The import action reads the legacy `companies` row + its
-   `companyPhoneNumbers` / `companyWhatsAppAccounts` / `widgetConfigs`
-   (legacy `by_company` index) via `_legacyClient`.
+   `companyPhoneNumbers` / `companyWhatsAppAccounts` / `widgetConfigs` (legacy
+   `by_company` index) via `_legacyClient`.
 2. Look up `tenantId` from `_migrationMap` by `companyId`.
 3. Map `companyPhoneNumbers` → `phones[]` (drop `isDefault`; set
    `tenant.defaults.phone` to the default's `phoneNumberId`).
@@ -703,8 +707,8 @@ write plaintext to a new table.
 
 **Requirements:** R7.
 
-**Dependencies:** Unit 2 (tenant row exists); WorkOS Vault via `@workos-inc/node`
-(V8 runtime); `_legacyClient` for the legacy reads.
+**Dependencies:** Unit 2 (tenant row exists); WorkOS Vault via
+`@workos-inc/node` (V8 runtime); `_legacyClient` for the legacy reads.
 
 **Files:**
 
@@ -853,15 +857,15 @@ threads-model.md §2).
 
 All passes are cross-deployment read (page legacy rows via `_legacyClient`) +
 existence-checked `insert` mutations. A trailing `@convex-dev/migrations` pass
-over the NEW `messages` table can backfill `sequence` if any parent ends up
-with gaps.
+over the NEW `messages` table can backfill `sequence` if any parent ends up with
+gaps.
 
 **Contacts (`contacts.ts`):** Page legacy `contacts`; skip rows with
 `companyId === undefined` (legacy `companyId` is optional — these are orphans,
 threads-model/domain-erd finding #1). Look up `tenantId` from `_migrationMap`.
 Insert into new `contacts` with `tenantId`, preserving `metadata`. Idempotent:
-skip if a contact with the same `(tenantId, phone)` exists
-(`by_tenant_phone` index — VERIFY exact index name in phase-001 schema).
+skip if a contact with the same `(tenantId, phone)` exists (`by_tenant_phone`
+index — VERIFY exact index name in phase-001 schema).
 
 **Voice calls (`conversations.ts`):** Page legacy `calls` where
 `type === 'voice'` (or null). Insert into new `calls`:
@@ -898,8 +902,8 @@ skip if a contact with the same `(tenantId, phone)` exists
   `calls.messages[]` → one `messages` row per element (`sequence` = array index,
   `parentType: 'call'`, `parentId: newCall._id`, `role` mapped from legacy
   `user|agent`); plus the legacy `transcripts` row for that call → one
-  `messages` row (`contentType: 'text'`, `role: 'system'`,
-  `parentType: 'call'`) per threads-model.md §5.
+  `messages` row (`contentType: 'text'`, `role: 'system'`, `parentType: 'call'`)
+  per threads-model.md §5.
 - For each new `threads` row with `metadata.legacyId`: if source was a chat
   `call`, load `calls.messages[]`; if source was a `widgetSession`, load
   `widgetSessions.transcript[]` → `messages` rows (`parentType: 'thread'`).
@@ -923,11 +927,11 @@ also remain a derived analytics view — out of scope here.)
 (threads-model.md §5).
 
 **Batches (included here):** Page legacy `batches` → new `batches`. Map
-`companyId` → `tenantId`; map legacy `callType` (`normal|whatsapp|sms`,
-VERIFIED — NOT `channel`/`voice`) to the new batch channel field (VERIFY exact
-new field name in phase-006 schema); `workflowRunId` is null (terminal-state
-import; restart on new platform if needed). Only `completed`/`cancelled`
-batches migrate; `draft`/`running` handled in the cutover window.
+`companyId` → `tenantId`; map legacy `callType` (`normal|whatsapp|sms`, VERIFIED
+— NOT `channel`/`voice`) to the new batch channel field (VERIFY exact new field
+name in phase-006 schema); `workflowRunId` is null (terminal-state import;
+restart on new platform if needed). Only `completed`/`cancelled` batches
+migrate; `draft`/`running` handled in the cutover window.
 
 **Technical design (directional — contacts only for brevity):**
 
@@ -965,12 +969,12 @@ export const importContacts = internalMutation({
 **Patterns to follow:**
 
 - `docs/threads-model.md §5` — migration mapping (canonical).
-- `docs/threads-model.md §2` — `threads`/`calls`/`messages` field shapes,
-  `kind` unions, `by_parent_sequence` / `by_conversation` /
-  `by_provider_message` indexes.
+- `docs/threads-model.md §2` — `threads`/`calls`/`messages` field shapes, `kind`
+  unions, `by_parent_sequence` / `by_conversation` / `by_provider_message`
+  indexes.
 - `docs/threads-model.md §6` — counters (`messageCount`, `lastMessageAt`) are
-  best maintained by a convex-helpers Trigger; for migration, set them after
-  the message pass or let the trigger fire on insert.
+  best maintained by a convex-helpers Trigger; for migration, set them after the
+  message pass or let the trigger fire on insert.
 
 **Test scenarios:**
 
@@ -983,8 +987,8 @@ export const importContacts = internalMutation({
 - `smsMessages` with `twilioMessageSid` → matched `messages` row gets
   `deliveryStatus: 'delivered'`.
 - `widgetSession` (mode=voice) → `calls { kind: 'widget_voice' }`.
-- Re-run → no dupes (contacts by `(tenantId, phone)`, calls by
-  `conversationId`, messages by `(parentType, parentId, providerMessageId|seq)`).
+- Re-run → no dupes (contacts by `(tenantId, phone)`, calls by `conversationId`,
+  messages by `(parentType, parentId, providerMessageId|seq)`).
 
 **Verification:**
 
@@ -1056,8 +1060,8 @@ deployment move — if not, re-upload via `ctx.storage` and remap IDs). Page
   `{ callId: newCall._id, threadId: undefined }`.
 - `surveyResponse` with `callId` → chat call → new `surveyResponse`
   `{ threadId: newThread._id, callId: undefined }`.
-- KB doc with `sourceStorageId` → blob re-uploaded; new storage id stored
-  (per VERIFY above).
+- KB doc with `sourceStorageId` → blob re-uploaded; new storage id stored (per
+  VERIFY above).
 - `knowledgeBaseHistory` with 3 versions → 3 new rows, `docId` repointed.
 - Re-run → idempotent.
 
@@ -1096,8 +1100,8 @@ The reconnection action (V8 `internalAction`) updates each provider's webhook:
   Vault). VERIFY: Twilio Node SDK is Node-only (no `convex` export) — if so this
   specific call goes in a `"use node"` action; WorkOS/Meta-fetch parts stay V8.
 - **Meta/WhatsApp**: Graph API `POST /{waba-id}/subscribed_apps` with body
-  `{ override_callback_uri: "https://{deployment}/webhooks/whatsapp/{tenantId}",
-verify_token: <tenant verify token> }` (CORRECTED key — was `callback_url`),
+  `{ override_callback_uri: "https://{deployment}/webhooks/whatsapp/{tenantId}", verify_token: <tenant verify token> }`
+  (CORRECTED key — was `callback_url`),
   `Authorization: Bearer <managementToken>` (from Vault), scope
   `whatsapp_business_management`. (rebuild-architecture.md §5;
   https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks/override)
@@ -1105,14 +1109,15 @@ verify_token: <tenant verify token> }` (CORRECTED key — was `callback_url`),
 Idempotent: read the current override (GET `/{waba-id}/subscribed_apps`) and
 skip if it already points to the new platform.
 
-**oRPC routes** (contract-first, `migration.contract.ts` + `migration.router.ts`,
-all `.use(admin)`):
+**oRPC routes** (contract-first, `migration.contract.ts` +
+`migration.router.ts`, all `.use(admin)`):
 
-- `migration.start({ companyId })` — `ctx.runAction(internal.migrations.index.runTenantMigration, { companyId })`.
+- `migration.start({ companyId })` —
+  `ctx.runAction(internal.migrations.index.runTenantMigration, { companyId })`.
 - `migration.status({ companyId })` — returns `_migrationMap.status`.
 - `migration.verify({ companyId })` — runs the Unit-7 checklist.
-- `migration.decommission({ companyId })` — sets `_migrationMap.status:
-'decommissioned'` after a passing verify.
+- `migration.decommission({ companyId })` — sets
+  `_migrationMap.status: 'decommissioned'` after a passing verify.
 
 Admin gating uses the existing `admin` middleware in `src/server/rpc/init.ts`
 (`admin = auth.use(...)`, throws `errors.NO_ADMIN_ROLE()`); the WorkOS client is
@@ -1271,16 +1276,16 @@ If `allPassed`, the oRPC `decommission` route:
 - **Cross-deployment read**: a read-only `ConvexHttpClient` against
   `LEGACY_CONVEX_URL` is the import source; requires a legacy deploy key and
   legacy read functions (`migrationExports:*`) that return the bundles.
-- **All new domain tables**: import passes write into them; schema must be stable
-  before each pass. Gate each pass behind its phase deploy.
+- **All new domain tables**: import passes write into them; schema must be
+  stable before each pass. Gate each pass behind its phase deploy.
 - **WorkOS**: each migrated tenant becomes a new org; `sendInvitation` triggers
   welcome emails — coordinate timing.
 - **Meta Graph API**: `override_callback_uri` switches inbound WhatsApp traffic
   per WABA; instant + per-account. Test in staging first.
 - **Polar**: this plan does NOT create subscriptions (phase 007); `verifyTenant`
   surfaces a missing subscription as a warning.
-- **ElevenLabs**: `externalId` fields preserved; no agent created here
-  (phase 005).
+- **ElevenLabs**: `externalId` fields preserved; no agent created here (phase
+  005).
 - **Convex `_storage`**: storage IDs are per-deployment; KB blobs must be
   re-uploaded (Unit 5 VERIFY).
 
@@ -1309,40 +1314,43 @@ If `allPassed`, the oRPC `decommission` route:
 - `@convex-dev/migrations` — NOT yet installed. Install:
   `bun add @convex-dev/migrations`. Register:
   `import migrations from '@convex-dev/migrations/convex.config'` +
-  `app.use(migrations)`. API: `new Migrations(components.migrations[, {schema}])`,
+  `app.use(migrations)`. API:
+  `new Migrations(components.migrations[, {schema}])`,
   `migrations.define({ table, migrateOne, batchSize?, customRange? })`,
   `migrations.runner([...])`, `migrations.runSerially(ctx, [...])`,
-  `migrations.runOne(ctx, fn)`. CLI: `bunx convex run migrations:<name>
-'{dryRun:true}'`. Docs: https://www.convex.dev/components/migrations ·
+  `migrations.runOne(ctx, fn)`. CLI:
+  `bunx convex run migrations:<name> '{dryRun:true}'`. Docs:
+  https://www.convex.dev/components/migrations ·
   https://github.com/get-convex/migrations#readme
 
 **Dependencies already installed (verified versions/locations):**
 
-- `@workos-inc/node` 8.13.0 (`/Users/angel/dev/agent.io/node_modules/
-@workos-inc/node`) — runs in Convex **V8** via the package's `convex` export
-  condition (`./lib/index.worker.mjs`). Verified methods:
-  `organizations.createOrganization({name})`;
+- `@workos-inc/node` 8.13.0
+  (`/Users/angel/dev/agent.io/node_modules/ @workos-inc/node`) — runs in Convex
+  **V8** via the package's `convex` export condition (`./lib/index.worker.mjs`).
+  Verified methods: `organizations.createOrganization({name})`;
   `userManagement.createOrganizationMembership({organizationId,userId,roleSlug})`,
   `userManagement.sendInvitation({email,organizationId,roleSlug})`,
   `userManagement.listOrganizationMemberships({organizationId})`;
-  `featureFlags.addFlagTarget({slug,targetId})` /
-  `enableFeatureFlag(slug)` / `getFeatureFlag(slug)`;
-  `vault.createObject({name,value,context})` /
+  `featureFlags.addFlagTarget({slug,targetId})` / `enableFeatureFlag(slug)` /
+  `getFeatureFlag(slug)`; `vault.createObject({name,value,context})` /
   `vault.readObjectByName(name)` / `vault.readObject({id})` /
-  `vault.updateObject(...)`; `pipes.getAccessToken({provider,...})`.
-  Docs: https://workos.com/docs/reference/organization ·
+  `vault.updateObject(...)`; `pipes.getAccessToken({provider,...})`. Docs:
+  https://workos.com/docs/reference/organization ·
   https://workos.com/docs/reference/user-management ·
   https://workos.com/docs/reference/feature-flags ·
   https://workos.com/docs/vault · https://workos.com/docs/pipes
 - `convex` 1.41 — `ConvexHttpClient` from `convex/browser`
   (`client.setAdminAuth(key)`, `.query()`, `.mutation()`) for cross-deployment
-  legacy reads. Docs: https://docs.convex.dev/api/classes/browser.ConvexHttpClient
+  legacy reads. Docs:
+  https://docs.convex.dev/api/classes/browser.ConvexHttpClient
 - `convex-helpers` 0.1.119 — `zCustomQuery`/`zCustomMutation`
   (`convex-helpers/server/zod4`) already used in `convex/utils.ts`; Triggers for
   `messageCount`/`lastMessageAt` (threads-model.md §6). Docs:
   https://github.com/get-convex/convex-helpers
-- `@convex-dev/rate-limiter` (installed at `node_modules/@convex-dev/
-rate-limiter`) — optional throttle for bulk WorkOS provisioning.
+- `@convex-dev/rate-limiter` (installed at
+  `node_modules/@convex-dev/ rate-limiter`) — optional throttle for bulk WorkOS
+  provisioning.
 - `@orpc/server` — contract-first oRPC (`implement(contract).$context<...>()`,
   `os.use(...)` middleware). Docs: https://orpc.unnoq.com
 
@@ -1363,8 +1371,8 @@ rate-limiter`) — optional throttle for bulk WorkOS provisioning.
 - `docs/rebuild-architecture.md` §1 (WorkOS system-of-record / `tenant` config),
   §2 (Vault vs Pipes), §5 (webhook routing + Meta override), §8 (cutover).
 - `docs/threads-model.md` §1 (legacy pain), §2 (new `threads`/`calls`/`messages`
-  schema + indexes), §5 (migration mapping table), §6 (ingestion + counters),
-  §7 (surveys over threads & calls).
+  schema + indexes), §5 (migration mapping table), §6 (ingestion + counters), §7
+  (surveys over threads & calls).
 - `docs/domain-erd.md` — OBSOLETE legacy snapshot; the as-was reference for all
   legacy table shapes (used to verify field names in this plan).
 - `convex/schema.ts` (legacy, `/Users/angel/dev/agentio/convex/schema.ts`) —
@@ -1377,7 +1385,8 @@ rate-limiter`) — optional throttle for bulk WorkOS provisioning.
 
 - Sibling plans (dependencies):
   - `2026-06-17-001-feat-convex-foundations-plan.md` — schema base, `tenant`.
-  - `2026-06-17-002-feat-conversation-substrate-plan.md` — threads/calls/messages.
+  - `2026-06-17-002-feat-conversation-substrate-plan.md` —
+    threads/calls/messages.
   - `2026-06-17-003-feat-channel-adapters-plan.md` — webhook routes.
   - `2026-06-17-004-feat-agent-tools-plan.md` — Composio + BYO MCP.
   - `2026-06-17-005-feat-voice-runtime-plan.md` — ElevenLabs agent sync.

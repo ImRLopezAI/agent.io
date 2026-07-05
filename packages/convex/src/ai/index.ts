@@ -4,7 +4,8 @@ import { createAgentUIStreamResponse, ToolLoopAgent, type UIMessage } from 'ai'
 import type { Models } from './constants'
 
 export async function agentRequestHandler(req: Request) {
-	const { messages = [], model = 'anthropic/claude-haiku-4.5' } = await req.json() as { messages?: UIMessage[]; model?: Models }
+	const { messages = [], model = 'anthropic/claude-haiku-4.5' } =
+		(await req.json()) as { messages?: UIMessage[]; model?: Models }
 
 	return createAgentUIStreamResponse({
 		agent: new ToolLoopAgent({

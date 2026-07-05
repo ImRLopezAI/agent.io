@@ -7,12 +7,6 @@ import { useCallback } from 'react'
 import { useTiptapEditor } from '#/components/editor/hooks/use-tiptap-editor'
 // --- Icons ---
 import { ChevronDownIcon } from '#/components/editor/tiptap-icons/chevron-down-icon'
-// --- Tiptap UI ---
-import {
-	ListButton,
-	type ListType,
-} from '#/components/editor/tiptap-ui/list-button'
-import { useListDropdownMenu } from '#/components/editor/tiptap-ui/list-dropdown-menu/use-list-dropdown-menu'
 // --- UI Primitives ---
 import type { ButtonProps } from '#/components/editor/tiptap-ui-primitive/button'
 import { Button } from '#/components/editor/tiptap-ui-primitive/button'
@@ -23,6 +17,12 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from '#/components/editor/tiptap-ui-primitive/dropdown-menu'
+// --- Tiptap UI ---
+import {
+	ListButton,
+	type ListType,
+} from '#/components/editor/tiptap-ui/list-button'
+import { useListDropdownMenu } from '#/components/editor/tiptap-ui/list-dropdown-menu/use-list-dropdown-menu'
 
 export interface ListDropdownMenuProps extends Omit<ButtonProps, 'type'> {
 	/**

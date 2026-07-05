@@ -12,8 +12,8 @@
 		"test": "vp test run",
 		"start": "node  .output/server/index.mjs",
 		"clean": "rm -rf .cache .turbo dist .tanstack .output node_modules",
-		"lint": "biome check . --write",
-		"typecheck": "vp check --fix",
+		"lint": "vp lint --fix",
+		"typecheck": "tsc --noEmit",
 		"db:dev": "turbo db:dev --filter=@agent.io/convex"
 	},
 	"dependencies": {
@@ -63,10 +63,10 @@
 		"@streamdown/mermaid": "catalog:ai",
 		"@tailwindcss/vite": "catalog:ui",
 		"@tanstack/pacer": "catalog:tanstack",
+		"@tanstack/query-core": "catalog:tanstack",
 		"@tanstack/react-devtools": "catalog:tanstack",
 		"@tanstack/react-hotkeys": "catalog:tanstack",
 		"@tanstack/react-pacer": "catalog:tanstack",
-		"@tanstack/query-core": "catalog:tanstack",
 		"@tanstack/react-query": "catalog:tanstack",
 		"@tanstack/react-query-devtools": "catalog:tanstack",
 		"@tanstack/react-router": "catalog:tanstack",
@@ -135,6 +135,8 @@
 		"zod": "catalog:"
 	},
 	"devDependencies": {
+		"@agent.io/ts": "workspace:*",
+		"@ai-sdk/provider": "catalog:ai",
 		"@juggle/resize-observer": "^3.4.0",
 		"@tailwindcss/typography": "catalog:ui",
 		"@tanstack/devtools-vite": "catalog:tanstack",
@@ -153,10 +155,9 @@
 		"jsdom": "^29.1.1",
 		"pngjs": "^7.0.0",
 		"typescript": "catalog:",
-		"vite": "npm:@voidzero-dev/vite-plus-core@0.2.2",
-		"vite-plus": "0.2.2",
-		"vitest": "npm:@voidzero-dev/vite-plus-test@0.1.24",
-		"@agent.io/ts": "workspace:*"
+		"vite": "catalog:",
+		"vite-plus": "catalog:",
+		"vitest": "catalog:"
 	},
 	"overrides": {
 		"vite": "npm:@voidzero-dev/vite-plus-core@0.2.2",

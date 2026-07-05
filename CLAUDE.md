@@ -2,7 +2,8 @@
 
 ## MCP Call
 
-Before any tool calling about the code base use the CodeGraph MCP to the MCP already loaded in the tool and it already indexed the code base completely.
+Before any tool calling about the code base use the CodeGraph MCP to the MCP
+already loaded in the tool and it already indexed the code base completely.
 
 <!-- CodeGraph:end -->
 
@@ -12,29 +13,54 @@ Before any tool calling about the code base use the CodeGraph MCP to the MCP alr
 
 Before substantial work:
 
-- Skill check: run `bunx @tanstack/intent@latest list`, or use skills already listed in context.
-- Skill guidance: if one local skill clearly matches the task, run `bunx @tanstack/intent@latest load <package>#<skill>` and follow the returned `SKILL.md`.
-- Monorepos: when working across packages, run the skill check from the workspace root and prefer the local skill for the package being changed.
-- Multiple matches: prefer the most specific local skill for the package or concern you are changing; load additional skills only when the task spans multiple packages or concerns.
+- Skill check: run `bunx @tanstack/intent@latest list`, or use skills already
+  listed in context.
+- Skill guidance: if one local skill clearly matches the task, run
+  `bunx @tanstack/intent@latest load <package>#<skill>` and follow the returned
+  `SKILL.md`.
+- Monorepos: when working across packages, run the skill check from the
+  workspace root and prefer the local skill for the package being changed.
+- Multiple matches: prefer the most specific local skill for the package or
+concern you are changing; load additional skills only when the task spans
+multiple packages or concerns.
 <!-- intent-skills:end -->
 
 ## UI State Management
 
-For globals context, data fetching use the `useRouteContext` hook to get the context and use or convex query to fetch the data or use the `useQuery` hook to fetch the data.
+For globals context, data fetching use the `useRouteContext` hook to get the
+context and use or convex query to fetch the data or use the `useQuery` hook to
+fetch the data.
 
-use Jotai for UI state management.
-dont use useEffect to fetch data, use the `useQuery` hook to fetch the data.
+use Jotai for UI state management. dont use useEffect to fetch data, use the
+`useQuery` hook to fetch the data.
 
 <!-- convex-ai-start -->
 
 This project uses [Convex](https://convex.dev) as its backend.
 
-When working on Convex code, **always read
-`convex/_generated/ai/guidelines.md` first** for important guidelines on
-how to correctly use Convex APIs and patterns. The file contains rules that
-override what you may have learned about Convex from training data.
+When working on Convex code, **always read `convex/_generated/ai/guidelines.md`
+first** for important guidelines on how to correctly use Convex APIs and
+patterns. The file contains rules that override what you may have learned about
+Convex from training data.
 
 Convex agent skills for common tasks can be installed by running
 `npx convex ai-files install`.
 
 <!-- convex-ai-end -->
+
+<!--VITE PLUS START-->
+
+# Using Vite+, the Unified Toolchain for the Web
+
+This project is using Vite+, a unified toolchain built on top of Vite, Rolldown, Vitest, tsdown, Oxlint, Oxfmt, and Vite Task. Vite+ wraps runtime management, package management, and frontend tooling in a single global CLI called `vp`. Vite+ is distinct from Vite, and it invokes Vite through `vp dev` and `vp build`. Run `vp help` to print a list of commands and `vp <command> --help` for information about a specific command.
+
+Docs are local at `node_modules/vite-plus/docs` or online at https://viteplus.dev/guide/.
+
+## Review Checklist
+
+- [ ] Run `vp install` after pulling remote changes and before getting started.
+- [ ] Run `vp check` and `vp test` to format, lint, type check and test changes.
+- [ ] Check if there are `vite.config.ts` tasks or `package.json` scripts necessary for validation, run via `vp run <script>`.
+- [ ] If setup, runtime, or package-manager behavior looks wrong, run `vp env doctor` and include its output when asking for help.
+
+<!--VITE PLUS END-->

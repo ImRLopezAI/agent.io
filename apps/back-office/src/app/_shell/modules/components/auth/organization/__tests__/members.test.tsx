@@ -160,7 +160,10 @@ describe('OrganizationMemberRow — optimistic role change', () => {
 						aria-label='promote'
 						onClick={() => {
 							const opts = members.updateRole()
-							opts.onMutate?.({ membershipId: 'm1', roleSlug: 'admin' })
+							opts.onMutate?.(
+								{ membershipId: 'm1', roleSlug: 'admin' },
+								{ client: qc, meta: undefined },
+							)
 						}}
 					>
 						promote

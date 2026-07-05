@@ -4,7 +4,7 @@ import { devtools } from '@tanstack/devtools-vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import { nitro } from 'nitro/vite'
-import { defineConfig } from 'vite-plus'
+import { defineConfig, lazyPlugins } from 'vite-plus'
 
 export default defineConfig({
 	resolve: { tsconfigPaths: true },
@@ -14,7 +14,7 @@ export default defineConfig({
 		},
 		noExternal: [/^@sentry\//],
 	},
-	plugins: [
+	plugins: lazyPlugins(() => [
 		devtools(),
 		nitro({ rollupConfig: { external: [/^@sentry\//] } }),
 		tailwindcss(),
@@ -33,7 +33,7 @@ export default defineConfig({
 		// 	project: 'ontology',
 		// 	authToken: process.env.SENTRY_AUTH_TOKEN,
 		// }),
-	],
+	]),
 	build: {
 		rolldownOptions: {
 			output: {
@@ -69,25 +69,5 @@ export default defineConfig({
 		exclude: ['**/node_modules/**', '**/dist/**'],
 		environment: 'jsdom',
 		setupFiles: ['./src/test/setup.ts'],
-	},
-	fmt: {
-		useTabs: true,
-		tabWidth: 2,
-		printWidth: 80,
-		singleQuote: true,
-		jsxSingleQuote: true,
-		quoteProps: 'as-needed',
-		sortImports: true,
-		trailingComma: 'all',
-		semi: false,
-		arrowParens: 'always',
-		bracketSameLine: false,
-		bracketSpacing: true,
-		ignorePatterns: ['**/packages/convex/src/_generated'],
-	},
-	lint: {
-		jsPlugins: [{ name: 'vite-plus', specifier: 'vite-plus/oxlint-plugin' }],
-		rules: { 'vite-plus/prefer-vite-plus-imports': 'error' },
-		options: { typeAware: true, typeCheck: true },
 	},
 })

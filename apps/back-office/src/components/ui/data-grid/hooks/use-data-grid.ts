@@ -66,8 +66,10 @@ const DEFAULT_ROW_HEIGHT = 'short'
 const OVERSCAN = 6
 const NON_NAVIGABLE_COLUMN_IDS = ['select', 'actions']
 
-interface UseDataGridProps<TData>
-	extends Omit<TableOptions<TData>, 'getCoreRowModel' | 'onColumnOrderChange'> {
+interface UseDataGridProps<TData> extends Omit<
+	TableOptions<TData>,
+	'getCoreRowModel' | 'onColumnOrderChange'
+> {
 	/**
 	 * Called when the user reorders columns (drag-and-drop or context menu).
 	 * Receives the resolved next column order so consumers can persist it
@@ -455,7 +457,6 @@ function useDataGrid<TData>({
 	const {
 		focusCell,
 		focusCellWrapper,
-		releaseFocusGuard,
 		blurCell,
 		navigateCell,
 		onScrollToRow,
@@ -879,7 +880,7 @@ function useDataGrid<TData>({
 		tableRef.current = table
 	}
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: columnSizingInfo and columnSizing are used for calculating the column size vars
+	// oxlint-disable-next-line react-hooks/exhaustive-deps -- columnSizingInfo and columnSizing are used for calculating the column size vars
 	const columnSizeVars = React.useMemo(() => {
 		const headers = table.getFlatHeaders()
 		const colSizes: { [key: string]: number } = {}
@@ -904,7 +905,7 @@ function useDataGrid<TData>({
 		React.useCallback(() => false, []),
 	)
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: columnPinning is used for calculating the adjustLayout
+	// oxlint-disable-next-line react-hooks/exhaustive-deps -- columnPinning is used for calculating the adjustLayout
 	const adjustLayout = React.useMemo(() => {
 		const columnPinning = table.getState().columnPinning
 		return (

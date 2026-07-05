@@ -55,8 +55,10 @@ type RowClassName<TData extends object> =
 	| string
 	| ((row: TData, rowIndex: number) => string | undefined)
 
-interface CreateDataGridProps<TData extends object>
-	extends Omit<UseDataGridProps<TData>, 'columns'> {
+interface CreateDataGridProps<TData extends object> extends Omit<
+	UseDataGridProps<TData>,
+	'columns'
+> {
 	data: TData[]
 	isLoading?: boolean
 	emptyMessage?: React.ReactNode
@@ -165,8 +167,7 @@ type DataGridToolbarToggleProps = {
 }
 
 interface DataGridToolbarProps<TData extends object>
-	extends React.ComponentProps<'div'>,
-		DataGridToolbarToggleProps {
+	extends React.ComponentProps<'div'>, DataGridToolbarToggleProps {
 	align?: 'start' | 'center' | 'end'
 	exportProps?: Omit<DataGridExportProps<TData>, 'table'>
 }

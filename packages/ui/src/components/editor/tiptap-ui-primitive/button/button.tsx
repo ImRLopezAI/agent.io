@@ -14,8 +14,7 @@ import { cn, parseShortcutKeys } from '#/lib/tiptap-utils'
 export type ButtonVariant = 'ghost' | 'primary'
 export type ButtonSize = 'small' | 'default' | 'large'
 
-export interface ButtonProps
-	extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 	showTooltip?: boolean
 	tooltip?: React.ReactNode
 	shortcutKeys?: string

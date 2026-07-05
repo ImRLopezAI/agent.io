@@ -86,9 +86,8 @@ vi.mock('@tanstack/react-router', () => ({
 }))
 
 const { useOrgOpts } = await import('@/app/_shell/modules/utils/use-org-opts')
-const { OrganizationInvitationRow } = await import(
-	'../organization-invitation-row'
-)
+const { OrganizationInvitationRow } =
+	await import('../organization-invitation-row')
 
 // --- fixtures ---
 
@@ -163,7 +162,10 @@ describe('OrganizationInvitationRow — admin + pending', () => {
 					aria-label='do-revoke'
 					onClick={() => {
 						const opts = invitations.revoke()
-						opts.onMutate?.({ invitationId: 'inv1' })
+						opts.onMutate?.(
+							{ invitationId: 'inv1' },
+							{ client: qc, meta: undefined },
+						)
 					}}
 				>
 					revoke

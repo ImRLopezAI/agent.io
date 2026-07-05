@@ -2,6 +2,10 @@
 	"name": "@agent.io/ui",
 	"private": true,
 	"type": "module",
+	"sideEffects": [
+		"**/*.css",
+		"**/*.scss"
+	],
 	"imports": {
 		"#/*": "./src/*"
 	},
@@ -11,7 +15,6 @@
 		"./editor.css": "./src/components/editor/editor.css",
 		"./tiptap-utils": "./src/lib/tiptap-utils.ts"
 	},
-	"sideEffects": ["**/*.css", "**/*.scss"],
 	"scripts": {
 		"typecheck": "tsc --noEmit",
 		"clean": "rm -rf node_modules .turbo *.tsbuildinfo"
@@ -19,9 +22,9 @@
 	"dependencies": {
 		"@base-ui/react": "catalog:ui",
 		"@floating-ui/react": "catalog:ui",
+		"@tanstack/hotkeys": "catalog:tanstack",
 		"@tanstack/react-hotkeys": "catalog:tanstack",
 		"@tanstack/react-pacer": "catalog:tanstack",
-		"@tanstack/hotkeys": "catalog:tanstack",
 		"@tiptap/core": "3.27.1",
 		"@tiptap/extension-audio": "3.27.1",
 		"@tiptap/extension-code-block-lowlight": "3.27.1",
@@ -69,10 +72,6 @@
 		"lucide-react": "catalog:ui",
 		"react-hotkeys-hook": "^5.3.3"
 	},
-	"peerDependencies": {
-		"react": "catalog:react",
-		"react-dom": "catalog:react"
-	},
 	"devDependencies": {
 		"@agent.io/ts": "workspace:*",
 		"@types/lodash.throttle": "^4.1.9",
@@ -81,5 +80,9 @@
 		"react": "catalog:react",
 		"react-dom": "catalog:react",
 		"typescript": "catalog:"
+	},
+	"peerDependencies": {
+		"react": "catalog:react",
+		"react-dom": "catalog:react"
 	}
 }

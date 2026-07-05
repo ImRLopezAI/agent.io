@@ -1,7 +1,6 @@
 'use client'
 
 import { Popover as PopoverPrimitive } from '@base-ui/react/popover'
-
 import { cn } from 'cnfast'
 
 function Popover({ ...props }: PopoverPrimitive.Root.Props) {

@@ -1,4 +1,4 @@
-/** biome-ignore-all lint/suspicious/noExplicitAny: Any for the context */
+/* oxlint-disable @typescript-eslint/no-explicit-any -- Any for the context */
 'use client'
 
 import * as React from 'react'
@@ -23,7 +23,7 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-	type FormProps,
+	type CustomFormContextValue,
 	FormSubmit,
 	Select,
 } from './form-components'
@@ -31,8 +31,9 @@ import { Input } from './input'
 import { Switch } from './switch'
 import { Textarea } from './textarea'
 
-interface CreateFormProps<TFieldValues extends FieldValues = FieldValues>
-	extends UseFormProps<TFieldValues> {
+interface CreateFormProps<
+	TFieldValues extends FieldValues = FieldValues,
+> extends UseFormProps<TFieldValues> {
 	onSubmit: (data: TFieldValues, form: UseFormReturn<TFieldValues>) => void
 }
 
@@ -52,10 +53,13 @@ function useCreateForm<TFieldValues extends FieldValues = FieldValues>(
 			FormComponentStatics<TFieldValues> = (({ children }) => {
 			return (
 				<CustomFormContext.Provider
-					value={{
-						...form,
-						onSubmit: (data, _event) => config.onSubmit(data, form),
-					}}
+					value={
+						{
+							...form,
+							onSubmit: (data: TFieldValues, _event) =>
+								config.onSubmit(data, form),
+						} as CustomFormContextValue<TFieldValues>
+					}
 				>
 					<FormProvider {...form}>{children(form)}</FormProvider>
 				</CustomFormContext.Provider>

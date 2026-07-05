@@ -3,7 +3,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "bun run --hot src/index.ts",
-		"lint": "biome check . --write",
+		"lint": "vp lint --fix",
 		"typecheck": "tsc --noEmit",
 		"start": "bun run src/index.ts"
 	},

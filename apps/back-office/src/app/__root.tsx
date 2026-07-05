@@ -1,5 +1,4 @@
 import { Providers } from '@components/provider'
-import inter from '@fontsource-variable/inter/wght.css?url'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools'
 import {
@@ -11,8 +10,11 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { createServerFn } from '@tanstack/react-start'
 import { getAuth } from '@workos/authkit-tanstack-react-start'
 import { cn } from 'cnfast'
+
 import type { getContext } from '#/lib/rpc/context'
+
 import appCss from './globals.css?url'
+import inter from '@fontsource-variable/inter/wght.css?url'
 
 const fetchWorkosAuth = createServerFn({ method: 'GET' }).handler(async () => {
 	const auth = await getAuth()

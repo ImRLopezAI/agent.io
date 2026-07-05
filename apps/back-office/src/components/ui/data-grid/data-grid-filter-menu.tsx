@@ -58,8 +58,9 @@ function escapeSelectorValue(value: string) {
 	return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 }
 
-interface DataGridFilterMenuProps<TData>
-	extends React.ComponentProps<typeof PopoverContent> {
+interface DataGridFilterMenuProps<TData> extends React.ComponentProps<
+	typeof PopoverContent
+> {
 	table: Table<TData>
 	disabled?: boolean
 }

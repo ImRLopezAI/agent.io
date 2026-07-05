@@ -1,8 +1,7 @@
 import { cn } from 'cnfast'
 import type { ComponentPropsWithoutRef, CSSProperties, FC } from 'react'
 
-export interface AnimatedShinyTextProps
-	extends ComponentPropsWithoutRef<'span'> {
+export interface AnimatedShinyTextProps extends ComponentPropsWithoutRef<'span'> {
 	shimmerWidth?: number
 }
 

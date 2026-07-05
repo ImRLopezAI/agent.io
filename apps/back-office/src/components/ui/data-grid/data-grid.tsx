@@ -44,7 +44,8 @@ const EMPTY_CELL_SELECTION_SET = new Set<string>()
 type UseDataGridReturn<TData> = ReturnType<typeof useDataGrid<TData>>
 
 interface DataGridProps<TData>
-	extends Omit<
+	extends
+		Omit<
 			UseDataGridReturn<TData>,
 			'dir' | 'showPagination' | 'paginationProps'
 		>,

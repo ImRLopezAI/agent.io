@@ -3,15 +3,16 @@
 import { useCurrentEditor } from '@tiptap/react'
 import { FloatingMenu } from '@tiptap/react/menus'
 import { cn } from 'cnfast'
+
+import {
+	Toolbar,
+	ToolbarGroup,
+} from '#/components/editor/tiptap-ui-primitive/toolbar'
 import { BlockquoteButton } from '#/components/editor/tiptap-ui/blockquote-button'
 import { CodeBlockButton } from '#/components/editor/tiptap-ui/code-block-button'
 import { HeadingButton } from '#/components/editor/tiptap-ui/heading-button'
 import { ListButton } from '#/components/editor/tiptap-ui/list-button'
 import { SlashCommandTriggerButton } from '#/components/editor/tiptap-ui/slash-command-trigger-button'
-import {
-	Toolbar,
-	ToolbarGroup,
-} from '#/components/editor/tiptap-ui-primitive/toolbar'
 
 import { isEditorReady } from './editor-utils'
 

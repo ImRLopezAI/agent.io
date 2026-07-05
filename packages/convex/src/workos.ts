@@ -1,6 +1,6 @@
+import { DEFAULT_PERMISSIONS, DEFAULT_ROLES } from '@agent.io/domain/work-os'
 import { v } from 'convex/values'
 
-import { DEFAULT_PERMISSIONS, DEFAULT_ROLES } from '@agent.io/domain/work-os'
 import { internalAction } from './_generated/server'
 import { authKit } from './auth'
 

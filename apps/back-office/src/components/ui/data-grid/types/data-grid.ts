@@ -159,7 +159,7 @@ export type NavigationDirection =
 	| 'pageright'
 
 declare module '@tanstack/react-table' {
-	// biome-ignore lint/correctness/noUnusedVariables: TData and TValue are used in the ColumnMeta interface
+	// oxlint-disable-next-line @typescript-eslint/no-unused-vars -- TData and TValue are used in the ColumnMeta interface
 	interface ColumnMeta<TData, TValue> {
 		label?: string
 		cell?: CellOpts
@@ -170,7 +170,7 @@ declare module '@tanstack/react-table' {
 		preview?: DataGridPreviewRenderer<TData>
 	}
 
-	// biome-ignore lint/correctness/noUnusedVariables: TData is used in the TableMeta interface
+	// oxlint-disable-next-line @typescript-eslint/no-unused-vars -- TData is used in the TableMeta interface
 	interface TableMeta<TData> {
 		/**
 		 * Snapshot of the current cell selection state. Read by compound
@@ -310,8 +310,7 @@ export interface DataGridServerStructuredFilter {
 	value: FilterValue
 }
 
-export interface DataGridServerFilterCommitState
-	extends DataGridServerFilterState {
+export interface DataGridServerFilterCommitState extends DataGridServerFilterState {
 	search?: string
 	structuredFilters?: DataGridServerStructuredFilter[]
 	orderBy?: DataGridServerOrderBy

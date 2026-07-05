@@ -1,4 +1,3 @@
-import { SpinnerVerbsShimmer, StreamingFooterIndicator } from '@ui/ai/loading'
 import {
 	Confirmation,
 	ConfirmationAccepted,
@@ -28,6 +27,7 @@ import {
 	ReasoningTrigger,
 } from '@ui/ai-elements/reasoning'
 import { Shimmer } from '@ui/ai-elements/shimmer'
+import { SpinnerVerbsShimmer, StreamingFooterIndicator } from '@ui/ai/loading'
 import { Badge } from '@ui/badge'
 import {
 	Collapsible,
@@ -230,7 +230,7 @@ function FileAttachment({
 				rel='noreferrer'
 				className='block overflow-hidden rounded-md border bg-muted/30'
 			>
-				{/* biome-ignore lint/performance/noImgElement: data URLs cannot use next/image */}
+				{/* data URLs cannot use next/image */}
 				<img
 					src={url}
 					alt={filename ?? 'attachment'}

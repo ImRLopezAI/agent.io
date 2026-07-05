@@ -3,7 +3,7 @@ import type { FunctionReference } from 'convex/server'
 
 import { api, convex } from './server'
 
-type Api = typeof api.funcs
+type Api = typeof api
 type ModuleName = keyof Api
 
 type ArgsOf<F> = F extends FunctionReference<any, any, infer A, any> ? A : never
@@ -49,7 +49,7 @@ type ConvexModule<T extends ModuleName> = {
 function createQueryProxy<T extends ModuleName>(
 	moduleName: T,
 ): QueryProxy<Api[T]> {
-	const moduleApi = api.funcs[moduleName]
+	const moduleApi = api[moduleName]
 
 	return new Proxy({} as QueryProxy<Api[T]>, {
 		get(_, method: string) {
@@ -90,7 +90,7 @@ function createQueryProxy<T extends ModuleName>(
 function createMutationProxy<T extends ModuleName>(
 	moduleName: T,
 ): MutationProxy<Api[T]> {
-	const moduleApi = api.funcs[moduleName]
+	const moduleApi = api[moduleName]
 
 	return new Proxy({} as MutationProxy<Api[T]>, {
 		get(_, method: string) {

@@ -25,7 +25,7 @@ type Equal<X, Y> =
 		? true
 		: false
 
-// biome-ignore lint/correctness/noUnusedVariables: assertion utility consumed by the rows below
+// oxlint-disable-next-line @typescript-eslint/no-unused-vars -- assertion utility consumed by the rows below
 type Expect<T extends true> = T
 
 // ---------- Test rows: each variant maps to its declared value type --------

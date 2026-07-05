@@ -1,4 +1,4 @@
-/** biome-ignore-all lint/suspicious/noExplicitAny:  Any for the context */
+/* oxlint-disable @typescript-eslint/no-explicit-any -- Any for the context */
 'use client'
 
 import { mergeProps } from '@base-ui/react/merge-props'
@@ -12,11 +12,8 @@ import {
 	type ControllerProps,
 	type FieldPath,
 	type FieldValues,
-	FormProvider,
 	type SubmitHandler,
-	type UseFormProps,
 	type UseFormReturn,
-	useForm,
 	useFormContext,
 	useFormState,
 } from 'react-hook-form'
@@ -37,21 +34,17 @@ import * as FormSelect from './select'
 import type { Switch } from './switch'
 import type { Textarea } from './textarea'
 
-// Props for the configuration of the Form component
-interface CreateFormProps<TFieldValues extends FieldValues = FieldValues>
-	extends UseFormProps<TFieldValues> {
-	onSubmit: (data: TFieldValues, form: UseFormReturn<TFieldValues>) => void
-}
-
 // Props for the actual rendered Form component
-interface FormProps<TFieldValues extends FieldValues = FieldValues>
-	extends Omit<React.ComponentProps<'div'>, 'children'> {
+interface FormProps<
+	TFieldValues extends FieldValues = FieldValues,
+> extends Omit<React.ComponentProps<'div'>, 'children'> {
 	// The render prop will now receive the form instance
 	children: (form: UseFormReturn<TFieldValues>) => React.ReactNode
 }
 
-interface CustomFormContextValue<TFieldValues extends FieldValues = FieldValues>
-	extends UseFormReturn<TFieldValues> {
+interface CustomFormContextValue<
+	TFieldValues extends FieldValues = FieldValues,
+> extends UseFormReturn<TFieldValues> {
 	onSubmit: SubmitHandler<TFieldValues>
 }
 
@@ -373,8 +366,9 @@ function FormMessage({
 	)
 }
 
-interface FormSubmitProps<TFieldValues extends FieldValues = FieldValues>
-	extends Omit<React.ComponentProps<typeof Button>, 'onClick'> {
+interface FormSubmitProps<
+	TFieldValues extends FieldValues = FieldValues,
+> extends Omit<React.ComponentProps<typeof Button>, 'onClick'> {
 	onClick?: (data: TFieldValues, form: UseFormReturn<TFieldValues>) => void
 	loadingState?: React.ReactNode
 	disableOnInvalid?: boolean
@@ -492,7 +486,7 @@ const useFormField = () => {
 	}
 }
 
-export type { FormComponent, FormComponentStatics, FormProps }
+export type { CustomFormContextValue, FormComponent, FormComponentStatics, FormProps }
 export {
 	ComboBox,
 	CustomFormContext,

@@ -115,7 +115,7 @@ describe('data-grid contexts', () => {
 
 		const dataGridRef = React.createRef<HTMLDivElement>()
 		const cellMapRef = React.createRef<Map<string, HTMLDivElement>>()
-		// biome-ignore lint/suspicious/noExplicitAny: test ref bootstrap
+		// oxlint-disable-next-line @typescript-eslint/no-explicit-any -- test ref bootstrap
 		;(cellMapRef as any).current = new Map()
 
 		render(

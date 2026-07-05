@@ -6,6 +6,9 @@ import { useAtom } from 'jotai'
 import type { ComponentType, ReactNode } from 'react'
 import { useState } from 'react'
 
+import { useCursorVisibility } from '#/components/editor/hooks/use-cursor-visibility'
+import { useIsBreakpoint } from '#/components/editor/hooks/use-is-breakpoint'
+import { useWindowSize } from '#/components/editor/hooks/use-window-size'
 import { ArrowLeftIcon } from '#/components/editor/tiptap-icons/arrow-left-icon'
 import { BlockquoteIcon } from '#/components/editor/tiptap-icons/blockquote-icon'
 import { ChevronDownIcon } from '#/components/editor/tiptap-icons/chevron-down-icon'
@@ -18,6 +21,21 @@ import { StrikeIcon } from '#/components/editor/tiptap-icons/strike-icon'
 import { SubscriptIcon } from '#/components/editor/tiptap-icons/subscript-icon'
 import { SuperscriptIcon } from '#/components/editor/tiptap-icons/superscript-icon'
 import { UnderlineIcon } from '#/components/editor/tiptap-icons/underline-icon'
+import { Button } from '#/components/editor/tiptap-ui-primitive/button'
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuGroup,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from '#/components/editor/tiptap-ui-primitive/dropdown-menu'
+import {
+	Toolbar,
+	ToolbarGroup,
+	ToolbarSeparator,
+} from '#/components/editor/tiptap-ui-primitive/toolbar'
 import { toggleBlockquote } from '#/components/editor/tiptap-ui/blockquote-button/use-blockquote'
 import { toggleCodeBlock } from '#/components/editor/tiptap-ui/code-block-button/use-code-block'
 import { ColorHighlightPopoverContent } from '#/components/editor/tiptap-ui/color-highlight-popover'
@@ -40,24 +58,6 @@ import {
 import { SlashCommandTriggerButton } from '#/components/editor/tiptap-ui/slash-command-trigger-button'
 import { TextAlignButton } from '#/components/editor/tiptap-ui/text-align-button'
 import { UndoRedoButton } from '#/components/editor/tiptap-ui/undo-redo-button'
-import { Button } from '#/components/editor/tiptap-ui-primitive/button'
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuGroup,
-	DropdownMenuItem,
-	DropdownMenuLabel,
-	DropdownMenuSeparator,
-	DropdownMenuTrigger,
-} from '#/components/editor/tiptap-ui-primitive/dropdown-menu'
-import {
-	Toolbar,
-	ToolbarGroup,
-	ToolbarSeparator,
-} from '#/components/editor/tiptap-ui-primitive/toolbar'
-import { useCursorVisibility } from '#/components/editor/hooks/use-cursor-visibility'
-import { useIsBreakpoint } from '#/components/editor/hooks/use-is-breakpoint'
-import { useWindowSize } from '#/components/editor/hooks/use-window-size'
 
 import { mobilePanelAtomFamily, type ToolbarMode } from './editor-atoms'
 import { useEditorChrome } from './editor-context'

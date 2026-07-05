@@ -1,9 +1,9 @@
 'use client'
 
 import { Menu as MenuPrimitive } from '@base-ui/react/menu'
+import { cn } from 'cnfast'
 
 import { CheckIcon } from '#/components/editor/tiptap-icons/check-icon'
-import { cn } from 'cnfast'
 
 const menuContentClassName =
 	'z-50 min-w-44 overflow-hidden rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-lg outline-none'

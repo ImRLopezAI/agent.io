@@ -1,4 +1,3 @@
-import { agentRequestHandler } from './ai'
 import {
 	type HonoWithConvex,
 	HttpRouterWithHono,
@@ -8,6 +7,7 @@ import { requestId } from 'hono/request-id'
 import { Hono } from 'hono/tiny'
 
 import type { ActionCtx } from './_generated/server'
+import { agentRequestHandler } from './ai'
 import { authKit } from './auth'
 import { resend } from './resend'
 

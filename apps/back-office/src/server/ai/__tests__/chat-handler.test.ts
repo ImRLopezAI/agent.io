@@ -5,9 +5,8 @@ import { describe, expect, it, vi } from 'vite-plus/test'
 // (no network). `gateway(model)` returns the mock; the real `ai` helpers
 // (streamText -> toUIMessageStream -> createUIMessageStreamResponse) run for real.
 vi.mock('@ai-sdk/gateway', async () => {
-	const { MockLanguageModelV4, simulateReadableStream } = await import(
-		'ai/test'
-	)
+	const { MockLanguageModelV4, simulateReadableStream } =
+		await import('ai/test')
 	const chunks: LanguageModelV4StreamPart[] = [
 		{ type: 'stream-start', warnings: [] },
 		{ type: 'text-start', id: '0' },

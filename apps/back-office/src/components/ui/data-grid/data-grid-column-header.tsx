@@ -48,8 +48,10 @@ import {
 } from './ui/context-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 
-interface DataGridColumnHeaderProps<TData, TValue>
-	extends React.ComponentProps<'button'> {
+interface DataGridColumnHeaderProps<
+	TData,
+	TValue,
+> extends React.ComponentProps<'button'> {
 	header: Header<TData, TValue>
 	table: Table<TData>
 	variant?: TableVariant
@@ -468,8 +470,10 @@ const DataGridColumnResizer = React.memo(
 	},
 ) as typeof DataGridColumnResizerImpl
 
-interface DataGridColumnResizerProps<TData, TValue>
-	extends DataGridColumnHeaderProps<TData, TValue> {
+interface DataGridColumnResizerProps<
+	TData,
+	TValue,
+> extends DataGridColumnHeaderProps<TData, TValue> {
 	label: string
 	size: number
 	isResizing: boolean

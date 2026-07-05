@@ -15,7 +15,7 @@
 		"zod": "catalog:"
 	},
 	"devDependencies": {
-		"typescript": "catalog:",
-		"@agent.io/ts": "workspace:*"
+		"@agent.io/ts": "workspace:*",
+		"typescript": "catalog:"
 	}
 }
