@@ -1,7 +1,7 @@
 import { crud } from 'convex-helpers/server/crud'
 
-import schema from '../../schema'
-import { internalQuery, triggeredInternalMutation } from '../../utils'
+import schema from '@/schema'
+import { internalQuery, triggeredInternalMutation } from '@/utils'
 
 /**
  * Generated internal CRUD for `procedures` — plumbing tier only (never public).

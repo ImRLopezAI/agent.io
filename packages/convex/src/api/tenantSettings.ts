@@ -1,6 +1,7 @@
 import { tenantSettings } from '@agent.io/domain/schemas'
+import { internal } from '@convex/api'
 
-import { now } from '../lib'
+import { stampCreate, stampUpdate } from '../lib'
 import { tenantMutation, tenantQuery } from '../utils'
 
 /** One row per tenant; absence = platform defaults. */
@@ -21,14 +22,16 @@ export const patch = tenantMutation({
 			.withIndex('by_tenant', (q) => q.eq('tenant', ctx.tenant))
 			.unique()
 		if (existing) {
-			await ctx.db.patch(existing._id, { ...patch, updatedAt: now() })
+			await ctx.runMutation(internal.api.crud.tenantSettings.update, {
+				id: existing._id,
+				patch: stampUpdate(patch),
+			})
 			return existing._id
 		}
-		return ctx.db.insert('tenantSettings', {
-			recordingEnabled: false,
-			...patch,
-			tenant: ctx.tenant,
-			createdAt: now(),
-		})
+		const created = await ctx.runMutation(
+			internal.api.crud.tenantSettings.create,
+			stampCreate(ctx.tenant, { recordingEnabled: false, ...patch }),
+		)
+		return created._id
 	},
 })

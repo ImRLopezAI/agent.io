@@ -1,31 +1,60 @@
 import { agents } from '@agent.io/domain/schemas'
+import { internal } from '@convex/api'
 import { getManyFrom } from 'convex-helpers/server/relationships'
 import { z } from 'zod'
 
-import { now } from '../lib'
-import { tenantMutation, tenantQuery } from '../utils'
+import { tenantMutation, tenantQuery } from '@/utils'
+
+import { stampCreate, stampUpdate } from '../lib'
 import { buildVersionSnapshot } from './publishCore'
 
+/**
+ * Business tier: validations/asserts here, writes delegated to the internal
+ * crud tier (sub-transactions — triggers fire through the wrapped builder).
+ */
+
 export const create = tenantMutation({
-	args: agents.insert({ tenant: true }).shape,
+	args: agents.insert({ tenant: true, publishedVersionId: true }).shape,
 	handler: async (ctx, args) => {
-		return ctx.db.insert('agents', {
-			...args,
-			tenant: ctx.tenant,
-			createdAt: now(),
-		})
+		// drafts are born unpublished — publishedVersionId only moves via publish()
+		const created: z.infer<typeof agents.schema> = await ctx.runMutation(
+			internal.api.crud.agents.create,
+			stampCreate(ctx.tenant, args),
+		)
+		return created
 	},
 })
 
 export const update = tenantMutation({
 	args: {
 		id: z.string(),
-		patch: agents.update({ tenant: true }),
+		patch: agents.update({ tenant: true, publishedVersionId: true }),
 	},
 	handler: async (ctx, { id, patch }) => {
 		const agentId = ctx.db.normalizeId('agents', id)
 		if (!agentId) throw new Error('invalid agent id')
-		await ctx.db.patch(agentId, { ...patch, updatedAt: now() })
+		const existing = await ctx.db.get(agentId)
+		if (!existing) throw new Error('agent not found')
+		// business rule: archived drafts are read-only until unarchived
+		if (existing.archived && patch.archived !== false) {
+			throw new Error('agent is archived — unarchive it before editing')
+		}
+		await ctx.runMutation(internal.api.crud.agents.update, {
+			id: agentId,
+			patch: stampUpdate(patch),
+		})
+	},
+})
+
+export const remove = tenantMutation({
+	args: { id: z.string() },
+	handler: async (ctx, { id }) => {
+		const agentId = ctx.db.normalizeId('agents', id)
+		if (!agentId) throw new Error('invalid agent id')
+		// tenant check through the RLS-wrapped read before the internal destroy
+		const existing = await ctx.db.get(agentId)
+		if (!existing) throw new Error('agent not found')
+		await ctx.runMutation(internal.api.crud.agents.destroy, { id: agentId })
 	},
 })
 
@@ -49,7 +78,7 @@ export const list = tenantQuery({
 /**
  * Publish (plan Unit 8): draft + active procedures → immutable agentVersions
  * snapshot with procedures embedded. Atomic — validation or budget failure
- * writes nothing.
+ * writes nothing (sub-mutations share the transaction).
  */
 export const publish = tenantMutation({
 	args: { id: z.string() },
@@ -77,18 +106,19 @@ export const publish = tenantMutation({
 		)
 		const version = versions.reduce((max, v) => Math.max(max, v.version), 0) + 1
 
-		const versionId = await ctx.db.insert('agentVersions', {
-			tenant: ctx.tenant,
-			agentId,
-			version,
-			publishedBy: ctx.user.externalId ?? ctx.user.id,
-			config,
-			createdAt: now(),
+		const created = await ctx.runMutation(
+			internal.api.crud.agentVersions.create,
+			stampCreate(ctx.tenant, {
+				agentId,
+				version,
+				publishedBy: ctx.user.externalId ?? ctx.user.id,
+				config,
+			}),
+		)
+		await ctx.runMutation(internal.api.crud.agents.update, {
+			id: agentId,
+			patch: stampUpdate({ publishedVersionId: created._id }),
 		})
-		await ctx.db.patch(agentId, {
-			publishedVersionId: versionId,
-			updatedAt: now(),
-		})
-		return { versionId, version }
+		return { versionId: created._id, version }
 	},
 })

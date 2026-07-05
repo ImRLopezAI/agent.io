@@ -1,4 +1,12 @@
 {
 	"$schema": "./node_modules/convex/schemas/convex.schema.json",
-	"functions": "src/"
+	"functions": "src/",
+
+	"typescriptCompiler": "tsgo",
+	"codegen": {
+		"staticApi": true
+	},
+	"node": {
+		"nodeVersion": "24"
+	}
 }

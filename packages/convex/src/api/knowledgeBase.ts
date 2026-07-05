@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 import { internal } from '../_generated/api'
 import { internalAction } from '../_generated/server'
-import { now } from '../lib'
+import { now, stampCreate } from '../lib'
 import {
 	tenantMutation,
 	tenantQuery,
@@ -54,14 +54,15 @@ export const createDocument = tenantMutation({
 	handler: async (ctx, args) => {
 		const violation = validateKbDocument(args)
 		if (violation) throw new Error(violation)
-		const documentId = await ctx.db.insert('kbDocuments', {
-			...args,
-			tenant: ctx.tenant,
-			status: 'processing',
-			sizeBytes: args.content?.length ?? 0,
-			chunkCount: 0,
-			createdAt: now(),
-		})
+		const documentId = await ctx.db.insert(
+			'kbDocuments',
+			stampCreate(ctx.tenant, {
+				...args,
+				status: 'processing',
+				sizeBytes: args.content?.length ?? 0,
+				chunkCount: 0,
+			}),
+		)
 		await ctx.scheduler.runAfter(0, internal.api.knowledgeBase.ingest, {
 			documentId,
 		})

@@ -5,7 +5,7 @@ import {
 	internalAction,
 	internalQuery as rawInternalQuery,
 } from '../_generated/server'
-import { embedTexts } from './embeddings'
+import { embedText } from './embeddings'
 
 /**
  * KB retrieval (plan Unit 9). Tenant is DERIVED, never passed: the session's
@@ -137,10 +137,10 @@ export const search = internalAction({
 		ctx,
 		{ conversationId, query, limit },
 	): Promise<{ text: string; score: number; documentId: string }[]> => {
-		const [vector] = await embedTexts([query])
+		const vector = await embedText(query)
 		return ctx.runAction(internal.api.kbSearch.searchWithVector, {
 			conversationId,
-			vector: vector ?? [],
+			vector,
 			query,
 			limit,
 		})

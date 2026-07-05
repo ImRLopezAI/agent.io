@@ -1,7 +1,8 @@
 import { procedures, validateProcedureBody } from '@agent.io/domain/schemas'
+import { internal } from '@convex/api'
 import { z } from 'zod'
 
-import { now } from '../lib'
+import { stampCreate, stampUpdate } from '../lib'
 import { tenantMutation, tenantQuery } from '../utils'
 
 export const create = tenantMutation({
@@ -9,11 +10,10 @@ export const create = tenantMutation({
 	handler: async (ctx, args) => {
 		const violation = validateProcedureBody(args)
 		if (violation) throw new Error(violation)
-		return ctx.db.insert('procedures', {
-			...args,
-			tenant: ctx.tenant,
-			createdAt: now(),
-		})
+		return ctx.runMutation(
+			internal.api.crud.procedures.create,
+			stampCreate(ctx.tenant, args),
+		)
 	},
 })
 
@@ -31,7 +31,10 @@ export const update = tenantMutation({
 		const merged = { ...existing, ...patch }
 		const violation = validateProcedureBody(merged)
 		if (violation) throw new Error(violation)
-		await ctx.db.patch(procedureId, { ...patch, updatedAt: now() })
+		await ctx.runMutation(internal.api.crud.procedures.update, {
+			id: procedureId,
+			patch: stampUpdate(patch),
+		})
 	},
 })
 
@@ -40,7 +43,11 @@ export const remove = tenantMutation({
 	handler: async (ctx, { id }) => {
 		const procedureId = ctx.db.normalizeId('procedures', id)
 		if (!procedureId) throw new Error('invalid procedure id')
-		await ctx.db.delete(procedureId)
+		const existing = await ctx.db.get(procedureId)
+		if (!existing) throw new Error('procedure not found')
+		await ctx.runMutation(internal.api.crud.procedures.destroy, {
+			id: procedureId,
+		})
 	},
 })
 

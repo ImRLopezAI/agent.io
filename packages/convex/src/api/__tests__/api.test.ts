@@ -3,6 +3,7 @@ import { convexTest } from 'convex-test'
 import { describe, expect, test } from 'vite-plus/test'
 
 import { internal } from '../../_generated/api'
+import type { Id } from '../../_generated/dataModel'
 import schema from '../../schema'
 import { modules } from '../../testModules.test'
 import { buildVersionSnapshot } from '../publishCore'
@@ -278,7 +279,9 @@ describe('conversation machine path (Unit 10)', () => {
 			status: 'done',
 			durationSecs: 42,
 		})
-		const conversation = await t.run(async (ctx) => ctx.db.get(conversationId))
+		const conversation = await t.run(async (ctx) =>
+			ctx.db.get(conversationId as Id<'conversations'>),
+		)
 		expect(conversation?.tenant).toBe(ORG_A)
 		expect(conversation?.status).toBe('done')
 		expect(conversation?.messageCount).toBe(3)

@@ -2,6 +2,7 @@
 	"extends": "@agent.io/ts/convex.json",
 	"compilerOptions": {
 		"paths": {
+			"@/*": ["./*"],
 			"@convex/*": ["./_generated/*"]
 		}
 	},

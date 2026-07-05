@@ -1,7 +1,8 @@
 import { mcpConnections, validateMcpConnection } from '@agent.io/domain/schemas'
+import { internal } from '@convex/api'
 import { z } from 'zod'
 
-import { now } from '../lib'
+import { stampCreate, stampUpdate } from '../lib'
 import { tenantMutation, tenantQuery } from '../utils'
 
 export const create = tenantMutation({
@@ -9,11 +10,10 @@ export const create = tenantMutation({
 	handler: async (ctx, args) => {
 		const violation = validateMcpConnection(args)
 		if (violation) throw new Error(violation)
-		return ctx.db.insert('mcpConnections', {
-			...args,
-			tenant: ctx.tenant,
-			createdAt: now(),
-		})
+		return ctx.runMutation(
+			internal.api.crud.mcpConnections.create,
+			stampCreate(ctx.tenant, args),
+		)
 	},
 })
 
@@ -25,7 +25,10 @@ export const update = tenantMutation({
 	handler: async (ctx, { id, patch }) => {
 		const connectionId = ctx.db.normalizeId('mcpConnections', id)
 		if (!connectionId) throw new Error('invalid connection id')
-		await ctx.db.patch(connectionId, { ...patch, updatedAt: now() })
+		await ctx.runMutation(internal.api.crud.mcpConnections.update, {
+			id: connectionId,
+			patch: stampUpdate(patch),
+		})
 	},
 })
 
@@ -34,7 +37,11 @@ export const remove = tenantMutation({
 	handler: async (ctx, { id }) => {
 		const connectionId = ctx.db.normalizeId('mcpConnections', id)
 		if (!connectionId) throw new Error('invalid connection id')
-		await ctx.db.delete(connectionId)
+		const existing = await ctx.db.get(connectionId)
+		if (!existing) throw new Error('connection not found')
+		await ctx.runMutation(internal.api.crud.mcpConnections.destroy, {
+			id: connectionId,
+		})
 	},
 })
 
