@@ -1,5 +1,5 @@
 ---
-title: "feat: Billing — @convex-dev/polar + usage metering + hard-cap guardrails"
+title: 'feat: Billing — @convex-dev/polar + usage metering + hard-cap guardrails'
 type: feat
 status: active
 date: 2026-06-17
@@ -14,7 +14,7 @@ Wire the `@convex-dev/polar` Convex component as the platform's billing backbone
 
 No pricing tables are stored in Convex. Plans, multipliers, meters, and invoices are owned entirely by Polar. The platform only pushes events and enforces caps.
 
-> **Identifier note (load-bearing — corrected):** the `@convex-dev/polar` component keys every Polar customer by the `userId` value returned from its `getUserInfo(ctx)` callback. There is **no `externalCustomerId` field** on the component's `getUserInfo` return — that field belongs to the *raw* `@polar-sh/sdk` event-ingestion / customer-state APIs. To make billing per-org while staying inside the component's contract, we return the **org `tenantId` as the component's `userId`** (it is just an opaque string to the component) and use that same `tenantId` as `externalCustomerId` / `externalId` in every raw-SDK call. One identifier (`tenantId`) flows through both surfaces; the *field name* differs by API. See Key Technical Decisions.
+> **Identifier note (load-bearing — corrected):** the `@convex-dev/polar` component keys every Polar customer by the `userId` value returned from its `getUserInfo(ctx)` callback. There is **no `externalCustomerId` field** on the component's `getUserInfo` return — that field belongs to the _raw_ `@polar-sh/sdk` event-ingestion / customer-state APIs. To make billing per-org while staying inside the component's contract, we return the **org `tenantId` as the component's `userId`** (it is just an opaque string to the component) and use that same `tenantId` as `externalCustomerId` / `externalId` in every raw-SDK call. One identifier (`tenantId`) flows through both surfaces; the _field name_ differs by API. See Key Technical Decisions.
 
 ## Problem Frame
 
@@ -38,6 +38,7 @@ The legacy platform (see `docs/domain-erd.md`) reinvents billing with `polarCust
 ## Scope Boundaries
 
 In scope:
+
 - `@convex-dev/polar` component registration + `registerRoutes` webhook
 - `getUserInfo(ctx)` org→customer mapping (`userId = tenantId`)
 - LLM strategy model wrapper (wraps `gateway(model)` via `@polar-sh/ingestion`)
@@ -59,20 +60,20 @@ In scope:
 
 ### Relevant Code and Patterns (repo-relative)
 
-| Path | Role |
-|---|---|
-| `convex/convex.config.ts` | Component registration — currently `workOSAuthKit` + `resend`; `polar` is added here via `app.use(polar)`. |
-| `convex/http.ts` | Hono HTTP router (`HttpRouterWithHono`); the Polar webhook is registered on the **Convex `http` router** through `polar.registerRoutes(http, …)`, alongside the existing `app.post('/resend/events', …)` and `authKit.registerRoutes(http)`. |
-| `convex/utils.ts` | `zCustomQuery`/`zCustomMutation` (convex-helpers `server/zod4`) wrappers; the `authQuery`/`authMutation` factories that inject `{ user, org }`. `tenantId` = `organizationId` from the WorkOS JWT. |
-| `convex/auth.config.ts` | Two `customJwt` providers; org claims on identity. |
-| `convex/resend.ts` | Reference: `new Resend(components.resend, { … })` from `./_generated/api` — the exact component-init shape Polar follows. |
-| `src/server/rpc/init.ts` | oRPC: `os = implement(contract).$context<RpcContextType>()`, plus `auth`/`admin`/`org`/`adminOrg` middlewares (`org` adds `context.organizationId` from the session). |
-| `src/server/rpc/contracts/index.ts` | Contract aggregator (`contract = { health, workOs }`) — new `billing` contract added here. |
-| `src/server/rpc/contracts/base.ts` | `base = oc.errors(baseErrors)` — every contract procedure starts from `base` (NOT bare `oc`). |
-| `src/server/rpc/routes/index.ts` | Router aggregator (`os.router({ health, workOs })`) — new `billing` router added here. |
-| `src/server/ai/index.ts` | `agentRequestHandler` — `gateway(model)` passed to `new ToolLoopAgent({ id, model, reasoning, instructions })`; shows exactly where the metered model plugs in. |
-| `src/server/ai/agents/routing.ts` | `routing()` / `customRouting()` helpers — sub-agent fan-out via `tool({ … execute: async function*() })`, `readUIMessageStream({ stream: toUIMessageStream({ stream: result.stream }) })`. Context for how the metered model propagates to specialists. |
-| `src/server/ai/constants.ts` | `Models` type + `MODELS` list — the model id argument to `buildMeteredModel`. |
+| Path                                | Role                                                                                                                                                                                                                                                    |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `convex/convex.config.ts`           | Component registration — currently `workOSAuthKit` + `resend`; `polar` is added here via `app.use(polar)`.                                                                                                                                              |
+| `convex/http.ts`                    | Hono HTTP router (`HttpRouterWithHono`); the Polar webhook is registered on the **Convex `http` router** through `polar.registerRoutes(http, …)`, alongside the existing `app.post('/resend/events', …)` and `authKit.registerRoutes(http)`.            |
+| `convex/utils.ts`                   | `zCustomQuery`/`zCustomMutation` (convex-helpers `server/zod4`) wrappers; the `authQuery`/`authMutation` factories that inject `{ user, org }`. `tenantId` = `organizationId` from the WorkOS JWT.                                                      |
+| `convex/auth.config.ts`             | Two `customJwt` providers; org claims on identity.                                                                                                                                                                                                      |
+| `convex/resend.ts`                  | Reference: `new Resend(components.resend, { … })` from `./_generated/api` — the exact component-init shape Polar follows.                                                                                                                               |
+| `src/server/rpc/init.ts`            | oRPC: `os = implement(contract).$context<RpcContextType>()`, plus `auth`/`admin`/`org`/`adminOrg` middlewares (`org` adds `context.organizationId` from the session).                                                                                   |
+| `src/server/rpc/contracts/index.ts` | Contract aggregator (`contract = { health, workOs }`) — new `billing` contract added here.                                                                                                                                                              |
+| `src/server/rpc/contracts/base.ts`  | `base = oc.errors(baseErrors)` — every contract procedure starts from `base` (NOT bare `oc`).                                                                                                                                                           |
+| `src/server/rpc/routes/index.ts`    | Router aggregator (`os.router({ health, workOs })`) — new `billing` router added here.                                                                                                                                                                  |
+| `src/server/ai/index.ts`            | `agentRequestHandler` — `gateway(model)` passed to `new ToolLoopAgent({ id, model, reasoning, instructions })`; shows exactly where the metered model plugs in.                                                                                         |
+| `src/server/ai/agents/routing.ts`   | `routing()` / `customRouting()` helpers — sub-agent fan-out via `tool({ … execute: async function*() })`, `readUIMessageStream({ stream: toUIMessageStream({ stream: result.stream }) })`. Context for how the metered model propagates to specialists. |
+| `src/server/ai/constants.ts`        | `Models` type + `MODELS` list — the model id argument to `buildMeteredModel`.                                                                                                                                                                           |
 
 ### Design-doc References
 
@@ -84,7 +85,7 @@ In scope:
 ### Reference Patterns
 
 - Component registration + init: `convex/resend.ts` (`new Resend(components.resend, …)`) + `convex/convex.config.ts` (`app.use(resend)`).
-- Webhook registration: `convex/http.ts` — `authKit.registerRoutes(http)` is the *closest* precedent for `polar.registerRoutes(http, …)` (a component owning its own route on the Convex `http` router), NOT the hand-rolled `app.post('/resend/events', …)`.
+- Webhook registration: `convex/http.ts` — `authKit.registerRoutes(http)` is the _closest_ precedent for `polar.registerRoutes(http, …)` (a component owning its own route on the Convex `http` router), NOT the hand-rolled `app.post('/resend/events', …)`.
 - oRPC router/contract: `src/server/rpc/routes/work-os.router.ts` + `src/server/rpc/contracts/work-os.contract.ts` — exact `os.<ns>.router({ … <mw>.<ns>.<path>.handler() })` and `base.router({ … })` shapes.
 - Verified correction: `@convex-dev/polar` does NOT expose meter balance — use raw `@polar-sh/sdk` `customers.getStateExternal({ externalId })` inside a Convex `action` (external HTTP call; not a query/mutation).
 
@@ -94,7 +95,7 @@ In scope:
 Rationale: the org is the billing unit in a multi-tenant platform; the WorkOS org id is already the universal discriminator on every table. The `@convex-dev/polar` component treats the returned `userId` as an opaque key and uses it as the Polar customer's external identifier, so passing `tenantId` makes the component bill per-org with zero local mirror table. The component's `getUserInfo(ctx)` callback is the single mapping point. (Verified shape: `getUserInfo: async (ctx) => ({ userId, email })` — there is **no `externalCustomerId` key** on this return; that field is raw-SDK-only.) Doc: https://github.com/get-convex/polar (README), https://www.convex.dev/components/polar.
 
 **The LLM ingestion wrapper is constructed per-request with the tenant identifier; the base model stays `gateway(model)`.**
-Rationale: the `tenantId` is only known at request time (Convex auth context or inbound webhook route). A module-level singleton cannot carry per-tenant attribution. The wrapper is cheap to construct and stateless. The wrapper is `Ingestion({ accessToken }).strategy(new LLMStrategy(gateway(model)))`, and `.client({ customerId: tenantId })` returns the AI-SDK-compatible model. (Verified: `@polar-sh/ingestion`, `.client({ customerId })` — NOT `.ingest('text-tokens')` then `.client({ externalCustomerId })`.) Docs: https://polar.sh/docs/features/usage-based-billing/ingestion-strategies/llm-strategy. **VERIFY (Spike S2):** the `.client({ customerId })` argument in current `@polar-sh/ingestion` is documented as `customerId` (Polar's internal customer id), but our identifier is the org `tenantId`, which the component registers as the customer's *external* id. Confirm on install whether `@polar-sh/ingestion` accepts an `externalCustomerId` option (it forwards to `events.ingest`, which supports `external_customer_id`). If only `customerId` is accepted, either (a) resolve the Polar internal customer id once per tenant via `customers.getStateExternal({ externalId: tenantId })` → `state.id` and cache it, or (b) skip the LLM strategy wrapper and ingest token usage manually with `events.ingest({ events: [{ name: 'llm_tokens', externalCustomerId: tenantId, metadata: { inputTokens, outputTokens } }] })` from `result.usage` (AI SDK v7 exposes `result.usage` / per-step usage). Manual ingestion from `result.usage` is the safer fallback and keeps attribution by `tenantId` end-to-end.
+Rationale: the `tenantId` is only known at request time (Convex auth context or inbound webhook route). A module-level singleton cannot carry per-tenant attribution. The wrapper is cheap to construct and stateless. The wrapper is `Ingestion({ accessToken }).strategy(new LLMStrategy(gateway(model)))`, and `.client({ customerId: tenantId })` returns the AI-SDK-compatible model. (Verified: `@polar-sh/ingestion`, `.client({ customerId })` — NOT `.ingest('text-tokens')` then `.client({ externalCustomerId })`.) Docs: https://polar.sh/docs/features/usage-based-billing/ingestion-strategies/llm-strategy. **VERIFY (Spike S2):** the `.client({ customerId })` argument in current `@polar-sh/ingestion` is documented as `customerId` (Polar's internal customer id), but our identifier is the org `tenantId`, which the component registers as the customer's _external_ id. Confirm on install whether `@polar-sh/ingestion` accepts an `externalCustomerId` option (it forwards to `events.ingest`, which supports `external_customer_id`). If only `customerId` is accepted, either (a) resolve the Polar internal customer id once per tenant via `customers.getStateExternal({ externalId: tenantId })` → `state.id` and cache it, or (b) skip the LLM strategy wrapper and ingest token usage manually with `events.ingest({ events: [{ name: 'llm_tokens', externalCustomerId: tenantId, metadata: { inputTokens, outputTokens } }] })` from `result.usage` (AI SDK v7 exposes `result.usage` / per-step usage). Manual ingestion from `result.usage` is the safer fallback and keeps attribution by `tenantId` end-to-end.
 
 **Hard-cap check via raw `@polar-sh/sdk` inside a Convex `action`, not a `query`.**
 Rationale: `customers.getStateExternal` is a live HTTP call to Polar's API — it cannot run in a Convex query (V8 runtime). It must be a Convex `action`. Cache the result for 60 s with `@convex-dev/action-cache` (plan 001 substrate) to avoid hammering Polar on every message in a high-traffic thread. The SDK client class is `Polar` (NOT `PolarAPI`); it uses the standard Web `fetch`, which Convex V8 actions support — so a plain (non-`"use node"`) action should work, but keep the Node-action fallback (Risks §S1).
@@ -202,6 +203,7 @@ flowchart TD
 **Dependencies:** Plan 001 (Convex foundations — `authQuery`/`authMutation`, `tenant`/org resolution); no other plan dependency.
 
 **Files:**
+
 - `convex/convex.config.ts` — Modify: add `import polar from '@convex-dev/polar/convex.config'` + `app.use(polar)`.
 - `convex/http.ts` — Modify: add `polar.registerRoutes(http, { path: '/polar/events', events: {…} })`.
 - `convex/billing.ts` — Create: `new Polar(components.polar, { getUserInfo, … })` + `polar.api()` re-exports.
@@ -209,11 +211,13 @@ flowchart TD
 **Approach:**
 
 Install the component and the raw SDK (versions to be pinned at install — VERIFY latest):
+
 ```
 bun add @convex-dev/polar @polar-sh/sdk
 ```
 
 Set env vars in the Convex dashboard / `.env.local`:
+
 - `POLAR_ORGANIZATION_TOKEN` — Organization Access Token, passed to the component constructor as `organizationToken` and to the raw SDK as `accessToken` (VERIFY they can be the same token).
 - `POLAR_WEBHOOK_SECRET` — webhook signature secret, passed as `webhookSecret`.
 - `POLAR_SERVER` — `'sandbox'` or `'production'`, passed as `server`.
@@ -293,11 +297,13 @@ export default http
 > Corrected from prior draft: the webhook is NOT `app.post('/polar/events', (c) => polar.handleWebhookRequest(c.env, c.req.raw))`. The component exposes `registerRoutes(http, { path, events })` and verifies the `webhookSecret` internally.
 
 **Patterns to follow:**
+
 - `convex/resend.ts` — `new Resend(components.resend, { … })` from `./_generated/api` is the exact init shape.
 - `convex/http.ts` — `authKit.registerRoutes(http)` is the precedent for a component registering its own route.
 - `convex/convex.config.ts` existing `app.use(...)` ordering.
 
 **Test scenarios:**
+
 - `polar component registers without error → convex dev starts cleanly`
 - `POST /polar/events with valid subscription.updated payload → component persists state + event handler runs, no unhandled error`
 - `POST /polar/events with invalid signature → component rejects (4xx)`
@@ -305,6 +311,7 @@ export default http
 - `getUserInfo with missing org → throws (fail loud)`
 
 **Verification:**
+
 ```
 node_modules/.bin/tsc --noEmit   # zero net-new errors in convex/billing.ts, convex/convex.config.ts, convex/http.ts
 node_modules/.bin/biome check --write convex/billing.ts convex/convex.config.ts convex/http.ts
@@ -322,12 +329,14 @@ node_modules/.bin/biome check --write convex/billing.ts convex/convex.config.ts 
 **Dependencies:** Unit 1 (Polar env vars in place); `src/server/ai/index.ts` (existing AI layer pattern).
 
 **Files:**
+
 - `src/server/ai/metered-model.ts` — Create: `buildMeteredModel` factory.
 - `src/server/ai/index.ts` — Modify (future plan 002): pass the metered model instead of `gateway(model)` directly to `new ToolLoopAgent({ model })`; noted here as the integration seam.
 
 **Approach:**
 
 Install the ingestion package (VERIFY latest version on install):
+
 ```
 bun add @polar-sh/ingestion
 ```
@@ -352,9 +361,12 @@ import type { Models } from './constants'
  * Docs: https://polar.sh/docs/features/usage-based-billing/ingestion-strategies/llm-strategy
  */
 export function buildMeteredModel(tenantId: string, model: Models) {
-	const accessToken = process.env.POLAR_ACCESS_TOKEN ?? process.env.POLAR_ORGANIZATION_TOKEN
+	const accessToken =
+		process.env.POLAR_ACCESS_TOKEN ?? process.env.POLAR_ORGANIZATION_TOKEN
 	if (!accessToken) {
-		throw new Error('[billing] POLAR access token missing — refusing to build metered model')
+		throw new Error(
+			'[billing] POLAR access token missing — refusing to build metered model',
+		)
 	}
 	const llmIngestion = Ingestion({ accessToken }).strategy(
 		new LLMStrategy(gateway(model)),
@@ -368,37 +380,43 @@ export function buildMeteredModel(tenantId: string, model: Models) {
 ```
 
 > Corrected from prior draft:
+>
 > - Package is `@polar-sh/ingestion` (NOT `@polar-sh/sdk/ingestion`); `LLMStrategy` imports from `@polar-sh/ingestion/strategies/LLM`.
 > - `Ingestion({ accessToken }).strategy(new LLMStrategy(gateway(model)))` then `.client({ customerId })` — there is NO `.ingest('text-tokens')` step.
 > - `Ingestion` is invoked as a function (no `new`); `LLMStrategy` is `new`-constructed.
 
 Integration seam in plan 002's `runAgentTurn`:
+
 ```ts
 // directional — in convex/agentRuntime.ts (plan 002)
 const meteredModel = buildMeteredModel(tenantId, cfg.model)
 const orchestrator = new ToolLoopAgent({
 	id: 'agent.io-orchestrator',
-	model: meteredModel,           // drop-in for gateway(model)
+	model: meteredModel, // drop-in for gateway(model)
 	reasoning: 'medium',
 	instructions: cfg.orchestratorPrompt,
 	tools: routingTools,
 })
 ```
+
 (`ToolLoopAgent` and the `routing()` helper are confirmed in `src/server/ai/index.ts` / `src/server/ai/agents/routing.ts`. Specialists built via `routing({ agent })` inherit whichever model their sub-agent was constructed with — pass the metered model there too for full attribution.)
 
 **Convex V8 risk (Spike S1):** the LLM strategy fires HTTP events to Polar during generation. If the orchestrator runs inside a Convex action (V8 runtime), confirm `@polar-sh/ingestion` uses Web `fetch` (allowed in V8) and not Node-only APIs. The agent runtime in this stack runs in the Hono/TanStack server (Node) for streaming (`agentRequestHandler` in `src/server/ai/index.ts` is a Request handler, not a Convex action), so this is lower risk than a pure-Convex-action path — but if plan 002 moves agent turns into a Convex action, spike it there. Fallback: manual `events.ingest` from `result.usage` (which AI SDK v7-beta exposes).
 
 **Patterns to follow:**
+
 - `src/server/ai/index.ts` — existing `gateway(model)` → `new ToolLoopAgent({ model })`; the metered model slots into the same `model` field.
 - `src/server/ai/agents/routing.ts` — sub-agent construction; metered model passes through the same position.
 
 **Test scenarios:**
+
 - `buildMeteredModel('org_abc', 'anthropic/claude-haiku-4.5') → returns an AI SDK model object usable by ToolLoopAgent/generateText`
 - `generateText with metered model → ingestion strategy fires (mock the ingestion client)`
 - `missing POLAR access token → throws at construction (fail loud)`
 - `two tenants build simultaneously → each event carries its own tenant id (no cross-attribution)`
 
 **Verification:**
+
 ```
 node_modules/.bin/tsc --noEmit
 node_modules/.bin/vp test run src/server/ai/metered-model.test.ts
@@ -416,6 +434,7 @@ node_modules/.bin/biome check --write src/server/ai/metered-model.ts
 **Dependencies:** Unit 1 (Polar component + env vars); plan 005 (ElevenLabs post-call webhook handler that calls into this unit).
 
 **Files:**
+
 - `convex/billing.ts` — Modify: add `ingestVoiceEvent` internal action.
 - Plan 005's post-call webhook handler — calls `ctx.runAction(internal.billing.ingestVoiceEvent, …)` (cross-plan seam, not modified here).
 
@@ -427,7 +446,7 @@ The post-call webhook in plan 005 writes the `calls` row with `durationMs` and a
 
 ```ts
 // convex/billing.ts — internal action
-import { Polar as PolarSdk } from '@polar-sh/sdk'   // raw SDK; class is `Polar`
+import { Polar as PolarSdk } from '@polar-sh/sdk' // raw SDK; class is `Polar`
 import { v } from 'convex/values'
 import { internalAction } from './_generated/server'
 
@@ -439,10 +458,18 @@ export const ingestVoiceEvent = internalAction({
 		agentId: v.optional(v.string()),
 		callId: v.string(),
 	},
-	handler: async (_ctx, { tenantId, durationMs, providerCostCredits, agentId, callId }) => {
+	handler: async (
+		_ctx,
+		{ tenantId, durationMs, providerCostCredits, agentId, callId },
+	) => {
 		const polar = new PolarSdk({
-			accessToken: process.env.POLAR_ACCESS_TOKEN ?? process.env.POLAR_ORGANIZATION_TOKEN ?? '',
-			server: (process.env.POLAR_SERVER ?? 'sandbox') as 'sandbox' | 'production',
+			accessToken:
+				process.env.POLAR_ACCESS_TOKEN ??
+				process.env.POLAR_ORGANIZATION_TOKEN ??
+				'',
+			server: (process.env.POLAR_SERVER ?? 'sandbox') as
+				| 'sandbox'
+				| 'production',
 		})
 		const minutes = durationMs / 60_000
 
@@ -453,7 +480,7 @@ export const ingestVoiceEvent = internalAction({
 				{
 					name: 'voice_minutes',
 					externalCustomerId: tenantId,
-					externalId: callId,            // dedup on retry (Polar external_id)
+					externalId: callId, // dedup on retry (Polar external_id)
 					metadata: {
 						minutes,
 						elevenLabsCostCredits: providerCostCredits ?? 0,
@@ -470,16 +497,19 @@ export const ingestVoiceEvent = internalAction({
 > Corrected from prior draft: SDK class is `Polar` (imported as `PolarSdk` to avoid colliding with the component's `polar`), NOT `PolarAPI`. `externalId` is a first-class per-event field (not buried in metadata) and is the documented dedup key.
 
 **Patterns to follow:**
+
 - `convex/resend.ts` — Convex code calling an external SDK (init-in-handler shape).
 - Verified: `events.ingest` is on the raw `@polar-sh/sdk` `Polar` client, NOT the `@convex-dev/polar` component.
 
 **Test scenarios:**
+
 - `ingestVoiceEvent valid args → events.ingest called with externalCustomerId=tenantId, name='voice_minutes', externalId=callId`
 - `durationMs=0 → minutes=0 (zero-length call still counted)`
 - `Polar API unavailable → action throws; Convex retries (let it bubble)`
 - `called twice with same callId → Polar deduplicates via external_id (integration test, mock Polar)`
 
 **Verification:**
+
 ```
 node_modules/.bin/tsc --noEmit
 node_modules/.bin/vp test run convex/billing.test.ts
@@ -497,6 +527,7 @@ node_modules/.bin/biome check --write convex/billing.ts
 **Dependencies:** Unit 1 (Polar component + env vars); plan 003 (channel send helpers that call into this unit).
 
 **Files:**
+
 - `convex/billing.ts` — Modify: add `ingestChannelEvent` internal action.
 - Plan 003 channel send helpers — call `ctx.runAction(internal.billing.ingestChannelEvent, …)` after each successful send (cross-plan seam).
 
@@ -517,13 +548,18 @@ export const ingestChannelEvent = internalAction({
 			v.literal('email'),
 			v.literal('widget'),
 		),
-		messageId: v.string(),            // Polar external_id for dedup
+		messageId: v.string(), // Polar external_id for dedup
 		providerCostUsd: v.optional(v.number()),
 	},
 	handler: async (_ctx, { tenantId, channel, messageId, providerCostUsd }) => {
 		const polar = new PolarSdk({
-			accessToken: process.env.POLAR_ACCESS_TOKEN ?? process.env.POLAR_ORGANIZATION_TOKEN ?? '',
-			server: (process.env.POLAR_SERVER ?? 'sandbox') as 'sandbox' | 'production',
+			accessToken:
+				process.env.POLAR_ACCESS_TOKEN ??
+				process.env.POLAR_ORGANIZATION_TOKEN ??
+				'',
+			server: (process.env.POLAR_SERVER ?? 'sandbox') as
+				| 'sandbox'
+				| 'production',
 		})
 
 		await polar.events.ingest({
@@ -531,7 +567,7 @@ export const ingestChannelEvent = internalAction({
 				{
 					name: 'channel_message',
 					externalCustomerId: tenantId,
-					externalId: messageId,    // dedup
+					externalId: messageId, // dedup
 					metadata: {
 						channel,
 						providerCostUsd: providerCostUsd ?? 0,
@@ -546,16 +582,19 @@ export const ingestChannelEvent = internalAction({
 Widget messages have no provider cost; `providerCostUsd` is optional. SMS/WhatsApp costs come from the provider response or a fixed rate constant passed by the send helper (not stored in Convex).
 
 **Patterns to follow:**
+
 - Same shape as `ingestVoiceEvent` (Unit 3) — identical action pattern, different event name; share the `PolarSdk` client construction.
 - `messageId` as `externalId` mirrors `callId` dedup in Unit 3.
 
 **Test scenarios:**
+
 - `channel='sms' → name='channel_message', metadata.channel='sms'`
 - `channel='widget', providerCostUsd=undefined → providerCostUsd=0`
 - `duplicate messageId → Polar deduplicates`
 - `only callable from send helpers (contract enforces — inbound never metered)`
 
 **Verification:**
+
 ```
 node_modules/.bin/tsc --noEmit
 node_modules/.bin/vp test run convex/billing.test.ts
@@ -573,6 +612,7 @@ node_modules/.bin/biome check --write convex/billing.ts
 **Dependencies:** Unit 1 (Polar env vars + `@polar-sh/sdk` installed); plan 001 substrate (`@convex-dev/action-cache` for the 60 s TTL).
 
 **Files:**
+
 - `convex/billing.ts` — Modify: add `checkHardCap` internal action.
 - Plan 002 `convex/agentRuntime.ts` — call `checkHardCap` at top of `runAgentTurn` (cross-plan seam).
 - Plan 006 batch dial fan-out — call `checkHardCap` before each dial (cross-plan seam).
@@ -601,15 +641,25 @@ const capCache = new ActionCache(components.actionCache, {
 
 export const checkHardCap = internalAction({
 	args: { tenantId: v.string() },
-	handler: async (ctx, { tenantId }): Promise<{ allowed: boolean; reason?: string }> => {
+	handler: async (
+		ctx,
+		{ tenantId },
+	): Promise<{ allowed: boolean; reason?: string }> => {
 		try {
 			return await capCache.fetch(ctx, { key: tenantId }, async () => {
 				const polar = new PolarSdk({
-					accessToken: process.env.POLAR_ACCESS_TOKEN ?? process.env.POLAR_ORGANIZATION_TOKEN ?? '',
-					server: (process.env.POLAR_SERVER ?? 'sandbox') as 'sandbox' | 'production',
+					accessToken:
+						process.env.POLAR_ACCESS_TOKEN ??
+						process.env.POLAR_ORGANIZATION_TOKEN ??
+						'',
+					server: (process.env.POLAR_SERVER ?? 'sandbox') as
+						| 'sandbox'
+						| 'production',
 				})
 				// Corrected: arg is `externalId` (we registered tenantId as the customer's external id).
-				const state = await polar.customers.getStateExternal({ externalId: tenantId })
+				const state = await polar.customers.getStateExternal({
+					externalId: tenantId,
+				})
 
 				// Corrected: meters expose `balance` (credited − consumed), not currentPeriodUsage/limit.
 				for (const meter of state.activeMeters ?? []) {
@@ -640,11 +690,14 @@ export const checkHardCap = internalAction({
 > Corrected from prior draft: SDK class `Polar` (not `PolarAPI`); arg `{ externalId }` (not `{ externalCustomerId }`); meters checked via `balance <= 0` over `state.activeMeters` (not `currentPeriodUsage >= limit` over `state.meters`); subscriptions via `state.activeSubscriptions` (not `state.subscriptions`).
 
 Call-site pattern (plan 002 `runAgentTurn` directional seam):
+
 ```ts
 const cap = await ctx.runAction(internal.billing.checkHardCap, { tenantId })
 if (!cap.allowed) {
 	await ctx.runMutation(internal.messages.appendSystem, {
-		threadId, tenantId, text: 'Service temporarily unavailable — usage limit reached.',
+		threadId,
+		tenantId,
+		text: 'Service temporarily unavailable — usage limit reached.',
 	})
 	return
 }
@@ -653,10 +706,12 @@ if (!cap.allowed) {
 **V8 runtime risk (Spike S1):** `@polar-sh/sdk` uses Web `fetch`, which Convex V8 actions support — a plain action should work. If `getStateExternal` pulls in Node-only deps, add the `"use node"` directive to the action's module. Keep the spike + fallback.
 
 **Patterns to follow:**
+
 - `@convex-dev/action-cache` from plan 001 substrate (ActionCache with TTL) — **VERIFY** exact constructor option key (`ttl` vs `ttlMs`) and `fetch` signature on install.
 - Fail-open error handling: billing outage must not cause service outage.
 
 **Test scenarios:**
+
 - `meter balance <= 0 → { allowed: false, reason: 'usage_limit_exceeded' }`
 - `meter balance > 0 + active sub → { allowed: true }`
 - `no active subscription → { allowed: false, reason: 'no_active_subscription' }`
@@ -665,6 +720,7 @@ if (!cap.allowed) {
 - `two tenants → separate cache entries, no cross-tenant bleed`
 
 **Verification:**
+
 ```
 node_modules/.bin/tsc --noEmit
 node_modules/.bin/vp test run convex/billing.test.ts
@@ -683,6 +739,7 @@ node_modules/.bin/biome check --write convex/billing.ts
 **Dependencies:** Unit 1 (Polar component + `polar.api()` exports); Unit 5 (`checkHardCap` action); plan 001 (oRPC contract/route pattern established).
 
 **Files:**
+
 - `src/server/rpc/contracts/billing.contract.ts` — Create: contract built from `base`.
 - `src/server/rpc/contracts/index.ts` — Modify: add `billing` to the `contract` aggregator.
 - `src/server/rpc/routes/billing.router.ts` — Create: route handlers via `os.billing.router({…})`.
@@ -697,7 +754,7 @@ All billing procedures are guarded by the `org` oRPC middleware (`context.organi
 ```ts
 // src/server/rpc/contracts/billing.contract.ts
 import { z } from 'zod'
-import { base } from './base'   // NOT bare `oc` — base carries the shared error map
+import { base } from './base' // NOT bare `oc` — base carries the shared error map
 
 /**
  * Billing contract. The active org is NEVER an input — it is derived
@@ -744,7 +801,7 @@ export type AppContract = typeof contract
 ```ts
 // src/server/rpc/routes/billing.router.ts
 import { org, os } from '@server/rpc/init'
-import { convex } from '@/lib/convex'              // server-side Convex client (VERIFY exact path/export)
+import { convex } from '@/lib/convex' // server-side Convex client (VERIFY exact path/export)
 import { api } from '@/convex/_generated/api'
 
 export const billingRouter = os.billing.router({
@@ -784,6 +841,7 @@ export const billingRouter = os.billing.router({
 ```
 
 > Corrected from prior draft:
+>
 > - Contracts build from `base.router({…})` (which carries `baseErrors`), NOT `oc.router({…})`.
 > - Routers use `os.<ns>.router({…})` and `org.<ns>.<path>.handler(...)` — there is no `org.billingContract.x.handler` form. (Pattern verified against `src/server/rpc/routes/work-os.router.ts`.)
 > - The component's `generateCheckoutLink` / `getCurrentSubscription` are **Convex functions** (from `polar.api()`), not plain async functions importable into a TanStack server context. Call them through the server-side Convex client (`convex.query` / `convex.action` against `api.billing.*`), exposing thin Convex query/action wrappers in `convex/billing.ts` that delegate to the `polar.api()` exports. (`generateCheckoutLink`/`generateCustomerPortalUrl` run inside Convex actions; `getCurrentSubscription` inside a query.) **VERIFY** the exact `polar.api()` member names and whether each is a query or action on install.
@@ -800,11 +858,13 @@ const router = os.router({
 ```
 
 **Patterns to follow:**
+
 - `src/server/rpc/routes/work-os.router.ts` — `os.<ns>.router({ … <mw>.<ns>.<path>.handler() })`.
 - `src/server/rpc/contracts/work-os.contract.ts` + `contracts/base.ts` — `base.router(...)` contract shape with the shared error map.
 - `src/server/rpc/init.ts` — `org` middleware adds `context.organizationId`.
 
 **Test scenarios:**
+
 - `GET /billing/subscription with org session → subscription fields`
 - `GET /billing/cap-status with org session → { allowed: true } under limit`
 - `POST /billing/checkout missing productId → Zod validation rejects (BAD_REQUEST)`
@@ -812,6 +872,7 @@ const router = os.router({
 - `GET /billing/cap-status at limit → { allowed: false, reason: 'usage_limit_exceeded' }`
 
 **Verification:**
+
 ```
 node_modules/.bin/tsc --noEmit
 node_modules/.bin/vp test run src/server/rpc/routes/billing.router.test.ts
@@ -822,31 +883,32 @@ node_modules/.bin/biome check --write src/server/rpc/contracts/billing.contract.
 
 ## System-Wide Impact
 
-| Area | Impact |
-|---|---|
-| `convex/convex.config.ts` | New `polar` component via `app.use(polar)` alongside `workOSAuthKit` + `resend`; component brings its own internal tables (Polar-managed, not our schema). |
-| `convex/schema.ts` | No new tables — billing state lives in the Polar component's managed tables. |
-| `convex/http.ts` | New `/polar/events` route via `polar.registerRoutes(http, …)`; existing routes (`/resend/events`, `authKit.registerRoutes`) unaffected. |
-| `convex/billing.ts` | New file — Polar component init + `getUserInfo` + `polar.api()` exports + thin checkout/portal/subscription wrappers + voice/channel ingest actions + `checkHardCap`. Imported by plans 002, 003, 005, 006. |
-| `src/server/ai/metered-model.ts` | New file — `buildMeteredModel` wraps `gateway(model)` for plan 002's `runAgentTurn`. |
-| `src/server/rpc/contracts/index.ts`, `src/server/rpc/routes/index.ts` | Modified to register the `billing` contract + router. |
-| Plans 002, 003, 005, 006 | Each gains one `checkHardCap` call at its outbound boundary; plans 003/005 each gain one `ingestChannelEvent` / `ingestVoiceEvent` fire-and-forget call. |
-| Env vars added | `POLAR_ORGANIZATION_TOKEN`, `POLAR_WEBHOOK_SECRET`, `POLAR_SERVER`, and `POLAR_ACCESS_TOKEN` (may equal `POLAR_ORGANIZATION_TOKEN` — VERIFY). |
+| Area                                                                  | Impact                                                                                                                                                                                                      |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `convex/convex.config.ts`                                             | New `polar` component via `app.use(polar)` alongside `workOSAuthKit` + `resend`; component brings its own internal tables (Polar-managed, not our schema).                                                  |
+| `convex/schema.ts`                                                    | No new tables — billing state lives in the Polar component's managed tables.                                                                                                                                |
+| `convex/http.ts`                                                      | New `/polar/events` route via `polar.registerRoutes(http, …)`; existing routes (`/resend/events`, `authKit.registerRoutes`) unaffected.                                                                     |
+| `convex/billing.ts`                                                   | New file — Polar component init + `getUserInfo` + `polar.api()` exports + thin checkout/portal/subscription wrappers + voice/channel ingest actions + `checkHardCap`. Imported by plans 002, 003, 005, 006. |
+| `src/server/ai/metered-model.ts`                                      | New file — `buildMeteredModel` wraps `gateway(model)` for plan 002's `runAgentTurn`.                                                                                                                        |
+| `src/server/rpc/contracts/index.ts`, `src/server/rpc/routes/index.ts` | Modified to register the `billing` contract + router.                                                                                                                                                       |
+| Plans 002, 003, 005, 006                                              | Each gains one `checkHardCap` call at its outbound boundary; plans 003/005 each gain one `ingestChannelEvent` / `ingestVoiceEvent` fire-and-forget call.                                                    |
+| Env vars added                                                        | `POLAR_ORGANIZATION_TOKEN`, `POLAR_WEBHOOK_SECRET`, `POLAR_SERVER`, and `POLAR_ACCESS_TOKEN` (may equal `POLAR_ORGANIZATION_TOKEN` — VERIFY).                                                               |
 
 ## Risks & Dependencies
 
-| ID | Risk | Likelihood | Impact | Mitigation |
-|---|---|---|---|---|
-| S1 | `@polar-sh/sdk` / `@polar-sh/ingestion` use Node-only APIs not available in Convex V8 | Low–Med | High | Spike: import + call `customers.getStateExternal` / `Ingestion()` in a trivial Convex action; if V8 rejects, add `"use node"` to that module (ingestion can also live in the Node TanStack server). Keep fallback. |
-| S2 | `@polar-sh/ingestion` `.client()` only accepts `customerId` (internal), not our `tenantId` (external) | Med | Med | Resolve internal customer id once via `getStateExternal({ externalId }) → state.id` and cache; OR ingest token usage manually via `events.ingest` from `result.usage` (keeps `externalCustomerId = tenantId`). |
-| R1 | `@convex-dev/polar` `getUserInfo` / `registerRoutes` shape differs from README on the pinned version | Med | High | Pin exact version; read the installed package's `.d.ts` for `Polar` constructor, `api()`, and `registerRoutes(http, opts)` before wiring. |
-| R2 | `getStateExternal` response field names differ across SDK versions (the SDK changed generators after v0.6.0) | Med | Med | Pin `@polar-sh/sdk`; add a Zod parse on `state.activeMeters` / `state.activeSubscriptions` inside `checkHardCap` so a shape mismatch fails loud. |
-| R3 | `POLAR_ACCESS_TOKEN` vs `POLAR_ORGANIZATION_TOKEN` may be the same token or need separate dashboard setup | Low | Low | Confirm in Polar dashboard; the code already falls back to one when the other is unset. |
-| R4 | Event `external_id` dedup not honored across action retries | Low | Low | Always set `externalId` = `callId`/`messageId`; Polar deduplicates on `external_id`. |
-| R5 | `@convex-dev/action-cache` not yet in plan 001 substrate, or option key differs (`ttl` vs `ttlMs`) | Low | Med | action-cache install is plan 001; read its `.d.ts` for the constructor option + `fetch` signature. If unavailable, `checkHardCap` runs uncached (comment the cache out temporarily). |
-| R6 | Plans 002/003/005/006 call `checkHardCap`/ingest before this plan ships | Low | Low | These are `internalAction`s; stub `checkHardCap` with `return { allowed: true }` and the ingest actions as no-ops until this plan lands, then replace. |
+| ID  | Risk                                                                                                         | Likelihood | Impact | Mitigation                                                                                                                                                                                                         |
+| --- | ------------------------------------------------------------------------------------------------------------ | ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| S1  | `@polar-sh/sdk` / `@polar-sh/ingestion` use Node-only APIs not available in Convex V8                        | Low–Med    | High   | Spike: import + call `customers.getStateExternal` / `Ingestion()` in a trivial Convex action; if V8 rejects, add `"use node"` to that module (ingestion can also live in the Node TanStack server). Keep fallback. |
+| S2  | `@polar-sh/ingestion` `.client()` only accepts `customerId` (internal), not our `tenantId` (external)        | Med        | Med    | Resolve internal customer id once via `getStateExternal({ externalId }) → state.id` and cache; OR ingest token usage manually via `events.ingest` from `result.usage` (keeps `externalCustomerId = tenantId`).     |
+| R1  | `@convex-dev/polar` `getUserInfo` / `registerRoutes` shape differs from README on the pinned version         | Med        | High   | Pin exact version; read the installed package's `.d.ts` for `Polar` constructor, `api()`, and `registerRoutes(http, opts)` before wiring.                                                                          |
+| R2  | `getStateExternal` response field names differ across SDK versions (the SDK changed generators after v0.6.0) | Med        | Med    | Pin `@polar-sh/sdk`; add a Zod parse on `state.activeMeters` / `state.activeSubscriptions` inside `checkHardCap` so a shape mismatch fails loud.                                                                   |
+| R3  | `POLAR_ACCESS_TOKEN` vs `POLAR_ORGANIZATION_TOKEN` may be the same token or need separate dashboard setup    | Low        | Low    | Confirm in Polar dashboard; the code already falls back to one when the other is unset.                                                                                                                            |
+| R4  | Event `external_id` dedup not honored across action retries                                                  | Low        | Low    | Always set `externalId` = `callId`/`messageId`; Polar deduplicates on `external_id`.                                                                                                                               |
+| R5  | `@convex-dev/action-cache` not yet in plan 001 substrate, or option key differs (`ttl` vs `ttlMs`)           | Low        | Med    | action-cache install is plan 001; read its `.d.ts` for the constructor option + `fetch` signature. If unavailable, `checkHardCap` runs uncached (comment the cache out temporarily).                               |
+| R6  | Plans 002/003/005/006 call `checkHardCap`/ingest before this plan ships                                      | Low        | Low    | These are `internalAction`s; stub `checkHardCap` with `return { allowed: true }` and the ingest actions as no-ops until this plan lands, then replace.                                                             |
 
 **Cross-plan dependencies (by filename):**
+
 - `2026-06-17-001-feat-convex-foundations-plan.md` — must ship first: `@convex-dev/action-cache`, `authQuery`/`authMutation`, org/tenant resolution.
 - `2026-06-17-002-feat-conversation-substrate-plan.md` — `runAgentTurn` wires `buildMeteredModel` + `checkHardCap`.
 - `2026-06-17-003-feat-channel-adapters-plan.md` — send helpers wire `ingestChannelEvent` + `checkHardCap`.
@@ -857,24 +919,26 @@ node_modules/.bin/biome check --write src/server/rpc/contracts/billing.contract.
 
 ### External dependencies — install + canonical docs
 
-| Package | Install (VERIFY exact version on install) | Canonical docs |
-|---|---|---|
-| `@convex-dev/polar` (Convex component) | `bun add @convex-dev/polar` | https://www.convex.dev/components/polar · README/source: https://github.com/get-convex/polar (registration, `new Polar(components.polar, { getUserInfo, organizationToken, webhookSecret, server })`, `polar.api()`, `polar.registerRoutes(http, { path, events })`, `getCurrentSubscription(ctx, { userId })`) |
-| `@polar-sh/sdk` (raw SDK) | `bun add @polar-sh/sdk` | https://github.com/polarsource/polar-js (class `Polar`, `new Polar({ accessToken, server })`) · `customers.getStateExternal({ externalId })`: https://polar.sh/docs/api-reference/customers/state-external · Customer State guide: https://www.mintlify.com/polarsource/polar/integrate/customer-state · `events.ingest`: https://polar.sh/docs/api-reference/events/ingest |
-| `@polar-sh/ingestion` (LLM strategy) | `bun add @polar-sh/ingestion` | https://polar.sh/docs/features/usage-based-billing/ingestion-strategies/llm-strategy (`import { Ingestion } from '@polar-sh/ingestion'`; `import { LLMStrategy } from '@polar-sh/ingestion/strategies/LLM'`; `Ingestion({ accessToken }).strategy(new LLMStrategy(model)).client({ customerId })`) |
-| Event ingestion (concept) | n/a | https://polar.sh/docs/features/usage-based-billing/event-ingestion (event `name`, `external_customer_id`, `external_id` dedup, `metadata`) |
-| `@convex-dev/action-cache` (from plan 001) | (installed in plan 001) | https://www.convex.dev/components/action-cache (ActionCache constructor + `fetch(ctx, { key }, fn)`) |
-| `ai` (7.0.0-beta.178, installed) | (installed) | `ToolLoopAgent`, `createAgentUIStreamResponse`, `result.usage` — used at the metered-model seam. |
-| `@ai-sdk/gateway` (4.0.0-beta.109, installed) | (installed) | `gateway(modelId)` — base model wrapped by the LLM strategy. |
-| `@orpc/contract`, `@orpc/server` (installed) | (installed) | https://orpc.unnoq.com — `base.router`, `os.<ns>.router`, `<mw>.<ns>.<path>.handler`. |
+| Package                                       | Install (VERIFY exact version on install) | Canonical docs                                                                                                                                                                                                                                                                                                                                                              |
+| --------------------------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@convex-dev/polar` (Convex component)        | `bun add @convex-dev/polar`               | https://www.convex.dev/components/polar · README/source: https://github.com/get-convex/polar (registration, `new Polar(components.polar, { getUserInfo, organizationToken, webhookSecret, server })`, `polar.api()`, `polar.registerRoutes(http, { path, events })`, `getCurrentSubscription(ctx, { userId })`)                                                             |
+| `@polar-sh/sdk` (raw SDK)                     | `bun add @polar-sh/sdk`                   | https://github.com/polarsource/polar-js (class `Polar`, `new Polar({ accessToken, server })`) · `customers.getStateExternal({ externalId })`: https://polar.sh/docs/api-reference/customers/state-external · Customer State guide: https://www.mintlify.com/polarsource/polar/integrate/customer-state · `events.ingest`: https://polar.sh/docs/api-reference/events/ingest |
+| `@polar-sh/ingestion` (LLM strategy)          | `bun add @polar-sh/ingestion`             | https://polar.sh/docs/features/usage-based-billing/ingestion-strategies/llm-strategy (`import { Ingestion } from '@polar-sh/ingestion'`; `import { LLMStrategy } from '@polar-sh/ingestion/strategies/LLM'`; `Ingestion({ accessToken }).strategy(new LLMStrategy(model)).client({ customerId })`)                                                                          |
+| Event ingestion (concept)                     | n/a                                       | https://polar.sh/docs/features/usage-based-billing/event-ingestion (event `name`, `external_customer_id`, `external_id` dedup, `metadata`)                                                                                                                                                                                                                                  |
+| `@convex-dev/action-cache` (from plan 001)    | (installed in plan 001)                   | https://www.convex.dev/components/action-cache (ActionCache constructor + `fetch(ctx, { key }, fn)`)                                                                                                                                                                                                                                                                        |
+| `ai` (7.0.0-beta.178, installed)              | (installed)                               | `ToolLoopAgent`, `createAgentUIStreamResponse`, `result.usage` — used at the metered-model seam.                                                                                                                                                                                                                                                                            |
+| `@ai-sdk/gateway` (4.0.0-beta.109, installed) | (installed)                               | `gateway(modelId)` — base model wrapped by the LLM strategy.                                                                                                                                                                                                                                                                                                                |
+| `@orpc/contract`, `@orpc/server` (installed)  | (installed)                               | https://orpc.unnoq.com — `base.router`, `os.<ns>.router`, `<mw>.<ns>.<path>.handler`.                                                                                                                                                                                                                                                                                       |
 
 ### Design-doc sections this plan builds on
+
 - `docs/rebuild-architecture.md §3` — Payments: Polar component, `getUserInfo`, metering strategies, hard-cap caveat.
 - `docs/rebuild-architecture.md §4b` — `result.usage` token attribution flow.
 - `docs/rebuild-architecture.md §6` — Component adoption table (`@convex-dev/polar` replaces 3 Polar tables + webhook handler).
 - `docs/rebuild-architecture.md §7.4` (event-sourced metering) + §7.1 (tenantId RLS).
 
 ### Reference-repo paths
+
 - `convex/resend.ts` — `new Resend(components.resend, …)` component-init shape (Unit 1).
 - `convex/http.ts` — `authKit.registerRoutes(http)` precedent for `polar.registerRoutes` (Unit 1).
 - `convex/convex.config.ts` — `app.use(...)` component registration (Unit 1).

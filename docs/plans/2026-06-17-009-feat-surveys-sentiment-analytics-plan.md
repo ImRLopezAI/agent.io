@@ -1,5 +1,5 @@
 ---
-title: "feat: Surveys, sentiment, analytics (aggregate)"
+title: 'feat: Surveys, sentiment, analytics (aggregate)'
 type: feat
 status: active
 date: 2026-06-17
@@ -38,6 +38,7 @@ The legacy platform has three intertwined flaws this plan resolves:
 ## Scope Boundaries
 
 **In scope:**
+
 - `surveys`, `surveyResponses`, `sentimentRules`, `sentimentAlerts` table definitions in `convex/schema.ts`
 - `@convex-dev/aggregate` + `@convex-dev/action-cache` component registration
 - Three survey capture paths (voice webhook, LLM extraction, manual)
@@ -58,21 +59,21 @@ The legacy platform has three intertwined flaws this plan resolves:
 
 ### Relevant Code and Patterns (repo-relative paths, verified)
 
-| Path | Role |
-|---|---|
-| `convex/schema.ts` | Currently `defineSchema({})` (base) — this plan adds 4 tables |
-| `convex/convex.config.ts` | Registers components via `app.use(...)` (currently `workOSAuthKit`, `resend`); add `aggregate` + `actionCache` |
-| `convex/utils.ts` | `authQuery` / `authMutation` (`zCustomQuery`/`zCustomMutation` from `convex-helpers/server/zod4`, WorkOS JWT) injecting `{ user, org }` into `ctx`; `org.organizationId` is the verified tenant id. All new domain fns use these. |
-| `src/server/rpc/init.ts` | `os` (contract-first `implement(contract).$context<RpcContextType>()`); middleware variants `auth` / `admin` / `org` / `adminOrg`. `org` adds `context.organizationId`; `adminOrg` requires admin role + active org. |
-| `src/server/rpc/contracts/base.ts` | `base = oc.errors(baseErrors)` — every contract starts from `base`, NOT raw `oc.router` |
-| `src/server/rpc/contracts/index.ts` | Assembles `contract = { health, workOs, ... }`; add `surveys`, `sentiment`, `analytics` here |
-| `src/server/rpc/contracts/health.contract.ts`, `work-os.contract.ts` | Naming convention is `*.contract.ts`; a procedure is `base.route({...}).input(...).output(...)` |
-| `src/server/rpc/routes/*.router.ts` | Naming convention is `*.router.ts`; a router is `os.<contractPath>.router({ proc: <mw>.<path>.<proc>.handler(...) })` where `<mw>` ∈ `os/auth/org/admin/adminOrg` |
-| `src/server/rpc/index.ts` | `router = os.router({ health, workOs, ... })`; mount new routers here |
-| `src/server/convex/service/server.ts` | `convex = new ConvexHttpClient(convexUrl)`; `api` from `_generated/api` — the server-side Convex client |
-| `src/server/convex/service/service.ts` | `ConvexService` proxy (`.query`/`.mutation`/`invalidateCache`) with per-call cache — preferred call surface from routers |
-| `src/server/ai/index.ts` | Default model id is `'anthropic/claude-haiku-4.5'`; `gateway(model)` from `@ai-sdk/gateway` |
-| `src/server/ai/agents/routing.ts` | `routing({description, agent})` / `customRouting(...)` helpers wrapping a `ToolLoopAgent`; uses top-level `toUIMessageStream({ stream: result.stream })` + `readUIMessageStream` (the result-method `.toUIMessageStream()` is removed in beta.178) |
+| Path                                                                 | Role                                                                                                                                                                                                                                               |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `convex/schema.ts`                                                   | Currently `defineSchema({})` (base) — this plan adds 4 tables                                                                                                                                                                                      |
+| `convex/convex.config.ts`                                            | Registers components via `app.use(...)` (currently `workOSAuthKit`, `resend`); add `aggregate` + `actionCache`                                                                                                                                     |
+| `convex/utils.ts`                                                    | `authQuery` / `authMutation` (`zCustomQuery`/`zCustomMutation` from `convex-helpers/server/zod4`, WorkOS JWT) injecting `{ user, org }` into `ctx`; `org.organizationId` is the verified tenant id. All new domain fns use these.                  |
+| `src/server/rpc/init.ts`                                             | `os` (contract-first `implement(contract).$context<RpcContextType>()`); middleware variants `auth` / `admin` / `org` / `adminOrg`. `org` adds `context.organizationId`; `adminOrg` requires admin role + active org.                               |
+| `src/server/rpc/contracts/base.ts`                                   | `base = oc.errors(baseErrors)` — every contract starts from `base`, NOT raw `oc.router`                                                                                                                                                            |
+| `src/server/rpc/contracts/index.ts`                                  | Assembles `contract = { health, workOs, ... }`; add `surveys`, `sentiment`, `analytics` here                                                                                                                                                       |
+| `src/server/rpc/contracts/health.contract.ts`, `work-os.contract.ts` | Naming convention is `*.contract.ts`; a procedure is `base.route({...}).input(...).output(...)`                                                                                                                                                    |
+| `src/server/rpc/routes/*.router.ts`                                  | Naming convention is `*.router.ts`; a router is `os.<contractPath>.router({ proc: <mw>.<path>.<proc>.handler(...) })` where `<mw>` ∈ `os/auth/org/admin/adminOrg`                                                                                  |
+| `src/server/rpc/index.ts`                                            | `router = os.router({ health, workOs, ... })`; mount new routers here                                                                                                                                                                              |
+| `src/server/convex/service/server.ts`                                | `convex = new ConvexHttpClient(convexUrl)`; `api` from `_generated/api` — the server-side Convex client                                                                                                                                            |
+| `src/server/convex/service/service.ts`                               | `ConvexService` proxy (`.query`/`.mutation`/`invalidateCache`) with per-call cache — preferred call surface from routers                                                                                                                           |
+| `src/server/ai/index.ts`                                             | Default model id is `'anthropic/claude-haiku-4.5'`; `gateway(model)` from `@ai-sdk/gateway`                                                                                                                                                        |
+| `src/server/ai/agents/routing.ts`                                    | `routing({description, agent})` / `customRouting(...)` helpers wrapping a `ToolLoopAgent`; uses top-level `toUIMessageStream({ stream: result.stream })` + `readUIMessageStream` (the result-method `.toUIMessageStream()` is removed in beta.178) |
 
 ### Design-doc sections
 
@@ -92,14 +93,14 @@ The legacy platform has three intertwined flaws this plan resolves:
 
 ## Key Technical Decisions
 
-| Decision | Rationale |
-|---|---|
-| **One `TableAggregate` instance per metric, each namespaced by `tenantId`** | The real `@convex-dev/aggregate` API has no "named aggregator on one instance" concept. Each metric is a `new TableAggregate<{ Namespace: string; Key: ...; DataModel; TableName }>(components.aggregate, { namespace: (doc) => doc.tenantId, sortKey, sumValue? })`. To register **multiple** aggregate components, use named `app.use(aggregate, { name })` and pass `components.<name>`. `namespace` keeps each org's counters isolated and reads O(log n). Avoids the legacy counter-drift problem structurally. |
+| Decision                                                                        | Rationale                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **One `TableAggregate` instance per metric, each namespaced by `tenantId`**     | The real `@convex-dev/aggregate` API has no "named aggregator on one instance" concept. Each metric is a `new TableAggregate<{ Namespace: string; Key: ...; DataModel; TableName }>(components.aggregate, { namespace: (doc) => doc.tenantId, sortKey, sumValue? })`. To register **multiple** aggregate components, use named `app.use(aggregate, { name })` and pass `components.<name>`. `namespace` keeps each org's counters isolated and reads O(log n). Avoids the legacy counter-drift problem structurally.           |
 | **LLM extraction is a Convex Node action in its OWN file, NOT in `surveys.ts`** | Convex `"use node"` is **file-level** and a `"use node"` file may NOT contain queries or mutations, and non-node files may not import a node file (https://docs.convex.dev/functions/runtimes). So the extraction action lives in `convex/extraction.ts` (`"use node"`), while `convex/surveys.ts` keeps all V8 queries/mutations. `streamText`/MCP-stdio in V8 is the known spike risk; `agent.generate()` (no tools, no stream) is lower-risk but still uses the Node runtime here for safety. Same pattern as plan 004/005. |
-| **Survey capture paths are decoupled from ingress** | Voice (`insertFromVoiceWebhook`), chat (`insertFromChatWebhook`), and text (`runLlmExtraction`) are internal Convex fns called by their owning plans (005 voice, 002 chat/per-message, 006 batch). This plan owns the capture logic, not the trigger. |
-| **`sentimentRules` evaluation is async post-fact** | Rules are evaluated in a Convex action scheduled via `ctx.scheduler.runAfter(0, ...)` after a thread/call completes a message batch — NOT inline in the webhook path. Keeps ingress latency low and lets evaluation retry independently. |
-| **`@convex-dev/action-cache` wraps the dashboard internal action** | `new ActionCache(components.actionCache, { action: internal.analytics.computeDashboard, name, ttl })`; `cache.fetch(ctx, { tenantId })`. Dashboard reads sum across several aggregate instances; a 60s TTL makes repeated loads cache hits. Explicit invalidation via `cache.remove`/`removeAll` is optional given the short TTL. |
-| **`fromSequence`/`toSequence` for model-B thread slices** | A long-running thread (model B) can produce multiple survey responses over its lifetime (`threads-model.md §7`: `1 thread : many responses`). The sequence range anchors each response to the exact `messages` slice that generated it. |
+| **Survey capture paths are decoupled from ingress**                             | Voice (`insertFromVoiceWebhook`), chat (`insertFromChatWebhook`), and text (`runLlmExtraction`) are internal Convex fns called by their owning plans (005 voice, 002 chat/per-message, 006 batch). This plan owns the capture logic, not the trigger.                                                                                                                                                                                                                                                                          |
+| **`sentimentRules` evaluation is async post-fact**                              | Rules are evaluated in a Convex action scheduled via `ctx.scheduler.runAfter(0, ...)` after a thread/call completes a message batch — NOT inline in the webhook path. Keeps ingress latency low and lets evaluation retry independently.                                                                                                                                                                                                                                                                                       |
+| **`@convex-dev/action-cache` wraps the dashboard internal action**              | `new ActionCache(components.actionCache, { action: internal.analytics.computeDashboard, name, ttl })`; `cache.fetch(ctx, { tenantId })`. Dashboard reads sum across several aggregate instances; a 60s TTL makes repeated loads cache hits. Explicit invalidation via `cache.remove`/`removeAll` is optional given the short TTL.                                                                                                                                                                                              |
+| **`fromSequence`/`toSequence` for model-B thread slices**                       | A long-running thread (model B) can produce multiple survey responses over its lifetime (`threads-model.md §7`: `1 thread : many responses`). The sequence range anchors each response to the exact `messages` slice that generated it.                                                                                                                                                                                                                                                                                        |
 
 ## Open Questions
 
@@ -198,11 +199,13 @@ flowchart TD
 **Dependencies:** Plan 001 (schema base, RLS, and — critically — the shared `Triggers` + trigger-wrapped mutation builder if 001 already owns it; otherwise this unit creates `convex/triggers.ts`). Confirm with plan 001 owner who owns `convex/triggers.ts` to avoid a double-definition.
 
 **Files:**
+
 - `convex/schema.ts` — Modify: add 4 table definitions
 - `convex/convex.config.ts` — Modify: register `aggregate` + `actionCache`
 - `convex/triggers.ts` — Create (or extend 001's): one `Triggers<DataModel>` + a `mutation`/`internalMutation` builder wrapped with `triggers.wrapDB`
 
 **Approach:**
+
 1. Add `surveys` (per-tenant definition): questions array, trigger config, status.
 2. Add `surveyResponses` (Ledger/Entry): conversation-anchored with `threadId | callId`, sequence slice, four-value source union, responses array. **No DB-level unique index** (Convex has none) — idempotency is a query-before-insert on a logical key (`by_call` + `surveyId` filter, or `by_thread` + `surveyId`+`fromSequence`).
 3. Add `sentimentRules` (Setup/Config): per-tenant keyword/regex rules with severity and match target.
@@ -326,7 +329,10 @@ export default app
 ```ts
 // convex/triggers.ts — shared Triggers instance (Unit 4 registers callbacks)
 import { Triggers } from 'convex-helpers/server/triggers'
-import { customCtx, customMutation } from 'convex-helpers/server/customFunctions'
+import {
+	customCtx,
+	customMutation,
+} from 'convex-helpers/server/customFunctions'
 import {
 	internalMutation as rawInternalMutation,
 	mutation as rawMutation,
@@ -350,12 +356,14 @@ export const internalMutation = customMutation(
 **Patterns to follow:** existing `convex/schema.ts`, `convex/convex.config.ts` (`app.use`), `convex/utils.ts` (zod4 custom builders), convex-helpers Triggers README.
 
 **Test scenarios:**
+
 - `schema compiles → node_modules/.bin/tsc --noEmit emits zero new errors`
 - `aggregate + actionCache registered → bunx convex dev does not throw component-not-found`
 - `surveyResponse.threadId and callId both optional → validator accepts a voice-only row`
 - `idempotent re-insert by (surveyId, callId, source) → query-before-insert returns existing _id (Unit 2 owns the logic; schema must support the index)`
 
 **Verification:**
+
 ```
 node_modules/.bin/tsc --noEmit
 node_modules/.bin/biome check --write convex/schema.ts convex/convex.config.ts convex/triggers.ts
@@ -372,10 +380,12 @@ node_modules/.bin/biome check --write convex/schema.ts convex/convex.config.ts c
 **Dependencies:** Unit 1 (schema); Plan 001 (`authQuery`/`authMutation` from `convex/utils.ts`).
 
 **Files:**
+
 - `convex/surveys.ts` — Create: queries + mutations (V8 runtime; **no `"use node"`**)
 - `convex/surveys.test.ts` — Create: vitest unit tests
 
 **Approach:**
+
 1. `authQuery` for listing surveys by tenant; `authMutation` for create/update/archive. Args are a plain zod-shape object.
 2. `internal.surveys.insertFromVoiceWebhook` — `internalMutation` called by plan 005's post-call webhook; idempotent by query-before-insert on `by_call` filtered to `surveyId`.
 3. `internal.surveys.insertFromChatWebhook` — `internalMutation` called by plan 002 for EL chat `data_collection`; idempotent by `by_thread` filtered to `(surveyId, source, fromSequence)`.
@@ -439,7 +449,10 @@ export const insertFromVoiceWebhook = internalMutation({
 		callId: v.id('calls'),
 		dataCollectionResults: v.any(), // ElevenLabs raw payload (plan 005 parses shape)
 	},
-	handler: async (ctx, { tenantId, surveyId, callId, dataCollectionResults }) => {
+	handler: async (
+		ctx,
+		{ tenantId, surveyId, callId, dataCollectionResults },
+	) => {
 		// idempotency: skip if already inserted for this (surveyId, callId)
 		const existing = await ctx.db
 			.query('surveyResponses')
@@ -492,11 +505,13 @@ export const insertExtracted = internalMutation({
 ```
 
 **Patterns to follow:**
+
 - `convex/utils.ts` `authQuery`/`authMutation` with zod4; args are a **plain zod-shape object**; tenant id is `ctx.org.organizationId`.
 - Idempotency: query-before-insert on a logical key (Convex has no unique constraints).
 - Keep this file V8-safe — the AI extraction lives in `convex/extraction.ts` (Unit 6).
 
 **Test scenarios:**
+
 - `insertFromVoiceWebhook → inserts response with source=voice_data_collection`
 - `insertFromVoiceWebhook called twice with same (surveyId, callId) → returns existing _id, no duplicate`
 - `listSurveys with isActive=true → returns only active surveys for the requesting tenant`
@@ -504,6 +519,7 @@ export const insertExtracted = internalMutation({
 - `createSurvey → row carries tenantId = ctx.org.organizationId`
 
 **Verification:**
+
 ```
 node_modules/.bin/tsc --noEmit
 node_modules/.bin/vp test run convex/surveys.test.ts
@@ -521,10 +537,12 @@ node_modules/.bin/biome check --write convex/surveys.ts
 **Dependencies:** Unit 1 (schema); Plan 001 (`authQuery`/`authMutation`); Plan 002 (messages table + a `messages.getForParent` read).
 
 **Files:**
+
 - `convex/sentiment.ts` — Create: queries + mutations + scheduler mutation + evaluation action
 - `convex/sentiment.test.ts` — Create: vitest tests (pure `matchRule` + handler tests)
 
 **Approach:**
+
 1. `authQuery` for listing rules and alerts per tenant/thread/call.
 2. `authMutation` for create/update/deactivate sentiment rules.
 3. `internal.sentiment.scheduleEvaluation` — `internalMutation` that `ctx.scheduler.runAfter(0, internal.sentiment.evaluate, args)`, decoupling the message-insert hot path from evaluation.
@@ -632,11 +650,13 @@ export function matchRule(
 ```
 
 **Patterns to follow:**
+
 - `ctx.scheduler.runAfter(0, internal.fn, args)` for fire-and-forget async (keeps ingress fast).
 - Pure `matchRule` testable without Convex context.
 - `authQuery` arg shape is a plain zod-shape; tenant id is `ctx.org.organizationId`.
 
 **Test scenarios:**
+
 - `matchRule keyword → matches substring case-insensitively`
 - `matchRule regex → matches regex pattern`
 - `evaluate with 2 active rules, 1 matching → inserts exactly 1 alert`
@@ -644,6 +664,7 @@ export function matchRule(
 - `listAlertsForParent → returns only alerts for the requested thread, scoped to tenant`
 
 **Verification:**
+
 ```
 node_modules/.bin/tsc --noEmit
 node_modules/.bin/vp test run convex/sentiment.test.ts
@@ -661,18 +682,20 @@ node_modules/.bin/biome check --write convex/sentiment.ts
 **Dependencies:** Unit 1 (schema + component registration + `convex/triggers.ts`); Plans 002/005/006 (the mutations that insert `messages`/`calls`/`surveyResponses`/`sentimentAlerts` must be built from the trigger-wrapped mutation builder in `convex/triggers.ts`, or the triggers won't fire).
 
 **Files:**
+
 - `convex/analytics.ts` — Create: `TableAggregate` defs + dashboard internal action + `ActionCache` + public `getDashboard` authQuery
 - `convex/triggers.ts` — Modify: register `aggregate.trigger()` for each table
 - `convex/analytics.test.ts` — Create: vitest tests
 
 **Approach:**
+
 1. Define one `TableAggregate` per metric, each namespaced by `tenantId`:
    - `aggCalls` on `calls` — `sortKey: (d) => d.createdAt`, count = number of calls.
    - `aggCallDuration` on `calls` — `sumValue: (d) => d.durationMs ?? 0`.
    - `aggMessages` on `messages` — count of turns.
    - `aggSurveyCompletions` on `surveyResponses` — count of responses.
    - `aggSentimentAlerts` on `sentimentAlerts` — count of alerts (optionally `sortKey: [severity, createdAt]` for per-severity prefix counts).
-   (`aggCalls` and `aggCallDuration` can be a SINGLE instance on `calls` with both `sortKey` + `sumValue`; split only if key spaces differ.)
+     (`aggCalls` and `aggCallDuration` can be a SINGLE instance on `calls` with both `sortKey` + `sumValue`; split only if key spaces differ.)
 2. Register each instance's `.trigger()` on the shared `Triggers` in `convex/triggers.ts`. The trigger keeps the aggregate in sync on insert/replace/delete automatically.
 3. `internal.analytics.computeDashboard` reads totals via `count`/`sum` with `{ namespace: tenantId }` and returns a typed summary.
 4. Wrap `computeDashboard` in `ActionCache` (ttl=60s). Public `getDashboard` authQuery calls `cache.fetch(ctx, { tenantId: ctx.org.organizationId })`.
@@ -788,11 +811,13 @@ triggers.register('sentimentAlerts', aggSentimentAlerts.trigger())
 ```
 
 **Patterns to follow:**
+
 - `@convex-dev/aggregate` `TableAggregate` namespace-per-tenant + `.trigger()` registration (README).
 - convex-helpers `Triggers` + `wrapDB` (single shared instance).
 - `@convex-dev/action-cache` `new ActionCache(component, { action, name, ttl })` + `cache.fetch(ctx, args)`.
 
 **Test scenarios:**
+
 - `inserting a call via wrapped mutation → aggCalls.count for that tenant increments`
 - `call with durationMs → aggCalls.sum increments by durationMs`
 - `computeDashboard for tenant A → excludes tenant B's counts (namespace isolation)`
@@ -800,6 +825,7 @@ triggers.register('sentimentAlerts', aggSentimentAlerts.trigger())
 - `deleting a surveyResponse via wrapped mutation → aggSurveyCompletions.count decrements`
 
 **Verification:**
+
 ```
 node_modules/.bin/tsc --noEmit
 node_modules/.bin/vp test run convex/analytics.test.ts
@@ -817,6 +843,7 @@ node_modules/.bin/biome check --write convex/analytics.ts convex/triggers.ts
 **Dependencies:** Unit 2 (`convex/surveys.ts`), Unit 3 (`convex/sentiment.ts`), Unit 4 (`convex/analytics.ts`); `src/server/rpc/init.ts` (`os`/`org`/`adminOrg`); `src/server/convex/service` (server Convex client).
 
 **Files:**
+
 - `src/server/rpc/contracts/surveys.contract.ts` — Create
 - `src/server/rpc/contracts/sentiment.contract.ts` — Create
 - `src/server/rpc/contracts/analytics.contract.ts` — Create
@@ -827,6 +854,7 @@ node_modules/.bin/biome check --write convex/analytics.ts convex/triggers.ts
 - `src/server/rpc/index.ts` — Modify: mount in `os.router({...})`
 
 **Approach:**
+
 1. Contracts start from `base` (`base.route({ method, path, tags, summary }).input(z...).output(z...)`), grouped into an object, and registered in `contracts/index.ts`. **No raw `oc.router`** — the existing pattern groups procedures in plain object literals and uses `os.<path>.router(...)` on the implementer side.
 2. Route handlers use `org` for reads (any active member) and `adminOrg` for create/update/delete of rules and survey definitions. The active org is `context.organizationId` (never input).
 3. Handlers call Convex through the server client — prefer the `ConvexService` proxy (`src/server/convex/service`) or `convex.query/mutation(api.<module>.<fn>, args)` from `src/server/convex/service/server.ts`. Because `listSurveys`/`listAlertsForParent` are `authQuery`s that read `ctx.org.organizationId` from the WorkOS JWT, the server client must forward the caller's auth token (VERIFY the token-forwarding path: `ConvexHttpClient.setAuth(token)` with the session access token before calling the authQuery; otherwise expose `internal` variants that take an explicit `tenantId` and call those from the router with `context.organizationId`).
@@ -929,11 +957,13 @@ const router = os.router({
 ```
 
 **Patterns to follow:**
+
 - `src/server/rpc/contracts/{base,health.contract,work-os.contract}.ts` for contract shape (`base.route(...)`, named exported input schemas).
 - `src/server/rpc/routes/work-os.router.ts` for `os.<path>.router({ proc: <mw>.<path>.<proc>.handler(...) })`, middleware imported from `init`, `context.organizationId` for tenant.
 - `src/server/convex/service/{server,service}.ts` for the server Convex client.
 
 **Test scenarios:**
+
 - `surveys.list with valid org session → returns only that tenant's surveys`
 - `surveys.create without admin role → throws NO_ADMIN_ROLE (adminOrg gate)`
 - `sentiment alerts for a thread owned by a different tenant → empty (RLS)`
@@ -941,6 +971,7 @@ const router = os.router({
 - `surveys.responses → filters by surveyId + tenant, respects limit`
 
 **Verification:**
+
 ```
 node_modules/.bin/tsc --noEmit
 node_modules/.bin/vp test run src/server/rpc/routes/surveys.router.test.ts
@@ -959,11 +990,13 @@ node_modules/.bin/biome check --write src/server/rpc/contracts/surveys.contract.
 **Dependencies:** Unit 2 (`internal.surveys.insertExtracted`, `internal.surveys.getById`); Plan 002 (`internal.messages.getSlice`); deployed Convex instance.
 
 **Files:**
+
 - `convex/extraction.ts` — Create: `"use node"` file containing `runLlmExtraction` internal action ONLY (no queries/mutations — file-constraint)
 - `convex/extraction.test.ts` — Create: unit test for the pure mapping helpers + a smoke harness
 - `docs/plans/spikes/2026-06-17-spike-convex-node-action-ai-sdk-v7.md` — Create: spike notes (if fallback needed)
 
 **Approach:**
+
 1. `convex/extraction.ts` begins with `'use node'` and exports only `runLlmExtraction` (`internalAction`). It reads survey + message slice via `ctx.runQuery`, runs a tool-less `ToolLoopAgent`, maps output, and writes via `ctx.runMutation(internal.surveys.insertExtracted, ...)`.
 2. Model: `gateway('anthropic/claude-haiku-4.5')` — note the dot (`4.5`), matching `src/server/ai/index.ts` / `constants.ts`. `gateway` from `@ai-sdk/gateway`.
 3. `ToolLoopAgent` from `ai` (v7-beta): `new ToolLoopAgent({ id, model, instructions })`, then `await agent.generate({ prompt })` → `result.text`. No tools, no stream, so `toUIMessageStream`/streaming risk does not apply.
@@ -1008,7 +1041,9 @@ export const runLlmExtraction = internalAction({
 		})
 		const result = await agent.generate({
 			prompt: messages
-				.map((m: { role: string; text?: string }) => `${m.role}: ${m.text ?? ''}`)
+				.map(
+					(m: { role: string; text?: string }) => `${m.role}: ${m.text ?? ''}`,
+				)
 				.join('\n'),
 		})
 		const responses = parseExtractionResult(result.text, survey.questions)
@@ -1060,12 +1095,14 @@ export async function extractSurveyFromMessages(opts: {
 ```
 
 **Test scenarios:**
+
 - `runLlmExtraction Node action → completes without runtime error on a deployed instance`
 - `parseExtractionResult → produces ≥1 mapped response per question for a populated transcript`
 - `runLlmExtraction V8/Node failure → fallback server fn produces identical insert`
 - `convex/extraction.ts contains no query/mutation → convex dev does not reject the "use node" file`
 
 **Verification:**
+
 ```
 node_modules/.bin/tsc --noEmit
 node_modules/.bin/vp test run convex/extraction.test.ts
@@ -1077,40 +1114,40 @@ bunx convex run extraction:runLlmExtraction '{"tenantId":"org_test","surveyId":"
 
 ## System-Wide Impact
 
-| Area | Impact |
-|---|---|
-| `convex/schema.ts` | +4 tables; no breaking change to base schema |
-| `convex/convex.config.ts` | +2 `app.use` registrations; affects deployment manifest |
-| `convex/triggers.ts` | New shared `Triggers` instance + wrapped mutation builders; **all mutations touching `calls`/`messages`/`surveyResponses`/`sentimentAlerts` must use these builders** for aggregates to update — coordinate with plans 001/002/005/006 |
-| Plan 001 (foundations) | Owns or co-owns `convex/triggers.ts`; Unit 4's `.trigger()` registrations depend on it being a single canonical instance |
-| Plan 002 (message ingress) | Calls `internal.sentiment.scheduleEvaluation` after a message batch; provides `internal.messages.getSlice` / `getForParent`; inserts via the wrapped mutation builder |
-| Plan 005 (EL post-call webhook) | Calls `internal.surveys.insertFromVoiceWebhook`; inserts `calls`/`messages` via the wrapped builder |
-| Plan 006 (batch dialing) | Calls `internal.extraction.runLlmExtraction` on batch completion for text campaigns |
-| Plan 007 (billing) | `aggSurveyCompletions` can feed a Polar meter event if surveyed conversations become billable (Polar metering via raw `@polar-sh/sdk` in an action — plan 007) |
-| oRPC `src/server/rpc/{contracts,routes,index}.ts` | +3 contracts in `contract`, +3 routers in `os.router({...})`; no conflict with health/workOs |
+| Area                                              | Impact                                                                                                                                                                                                                                 |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `convex/schema.ts`                                | +4 tables; no breaking change to base schema                                                                                                                                                                                           |
+| `convex/convex.config.ts`                         | +2 `app.use` registrations; affects deployment manifest                                                                                                                                                                                |
+| `convex/triggers.ts`                              | New shared `Triggers` instance + wrapped mutation builders; **all mutations touching `calls`/`messages`/`surveyResponses`/`sentimentAlerts` must use these builders** for aggregates to update — coordinate with plans 001/002/005/006 |
+| Plan 001 (foundations)                            | Owns or co-owns `convex/triggers.ts`; Unit 4's `.trigger()` registrations depend on it being a single canonical instance                                                                                                               |
+| Plan 002 (message ingress)                        | Calls `internal.sentiment.scheduleEvaluation` after a message batch; provides `internal.messages.getSlice` / `getForParent`; inserts via the wrapped mutation builder                                                                  |
+| Plan 005 (EL post-call webhook)                   | Calls `internal.surveys.insertFromVoiceWebhook`; inserts `calls`/`messages` via the wrapped builder                                                                                                                                    |
+| Plan 006 (batch dialing)                          | Calls `internal.extraction.runLlmExtraction` on batch completion for text campaigns                                                                                                                                                    |
+| Plan 007 (billing)                                | `aggSurveyCompletions` can feed a Polar meter event if surveyed conversations become billable (Polar metering via raw `@polar-sh/sdk` in an action — plan 007)                                                                         |
+| oRPC `src/server/rpc/{contracts,routes,index}.ts` | +3 contracts in `contract`, +3 routers in `os.router({...})`; no conflict with health/workOs                                                                                                                                           |
 
 ## Risks & Dependencies
 
-| Risk | Severity | Mitigation |
-|---|---|---|
-| `TableAggregate` constructor/`namespace`/`Key` shape differs from sketch | Medium | Read installed `@convex-dev/aggregate` `.d.ts` before Unit 4; the README API (`new TableAggregate<{Namespace,Key,DataModel,TableName}>(components.aggregate, {namespace,sortKey,sumValue})`, `count/sum(ctx,{namespace,bounds})`, `.trigger()`) is the source of truth |
-| `ActionCache.fetch` requires an action ctx, but `getDashboard` is an authQuery | Medium | A query ctx cannot run actions. Either add an `authAction` builder to `convex/utils.ts` and expose `getDashboard` as an action, or call `cache.fetch` from an action the oRPC route invokes. VERIFY against installed `.d.ts` in Unit 4 |
-| Triggers not wired (mutations bypass wrapped builder) | High | Aggregates silently drift if a mutation uses the raw builder. Enforce via a single `convex/triggers.ts` export and code-review; coordinate with plan 001 |
-| `"use node"` file constraint violated (action + query/mutation in one file) | High (now mitigated) | Extraction action lives in `convex/extraction.ts` (Unit 6), separate from `convex/surveys.ts`; non-node files must not import the node file (https://docs.convex.dev/functions/runtimes) |
-| V8/Node runtime incompatibility with AI SDK v7-beta in a Convex action | Medium | Unit 6 is an explicit spike; tool-less `agent.generate()` is low-risk; fallback server fn documented |
-| authQuery token forwarding from oRPC server client | Medium | `listSurveys`/`listAlertsForParent` read `ctx.org.organizationId` from the WorkOS JWT; the server `ConvexHttpClient` must `setAuth(accessToken)` OR the router calls `internal` variants passing `context.organizationId`. VERIFY in Unit 5 |
-| ElevenLabs `data_collection_results` shape changes | Low | Parse via a typed Zod schema at the boundary (plan 005); malformed payloads logged + skipped (no throw) |
-| LLM extraction cost per text conversation | Medium | `anthropic/claude-haiku-4.5` (cheapest); async + optional per survey config; tenant feature flag |
-| `sentimentRules` regex DoS (catastrophic backtracking) | Medium | Validate regex at create-time; reject patterns failing a guarded validator |
+| Risk                                                                           | Severity             | Mitigation                                                                                                                                                                                                                                                             |
+| ------------------------------------------------------------------------------ | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TableAggregate` constructor/`namespace`/`Key` shape differs from sketch       | Medium               | Read installed `@convex-dev/aggregate` `.d.ts` before Unit 4; the README API (`new TableAggregate<{Namespace,Key,DataModel,TableName}>(components.aggregate, {namespace,sortKey,sumValue})`, `count/sum(ctx,{namespace,bounds})`, `.trigger()`) is the source of truth |
+| `ActionCache.fetch` requires an action ctx, but `getDashboard` is an authQuery | Medium               | A query ctx cannot run actions. Either add an `authAction` builder to `convex/utils.ts` and expose `getDashboard` as an action, or call `cache.fetch` from an action the oRPC route invokes. VERIFY against installed `.d.ts` in Unit 4                                |
+| Triggers not wired (mutations bypass wrapped builder)                          | High                 | Aggregates silently drift if a mutation uses the raw builder. Enforce via a single `convex/triggers.ts` export and code-review; coordinate with plan 001                                                                                                               |
+| `"use node"` file constraint violated (action + query/mutation in one file)    | High (now mitigated) | Extraction action lives in `convex/extraction.ts` (Unit 6), separate from `convex/surveys.ts`; non-node files must not import the node file (https://docs.convex.dev/functions/runtimes)                                                                               |
+| V8/Node runtime incompatibility with AI SDK v7-beta in a Convex action         | Medium               | Unit 6 is an explicit spike; tool-less `agent.generate()` is low-risk; fallback server fn documented                                                                                                                                                                   |
+| authQuery token forwarding from oRPC server client                             | Medium               | `listSurveys`/`listAlertsForParent` read `ctx.org.organizationId` from the WorkOS JWT; the server `ConvexHttpClient` must `setAuth(accessToken)` OR the router calls `internal` variants passing `context.organizationId`. VERIFY in Unit 5                            |
+| ElevenLabs `data_collection_results` shape changes                             | Low                  | Parse via a typed Zod schema at the boundary (plan 005); malformed payloads logged + skipped (no throw)                                                                                                                                                                |
+| LLM extraction cost per text conversation                                      | Medium               | `anthropic/claude-haiku-4.5` (cheapest); async + optional per survey config; tenant feature flag                                                                                                                                                                       |
+| `sentimentRules` regex DoS (catastrophic backtracking)                         | Medium               | Validate regex at create-time; reject patterns failing a guarded validator                                                                                                                                                                                             |
 
 ## Documentation & References
 
 ### External dependencies introduced by this plan
 
-| Dependency | Install command (verified) | Canonical docs |
-|---|---|---|
-| `@convex-dev/aggregate` | `bun add @convex-dev/aggregate` (registry name verified via README `npm install @convex-dev/aggregate`) | https://www.convex.dev/components/aggregate · README https://github.com/get-convex/aggregate |
-| `@convex-dev/action-cache` | `bun add @convex-dev/action-cache` | https://www.convex.dev/components/action-cache · README https://github.com/get-convex/action-cache |
+| Dependency                 | Install command (verified)                                                                              | Canonical docs                                                                                     |
+| -------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `@convex-dev/aggregate`    | `bun add @convex-dev/aggregate` (registry name verified via README `npm install @convex-dev/aggregate`) | https://www.convex.dev/components/aggregate · README https://github.com/get-convex/aggregate       |
+| `@convex-dev/action-cache` | `bun add @convex-dev/action-cache`                                                                      | https://www.convex.dev/components/action-cache · README https://github.com/get-convex/action-cache |
 
 Both are **not yet installed** in `agent.io/node_modules` (verified 2026-06-17). After install, register in `convex/convex.config.ts` via `app.use(...)` and re-run `bunx convex dev` to codegen `components.aggregate` / `components.actionCache`.
 

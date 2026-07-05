@@ -17,6 +17,7 @@ Must land before **003** (channel adapters), **005** (voice runtime), and **004*
 
 > **CRITICAL CORRECTION (verified against installed `@workos-inc/node` 8.13.0 `.d.ts` + current WorkOS docs, 2026-06-18):**
 > The original plan's SDK surface was wrong on both halves.
+>
 > - **Vault** is an **object** API, not a `getSecret/createOrUpdateSecret` API. Real methods: `workos.vault.createObject`, `readObject`, `readObjectByName`, `updateObject`, `deleteObject`, `listObjects`, `listObjectVersions`. There is **no `organizationId` parameter** — isolation is via a `context: KeyContext` (an arbitrary `Record<string, any>`); we put `{ organizationId: tenantId }` (and optionally `provider`) there.
 > - **Pipes** exposes **exactly one** method: `workos.pipes.getAccessToken({ provider, userId, organizationId? })`. There is **no `listConnections`** and **no `getAuthorizationUrl`** on `workos.pipes`. Connection initiation is done via the **Pipes Widget**, whose token is minted server-side with `workos.widgets.getToken({ userId, organizationId })`.
 > - **Pipes is keyed by `userId` (WorkOS user id), with `organizationId` as an optional scope** — NOT by `tenantId` alone. This invalidates the original "tenantId is the sole lookup key" rule for Pipes. Vault can be keyed by org context; Pipes needs the acting user.
@@ -32,22 +33,23 @@ Rule: **OAuth provider → Pipes; static credential or PII → Vault.**
 
 ## Requirements Trace
 
-| ID | Requirement |
-|----|-------------|
-| R1 | Static provider credentials (Twilio, Meta, ElevenLabs, SIP, outbound apiKey) are stored in WorkOS Vault objects, isolated by a `KeyContext` carrying `organizationId` — never in Convex. |
-| R2 | OAuth connections (Gmail/Google, Outlook/Microsoft, Slack, HubSpot) are managed by WorkOS Pipes — no `connections` table in Convex. |
-| R3 | HubSpot is treated as a Pipes provider (resolved open question from §9). **Verified:** HubSpot is an officially supported Pipes provider (WorkOS changelog, 2026-01-12). |
-| R4 | Convex actions expose `vault.getSecret(tenantId, secretName)` and `pipes.getFreshToken({ userId, organizationId, provider })` accessors usable by 003, 004, 005. |
-| R5 | Vault lookup is keyed by Vault object **name** (deterministic, derived from `tenantId` + provider) read via `readObjectByName`. Pipes lookup is keyed by **`userId`** (acting WorkOS user) plus optional `organizationId` scope. No local FK / connections table for either. |
-| R6 | `tenant.mcpServers[].vaultSecretId` holds an opaque reference to a Vault object (its `name` or `id`) for BYO MCP static creds; never inline. |
-| R7 | oRPC routes (admin-gated) let the dashboard mint a **Pipes Widget token** (`workos.widgets.getToken`) so the frontend can render the widget and let the user connect/manage providers. (Pipes has no list/authorization-URL SDK method — see Unit 6.) |
-| R8 | oRPC routes (admin-gated) allow the dashboard to write/rotate named Vault objects for an org. |
-| R9 | Env vars for WorkOS are declared in `src/lib/env.ts` (`WORKOS_API_KEY`, `WORKOS_CLIENT_ID` already exist; reused for Vault/Pipes). Convex actions read `process.env.WORKOS_API_KEY` directly (set in the Convex dashboard Environment Variables). |
-| R10 | No Convex component is registered for Vault/Pipes — the integration is via the `@workos-inc/node` SDK inside Convex `"use node"` actions and TanStack/oRPC server handlers. |
+| ID  | Requirement                                                                                                                                                                                                                                                                  |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | Static provider credentials (Twilio, Meta, ElevenLabs, SIP, outbound apiKey) are stored in WorkOS Vault objects, isolated by a `KeyContext` carrying `organizationId` — never in Convex.                                                                                     |
+| R2  | OAuth connections (Gmail/Google, Outlook/Microsoft, Slack, HubSpot) are managed by WorkOS Pipes — no `connections` table in Convex.                                                                                                                                          |
+| R3  | HubSpot is treated as a Pipes provider (resolved open question from §9). **Verified:** HubSpot is an officially supported Pipes provider (WorkOS changelog, 2026-01-12).                                                                                                     |
+| R4  | Convex actions expose `vault.getSecret(tenantId, secretName)` and `pipes.getFreshToken({ userId, organizationId, provider })` accessors usable by 003, 004, 005.                                                                                                             |
+| R5  | Vault lookup is keyed by Vault object **name** (deterministic, derived from `tenantId` + provider) read via `readObjectByName`. Pipes lookup is keyed by **`userId`** (acting WorkOS user) plus optional `organizationId` scope. No local FK / connections table for either. |
+| R6  | `tenant.mcpServers[].vaultSecretId` holds an opaque reference to a Vault object (its `name` or `id`) for BYO MCP static creds; never inline.                                                                                                                                 |
+| R7  | oRPC routes (admin-gated) let the dashboard mint a **Pipes Widget token** (`workos.widgets.getToken`) so the frontend can render the widget and let the user connect/manage providers. (Pipes has no list/authorization-URL SDK method — see Unit 6.)                        |
+| R8  | oRPC routes (admin-gated) allow the dashboard to write/rotate named Vault objects for an org.                                                                                                                                                                                |
+| R9  | Env vars for WorkOS are declared in `src/lib/env.ts` (`WORKOS_API_KEY`, `WORKOS_CLIENT_ID` already exist; reused for Vault/Pipes). Convex actions read `process.env.WORKOS_API_KEY` directly (set in the Convex dashboard Environment Variables).                            |
+| R10 | No Convex component is registered for Vault/Pipes — the integration is via the `@workos-inc/node` SDK inside Convex `"use node"` actions and TanStack/oRPC server handlers.                                                                                                  |
 
 ## Scope Boundaries
 
 **In scope:**
+
 - Convex action module `convex/secrets/vault.ts` — `getSecret`, `putSecret`, `rotateSecret` (internal actions)
 - Convex action module `convex/secrets/pipes.ts` — `getFreshToken` (internal action). **No `listConnections`** — the SDK has no such method; the dashboard uses the Pipes Widget to show/manage connections.
 - oRPC contract + route for Vault object management (admin only)
@@ -69,16 +71,16 @@ Rule: **OAuth provider → Pipes; static credential or PII → Vault.**
 
 ### Relevant Code and Patterns
 
-| Path | Role |
-|------|------|
-| `convex/auth.config.ts` | Two `customJwt` providers already configured — `tenantId` comes off the verified token; `org.organizationId` is the tenantId |
-| `convex/utils.ts` | `authQuery` / `authMutation` (convex-helpers `zCustomQuery`/`zCustomMutation`, zod4) inject `{user, org}`; `org.organizationId` is the tenantId |
-| `convex/workos.ts` | Existing pattern: an `internalAction` that calls `authKit.workos.authorization.*`. **Note:** `authKit.workos` is the AuthKit component's SDK and does **not** expose Vault/Pipes — Unit 1 creates a fresh `new WorkOS(...)` from `process.env.WORKOS_API_KEY` instead. |
-| `src/lib/work-os.ts` | `export const workOs = new WorkOS({ apiKey: env.WORKOS_API_KEY, clientId: env.WORKOS_CLIENT_ID })` — SDK singleton for the TanStack/oRPC layer. The oRPC routes receive it via `context.workOs` (see `src/server/rpc/init.ts`). |
-| `src/lib/env.ts` | Zod-validated env, `.parse(process.env)`. `WORKOS_API_KEY`/`WORKOS_CLIENT_ID`/`BASE_URL` already declared. No new vars strictly required. |
-| `src/server/rpc/init.ts` | Contract-first oRPC: `os = implement(contract).$context<RpcContextType>()`; middleware implementers `auth` / `admin` / `org` / `adminOrg` built via `os.use(...)`. Context exposes `session` (`session.user.id`, `session.organizationId`, `session.role`), `organizationId` (added by `org`/`adminOrg`), and `workOs`. WorkOS SDK errors are remapped to typed oRPC errors in the `auth` middleware. |
-| `src/server/rpc/contracts/` | `base.ts` (`oc.errors(baseErrors)`), `*.contract.ts` files, assembled in `index.ts` as `contract = { health, workOs }`. |
-| `src/server/rpc/routes/` | `*.router.ts` files; routers walk the middleware-prefixed implementer path, e.g. `adminOrg.workOs.organization.update.handler(...)`; assembled in `src/server/rpc/index.ts` via `os.router({ ... })`. |
+| Path                        | Role                                                                                                                                                                                                                                                                                                                                                                                                  |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `convex/auth.config.ts`     | Two `customJwt` providers already configured — `tenantId` comes off the verified token; `org.organizationId` is the tenantId                                                                                                                                                                                                                                                                          |
+| `convex/utils.ts`           | `authQuery` / `authMutation` (convex-helpers `zCustomQuery`/`zCustomMutation`, zod4) inject `{user, org}`; `org.organizationId` is the tenantId                                                                                                                                                                                                                                                       |
+| `convex/workos.ts`          | Existing pattern: an `internalAction` that calls `authKit.workos.authorization.*`. **Note:** `authKit.workos` is the AuthKit component's SDK and does **not** expose Vault/Pipes — Unit 1 creates a fresh `new WorkOS(...)` from `process.env.WORKOS_API_KEY` instead.                                                                                                                                |
+| `src/lib/work-os.ts`        | `export const workOs = new WorkOS({ apiKey: env.WORKOS_API_KEY, clientId: env.WORKOS_CLIENT_ID })` — SDK singleton for the TanStack/oRPC layer. The oRPC routes receive it via `context.workOs` (see `src/server/rpc/init.ts`).                                                                                                                                                                       |
+| `src/lib/env.ts`            | Zod-validated env, `.parse(process.env)`. `WORKOS_API_KEY`/`WORKOS_CLIENT_ID`/`BASE_URL` already declared. No new vars strictly required.                                                                                                                                                                                                                                                             |
+| `src/server/rpc/init.ts`    | Contract-first oRPC: `os = implement(contract).$context<RpcContextType>()`; middleware implementers `auth` / `admin` / `org` / `adminOrg` built via `os.use(...)`. Context exposes `session` (`session.user.id`, `session.organizationId`, `session.role`), `organizationId` (added by `org`/`adminOrg`), and `workOs`. WorkOS SDK errors are remapped to typed oRPC errors in the `auth` middleware. |
+| `src/server/rpc/contracts/` | `base.ts` (`oc.errors(baseErrors)`), `*.contract.ts` files, assembled in `index.ts` as `contract = { health, workOs }`.                                                                                                                                                                                                                                                                               |
+| `src/server/rpc/routes/`    | `*.router.ts` files; routers walk the middleware-prefixed implementer path, e.g. `adminOrg.workOs.organization.update.handler(...)`; assembled in `src/server/rpc/index.ts` via `os.router({ ... })`.                                                                                                                                                                                                 |
 
 ### Design-Doc References
 
@@ -92,16 +94,16 @@ No direct AI-routing equivalence — this is infrastructure. The closest in-repo
 
 ## Key Technical Decisions
 
-| Decision | Rationale |
-|----------|-----------|
-| **No Convex component for Vault/Pipes** | WorkOS Vault and Pipes are called via the `@workos-inc/node` SDK. There is no `@convex-dev/workos-vault` component — integration is direct SDK calls inside Convex `"use node"` actions and TanStack/oRPC handlers. |
-| **All Convex accessor actions are `internalAction` and `"use node"`** | Vault objects and Pipes tokens must never be reachable from client-exposed queries/mutations. The WorkOS SDK uses Node crypto (Vault does client-side envelope decryption), so the modules must declare `"use node"` to run in Convex's Node.js runtime, not the V8 runtime. The oRPC layer (TanStack Node process) calls `context.workOs.*` directly for dashboard operations. |
-| **HubSpot → Pipes (not Vault)** | HubSpot uses standard OAuth 2.0. **Verified** HubSpot is a supported Pipes provider (WorkOS changelog "Nine new providers in WorkOS Pipes", 2026-01-12). Connections are made via the Pipes Widget; tokens fetched at call time with `getAccessToken({ provider: 'hubspot', userId, organizationId })`. No stored tokens in Convex. |
-| **Pipes is keyed by `userId`, not `tenantId`** | The SDK's `getAccessToken` requires `userId` and takes `organizationId` only as an optional scope. Pipes connections are per acting WorkOS user. Callers (003/004/005) must thread the acting user's WorkOS id through to `getFreshToken`. For automation with no human in the loop, a designated "service" user id per org must be chosen — **VERIFY** the org-service-user strategy at implementation. |
-| **Vault is keyed by object name** | WorkOS Vault has no `organizationId` param; objects are addressed by `id` or `name` (`readObjectByName`). We derive a deterministic name `{provider}/{tenantId}` and additionally stamp `context: { organizationId: tenantId, provider }` (a `KeyContext`) so the envelope encryption is cryptographically isolated per org. |
-| **Vault object naming convention: `{provider}/{tenantId}`** | e.g. `twilio_auth_token/org_01H…`, `meta_system_user_token/org_01H…`. `readObjectByName` resolves it. The convention is app-level. |
-| **oRPC Vault write routes are admin-only (`adminOrg`)** | Writing or rotating objects is a destructive org-admin action. Reads of secret *values* are never surfaced to the client (no oRPC read-value route). |
-| **Pipes connect flow = widget token, not authorization URL** | The SDK has no `getAuthorizationUrl`/`listConnections`. The oRPC route mints `workos.widgets.getToken({ userId, organizationId })` and returns it; the frontend renders the `@workos-inc/widgets` Pipes component, which handles connect/list/manage. |
+| Decision                                                              | Rationale                                                                                                                                                                                                                                                                                                                                                                                                |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **No Convex component for Vault/Pipes**                               | WorkOS Vault and Pipes are called via the `@workos-inc/node` SDK. There is no `@convex-dev/workos-vault` component — integration is direct SDK calls inside Convex `"use node"` actions and TanStack/oRPC handlers.                                                                                                                                                                                      |
+| **All Convex accessor actions are `internalAction` and `"use node"`** | Vault objects and Pipes tokens must never be reachable from client-exposed queries/mutations. The WorkOS SDK uses Node crypto (Vault does client-side envelope decryption), so the modules must declare `"use node"` to run in Convex's Node.js runtime, not the V8 runtime. The oRPC layer (TanStack Node process) calls `context.workOs.*` directly for dashboard operations.                          |
+| **HubSpot → Pipes (not Vault)**                                       | HubSpot uses standard OAuth 2.0. **Verified** HubSpot is a supported Pipes provider (WorkOS changelog "Nine new providers in WorkOS Pipes", 2026-01-12). Connections are made via the Pipes Widget; tokens fetched at call time with `getAccessToken({ provider: 'hubspot', userId, organizationId })`. No stored tokens in Convex.                                                                      |
+| **Pipes is keyed by `userId`, not `tenantId`**                        | The SDK's `getAccessToken` requires `userId` and takes `organizationId` only as an optional scope. Pipes connections are per acting WorkOS user. Callers (003/004/005) must thread the acting user's WorkOS id through to `getFreshToken`. For automation with no human in the loop, a designated "service" user id per org must be chosen — **VERIFY** the org-service-user strategy at implementation. |
+| **Vault is keyed by object name**                                     | WorkOS Vault has no `organizationId` param; objects are addressed by `id` or `name` (`readObjectByName`). We derive a deterministic name `{provider}/{tenantId}` and additionally stamp `context: { organizationId: tenantId, provider }` (a `KeyContext`) so the envelope encryption is cryptographically isolated per org.                                                                             |
+| **Vault object naming convention: `{provider}/{tenantId}`**           | e.g. `twilio_auth_token/org_01H…`, `meta_system_user_token/org_01H…`. `readObjectByName` resolves it. The convention is app-level.                                                                                                                                                                                                                                                                       |
+| **oRPC Vault write routes are admin-only (`adminOrg`)**               | Writing or rotating objects is a destructive org-admin action. Reads of secret _values_ are never surfaced to the client (no oRPC read-value route).                                                                                                                                                                                                                                                     |
+| **Pipes connect flow = widget token, not authorization URL**          | The SDK has no `getAuthorizationUrl`/`listConnections`. The oRPC route mints `workos.widgets.getToken({ userId, organizationId })` and returns it; the frontend renders the `@workos-inc/widgets` Pipes component, which handles connect/list/manage.                                                                                                                                                    |
 
 ## Open Questions
 
@@ -195,6 +197,7 @@ No new Convex tables. No schema changes in this phase. No `convex/convex.config.
 **Dependencies:** None (pre-requisite for all other Convex units)
 
 **Files:**
+
 - `convex/secrets/_workos.ts` — Create (`"use node"`)
 
 **Approach:**
@@ -221,10 +224,12 @@ export function getWorkOS(): WorkOS {
 ```
 
 **Test scenarios:**
+
 - `env var present → getWorkOS() returns a WorkOS with .vault/.pipes/.widgets` — happy path
 - `WORKOS_API_KEY missing → getWorkOS() throws descriptive error` — error path
 
 **Verification:**
+
 - `node_modules/.bin/tsc --noEmit` — zero net-new errors in touched files
 - `node_modules/.bin/biome check --write convex/secrets/_workos.ts` passes
 - (Convex `'use node'` directive is parsed at deploy; `bunx convex dev` should bundle the module without error.)
@@ -240,6 +245,7 @@ export function getWorkOS(): WorkOS {
 **Dependencies:** Unit 1, Phase 001 (`tenant` table exists; `tenantId` = `org.organizationId`)
 
 **Files:**
+
 - `convex/secrets/vault.ts` — Create (`"use node"`)
 
 **Approach (verified Vault API):**
@@ -276,7 +282,9 @@ export const getSecret = internalAction({
 	args: { tenantId: v.string(), secretName: v.string() },
 	handler: async (_ctx, { tenantId, secretName }) => {
 		const workos = getWorkOS()
-		const obj = await workos.vault.readObjectByName(secretName).catch(() => null)
+		const obj = await workos.vault
+			.readObjectByName(secretName)
+			.catch(() => null)
 		if (!obj?.value) {
 			throw new Error(
 				`Vault: object '${secretName}' not found for org ${tenantId}`,
@@ -327,18 +335,19 @@ export const rotateSecret = internalAction({
 
 Naming convention for callers (enforced by consumers, not this module):
 
-| Provider | Vault object name |
-|----------|-------------------|
-| Twilio Account SID | `twilio_account_sid/{tenantId}` |
-| Twilio Auth Token | `twilio_auth_token/{tenantId}` |
+| Provider               | Vault object name                   |
+| ---------------------- | ----------------------------------- |
+| Twilio Account SID     | `twilio_account_sid/{tenantId}`     |
+| Twilio Auth Token      | `twilio_auth_token/{tenantId}`      |
 | Meta System-User Token | `meta_system_user_token/{tenantId}` |
-| ElevenLabs API Key | `elevenlabs_api_key/{tenantId}` |
-| Outbound API Key | `apikey/{tenantId}` |
-| SIP trunk credentials | `sip_trunk_creds/{tenantId}` |
+| ElevenLabs API Key     | `elevenlabs_api_key/{tenantId}`     |
+| Outbound API Key       | `apikey/{tenantId}`                 |
+| SIP trunk credentials  | `sip_trunk_creds/{tenantId}`        |
 
 **Patterns to follow:** `convex/workos.ts` (`internalAction` + WorkOS SDK + per-call error handling).
 
 **Test scenarios:**
+
 - `valid name → getSecret returns decrypted string` — happy path
 - `unknown name → getSecret throws descriptive error` — error path
 - `putSecret (new) → createObject called; returns versionId` — happy path
@@ -346,6 +355,7 @@ Naming convention for callers (enforced by consumers, not this module):
 - `rotateSecret → getSecret returns new value` — integration (Vault sandbox or mock)
 
 **Verification:**
+
 - Outcome: `getSecret`/`putSecret`/`rotateSecret` exported as `"use node"` `internalAction`s
 - `node_modules/.bin/tsc --noEmit` — zero net-new errors in touched files
 - `node_modules/.bin/biome check --write convex/secrets/vault.ts`
@@ -361,6 +371,7 @@ Naming convention for callers (enforced by consumers, not this module):
 **Dependencies:** Unit 1
 
 **Files:**
+
 - `convex/secrets/pipes.ts` — Create (`"use node"`)
 
 **Approach (verified Pipes API):**
@@ -435,6 +446,7 @@ export const getFreshToken = internalAction({
 **Patterns to follow:** Same `internalAction` + WorkOS SDK pattern as Unit 2.
 
 **Test scenarios:**
+
 - `user with active Gmail connection → getFreshToken returns access token string` — happy path
 - `user with no HubSpot connection → throws PIPES_NOT_INSTALLED` — error path
 - `expired/revoked connection → throws PIPES_NEEDS_REAUTHORIZATION` — error path
@@ -442,6 +454,7 @@ export const getFreshToken = internalAction({
 - `token near expiry → Pipes refreshes transparently, returns valid token` — integration
 
 **Verification:**
+
 - Outcome: `getFreshToken` exported as a `"use node"` `internalAction`
 - `node_modules/.bin/tsc --noEmit` — zero net-new errors
 - `node_modules/.bin/biome check --write convex/secrets/pipes.ts`
@@ -457,6 +470,7 @@ export const getFreshToken = internalAction({
 **Dependencies:** Units 2, 3
 
 **Files:**
+
 - `convex/secrets/index.ts` — Create
 
 **Approach:**
@@ -486,22 +500,25 @@ export type PipesTokenResult = {
 ```
 
 **Test scenarios:**
+
 - `import shared types → available without pulling "use node" code into a V8 module` — static
 
 **Verification:**
+
 - `node_modules/.bin/tsc --noEmit` — zero net-new errors
 
 ---
 
 ### Unit 5 — oRPC contract + route for Vault object management
 
-**Goal:** Expose admin-gated dashboard endpoints to write/rotate named Vault objects for an org (e.g. onboarding where an admin pastes their Twilio auth token). Secret *values* are never read back to the client.
+**Goal:** Expose admin-gated dashboard endpoints to write/rotate named Vault objects for an org (e.g. onboarding where an admin pastes their Twilio auth token). Secret _values_ are never read back to the client.
 
 **Requirements:** R8
 
 **Dependencies:** Phase 001 (`org`/`adminOrg` middleware in `src/server/rpc/init.ts`)
 
 **Files:**
+
 - `src/server/rpc/contracts/secrets.contract.ts` — Create
 - `src/server/rpc/routes/secrets.router.ts` — Create
 - `src/server/rpc/contracts/index.ts` — Modify: add `secrets` to `contract`
@@ -526,10 +543,17 @@ import { base } from './base'
 export const secretsContract = {
 	vault: {
 		putSecret: base
-			.input(z.object({ secretName: z.string().min(1), value: z.string().min(1) }))
+			.input(
+				z.object({ secretName: z.string().min(1), value: z.string().min(1) }),
+			)
 			.output(z.object({ ok: z.literal(true), versionId: z.string() })),
 		rotateSecret: base
-			.input(z.object({ secretName: z.string().min(1), newValue: z.string().min(1) }))
+			.input(
+				z.object({
+					secretName: z.string().min(1),
+					newValue: z.string().min(1),
+				}),
+			)
 			.output(z.object({ ok: z.literal(true), versionId: z.string() })),
 	},
 }
@@ -609,6 +633,7 @@ const router = os.router({
 **Patterns to follow:** `src/server/rpc/routes/work-os.router.ts` (`adminOrg.workOs.organization.update.handler` + `context.workOs.*` + `context.organizationId`).
 
 **Test scenarios:**
+
 - `admin putSecret (new) → 200, ok:true, versionId present` — happy path
 - `admin putSecret (existing name) → updateObject path, new versionId` — branch
 - `non-admin putSecret → NO_ADMIN_ROLE` — error path
@@ -617,6 +642,7 @@ const router = os.router({
 - `rotateSecret unknown name → NOT_FOUND (remapped from WorkOS 404)` — error path
 
 **Verification:**
+
 - Outcome: `secretsRouter` registered; `contract.secrets` present; TypeScript resolves the implementer path
 - `node_modules/.bin/tsc --noEmit` — zero net-new errors
 - `node_modules/.bin/biome check --write` on modified files
@@ -633,6 +659,7 @@ const router = os.router({
 **Dependencies:** Phase 001 (`adminOrg` middleware)
 
 **Files:**
+
 - `src/server/rpc/contracts/secrets.contract.ts` — Modify: add `pipes` sub-contract
 - `src/server/rpc/routes/secrets.router.ts` — Modify: add `pipes` sub-router
 
@@ -679,12 +706,14 @@ import { base } from './base'
 **Patterns to follow:** Same `adminOrg.*.handler` + `context.workOs.*` + `context.session.user.id` pattern as `work-os.router.ts` (`listMyMemberships` reads `context.user.id`).
 
 **Test scenarios:**
+
 - `admin getWidgetToken → returns non-empty token string` — happy path
 - `non-admin getWidgetToken → NO_ADMIN_ROLE` — error path
 - `unauthenticated → UNAUTHORIZED` — error path
 - `no active org → NO_ACTIVE_ORGANIZATION` — error path
 
 **Verification:**
+
 - `node_modules/.bin/tsc --noEmit` — zero net-new errors
 - `node_modules/.bin/biome check --write` on modified files
 - Manual: call `secrets.pipes.getWidgetToken` as admin → returns a token consumable by the Pipes Widget
@@ -700,6 +729,7 @@ import { base } from './base'
 **Dependencies:** Units 2, 3, 4
 
 **Files:**
+
 - `convex/secrets/vault.ts` — Modify: add `getTwilioCredentials`, `getElevenLabsKey`, `getMetaSystemUserToken` wrappers
 - `convex/secrets/pipes.ts` — Modify: add `getGmailToken`, `getHubSpotToken` wrappers
 
@@ -792,6 +822,7 @@ const { accountSid, authToken } = await ctx.runAction(
 **Patterns to follow:** Convex internal action composition (`ctx.runAction(internal.*)`).
 
 **Test scenarios:**
+
 - `getTwilioCredentials → { accountSid, authToken } both non-empty` — happy path
 - `getElevenLabsKey → non-empty string` — happy path
 - `getGmailToken (user with Google connected) → { accessToken, expiresAt, scopes }` — happy path
@@ -799,6 +830,7 @@ const { accountSid, authToken } = await ctx.runAction(
 - `getHubSpotToken (no connection) → PIPES_NOT_INSTALLED` — error path
 
 **Verification:**
+
 - `node_modules/.bin/tsc --noEmit` — zero net-new errors in `convex/secrets/*.ts`
 - `node_modules/.bin/biome check --write` on modified files
 - `node_modules/.bin/vp test run convex/secrets/` if unit tests are added; otherwise type-check is the primary gate
@@ -818,24 +850,24 @@ const { accountSid, authToken } = await ctx.runAction(
 
 ## Risks & Dependencies
 
-| Risk | Severity | Mitigation |
-|------|----------|------------|
-| **Pipes requires `userId`** but autonomous agent runs (004) have no live human session | High | Decide a per-org service-user id (Open Questions). Without it, agent-initiated Pipes calls have no `userId` and will fail. Resolve before 004. |
-| Installed `@workos-inc/node@8.13.0` lags latest `10.4.0` | Medium | `.d.ts` confirms `vault.*`, `pipes.getAccessToken`, `widgets.getToken` exist at 8.13.0. If upgrading, re-verify these three surfaces (Open Questions VERIFY). |
-| Vault uses Node `crypto` (envelope decryption) — fails in Convex V8 runtime | High | All Convex secrets modules declare `'use node'`. Verified mandatory, not optional. |
-| Pipes provider slugs differ from guesses (`google` vs `gmail`, `microsoft` vs `outlook`, `hubspot`) | Medium | Confirm each slug in the WorkOS dashboard Pipes config before wiring consumers (Open Questions). |
-| Widget token scope: installed `WidgetScope` has no Pipes value | Low | Tutorial calls `getToken({ userId, organizationId })` with no `scopes`; follow that. VERIFY on target SDK version. |
-| Vault decrypt call volume hits rate limits for high-throughput tenants | Medium | Add an in-memory TTL cache (~60s) inside `getSecret`. Defer until observed. |
+| Risk                                                                                                | Severity | Mitigation                                                                                                                                                    |
+| --------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Pipes requires `userId`** but autonomous agent runs (004) have no live human session              | High     | Decide a per-org service-user id (Open Questions). Without it, agent-initiated Pipes calls have no `userId` and will fail. Resolve before 004.                |
+| Installed `@workos-inc/node@8.13.0` lags latest `10.4.0`                                            | Medium   | `.d.ts` confirms `vault.*`, `pipes.getAccessToken`, `widgets.getToken` exist at 8.13.0. If upgrading, re-verify these three surfaces (Open Questions VERIFY). |
+| Vault uses Node `crypto` (envelope decryption) — fails in Convex V8 runtime                         | High     | All Convex secrets modules declare `'use node'`. Verified mandatory, not optional.                                                                            |
+| Pipes provider slugs differ from guesses (`google` vs `gmail`, `microsoft` vs `outlook`, `hubspot`) | Medium   | Confirm each slug in the WorkOS dashboard Pipes config before wiring consumers (Open Questions).                                                              |
+| Widget token scope: installed `WidgetScope` has no Pipes value                                      | Low      | Tutorial calls `getToken({ userId, organizationId })` with no `scopes`; follow that. VERIFY on target SDK version.                                            |
+| Vault decrypt call volume hits rate limits for high-throughput tenants                              | Medium   | Add an in-memory TTL cache (~60s) inside `getSecret`. Defer until observed.                                                                                   |
 
 **Sibling plan dependencies:**
 
-| Phase | Plan file | Relationship |
-|-------|-----------|--------------|
-| 001 | `2026-06-17-001-feat-convex-foundations-plan.md` | Hard dependency — `tenant` table + `authQuery`/`authMutation` + oRPC middleware |
-| 003 | `2026-06-17-003-feat-channel-adapters-plan.md` | Consumer of `internal.secrets.vault.*` |
-| 004 | `2026-06-17-004-feat-agent-tools-composio-mcp-plan.md` | Consumer of `internal.secrets.pipes.*` (needs service-user id) |
-| 005 | `2026-06-17-005-feat-voice-runtime-elevenlabs-plan.md` | Consumer of `internal.secrets.vault.getElevenLabsKey` |
-| 010 | `2026-06-17-010-feat-data-migration-plan.md` | Uses `putSecret` to migrate legacy plaintext creds into Vault |
+| Phase | Plan file                                              | Relationship                                                                    |
+| ----- | ------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| 001   | `2026-06-17-001-feat-convex-foundations-plan.md`       | Hard dependency — `tenant` table + `authQuery`/`authMutation` + oRPC middleware |
+| 003   | `2026-06-17-003-feat-channel-adapters-plan.md`         | Consumer of `internal.secrets.vault.*`                                          |
+| 004   | `2026-06-17-004-feat-agent-tools-composio-mcp-plan.md` | Consumer of `internal.secrets.pipes.*` (needs service-user id)                  |
+| 005   | `2026-06-17-005-feat-voice-runtime-elevenlabs-plan.md` | Consumer of `internal.secrets.vault.getElevenLabsKey`                           |
+| 010   | `2026-06-17-010-feat-data-migration-plan.md`           | Uses `putSecret` to migrate legacy plaintext creds into Vault                   |
 
 ## Documentation & References
 

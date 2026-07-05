@@ -1,0 +1,27 @@
+{
+	"name": "@agent.io/convex",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "convex dev",
+		"deploy": "convex deploy",
+		"codegen": "convex codegen",
+		"typecheck": "tsc --noEmit",
+		"clean": "rm -rf .convex node_modules .turbo"
+	},
+	"dependencies": {
+		"@agent.io/domain": "workspace:*",
+		"@ai-sdk/gateway": "catalog:ai",
+		"@convex-dev/resend": "catalog:convex",
+		"@convex-dev/workos-authkit": "catalog:convex",
+		"ai": "catalog:ai",
+		"convex": "catalog:convex",
+		"convex-helpers": "catalog:convex",
+		"hono": "4.12.27"
+	},
+	"devDependencies": {
+		"@agent.io/ts": "workspace:*",
+		"@types/node": "26.1.0",
+		"typescript": "catalog:"
+	}
+}

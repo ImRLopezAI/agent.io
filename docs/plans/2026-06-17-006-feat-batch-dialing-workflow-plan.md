@@ -32,6 +32,7 @@ The legacy dialer is a fragile hand-crafted loop: status is a string enum that m
 ## Scope Boundaries
 
 In scope:
+
 - `convex/schema.ts` additions: `batches` + `batchConfigurations` table definitions.
 - `convex/convex.config.ts`: register `workflow`, `workpool` (named `dialWorkpool`), `rateLimiter` components.
 - `convex/batches/`: workflow definition, workpool instance, rate-limiter instance, dial-step action, enqueue/cancel/start mutations, progress + status queries.
@@ -53,6 +54,7 @@ In scope:
 ### Relevant Code and Patterns
 
 **Design doc sections:**
+
 - `docs/rebuild-architecture.md §4` — batch dialing architecture decision; the workflow/workpool/rate-limiter trio (lines 245–249).
 - `docs/rebuild-architecture.md §5` — ERD: `batches` (lines 504–510) and `batchConfigurations` (lines 511–514) shapes; `batches ||--o{ calls` (line 414).
 - `docs/rebuild-architecture.md §6` — component adoption table: `@convex-dev/workflow`, `@convex-dev/workpool`, `@convex-dev/rate-limiter` (lines 638–640).
@@ -60,6 +62,7 @@ In scope:
 - `docs/threads-model.md §2` — `calls` table definition used by the dial step.
 
 **Existing substrate (agent.io repo — already built, do not re-plan):**
+
 - `convex/convex.config.ts` — currently registers `workOSAuthKit` + `resend` only (verified: 8 lines); this plan adds `workflow`, `workpool` (`{ name: 'dialWorkpool' }`), `rateLimiter`.
 - `convex/utils.ts` — **exports only `query`, `mutation`, `authQuery`, `authMutation`** (via `zCustomQuery`/`zCustomMutation` from `convex-helpers/server/zod4`). The auth wrappers inject `{ user, org }` where `org.organizationId` comes from the WorkOS JWT. **It does NOT export `internalQuery` / `internalMutation` / `internalAction`** — those come from `./_generated/server`. (Verified by reading the file.)
 - `convex/schema.ts` — currently `defineSchema({})` (empty, 3 lines); this plan adds the first domain tables.
@@ -67,33 +70,37 @@ In scope:
 - `src/lib/rpc/index.tsx` + `src/lib/rpc/context.ts` — the dashboard talks to Convex via `@convex-dev/react-query` (`convexQuery`, `useQuery`/`useMutation`/`useAction` re-exported). This is the path batch CRUD uses.
 
 **Reference component APIs (verified against current GitHub READMEs — see Documentation & References):**
-- `@convex-dev/workflow@0.4.4` — `new WorkflowManager(components.workflow, { workpoolOptions? })`; `workflow.define({ args, returns }).handler(async (step, args): Promise<R> => …)`; **top-level** `import { start } from '@convex-dev/workflow'` → `start(ctx, internal.path.toWorkflow, args, { onComplete?, context? })` returns a `WorkflowId` (string); `step.runAction` / `step.runMutation` / `step.runQuery` / `step.runWorkflow`; `step.sleep(ms)`. **Cancellation:** `import { cancel } from '@convex-dev/workflow'` → `cancel(ctx, components.workflow, workflowId)` (in-progress `step.runAction` calls still finish). Determinism: `fetch`/env-vars/`crypto` are blocked; `Date`, `Math.random()`, `console` are *patched* (seeded/safe) — so the constraint is "no raw I/O", not "no Date".
+
+- `@convex-dev/workflow@0.4.4` — `new WorkflowManager(components.workflow, { workpoolOptions? })`; `workflow.define({ args, returns }).handler(async (step, args): Promise<R> => …)`; **top-level** `import { start } from '@convex-dev/workflow'` → `start(ctx, internal.path.toWorkflow, args, { onComplete?, context? })` returns a `WorkflowId` (string); `step.runAction` / `step.runMutation` / `step.runQuery` / `step.runWorkflow`; `step.sleep(ms)`. **Cancellation:** `import { cancel } from '@convex-dev/workflow'` → `cancel(ctx, components.workflow, workflowId)` (in-progress `step.runAction` calls still finish). Determinism: `fetch`/env-vars/`crypto` are blocked; `Date`, `Math.random()`, `console` are _patched_ (seeded/safe) — so the constraint is "no raw I/O", not "no Date".
 - `@convex-dev/workpool@0.4.7` — `new Workpool(components.dialWorkpool, { maxParallelism, retryActionsByDefault?, defaultRetryBehavior? })`; `pool.enqueueAction(ctx, internal.path.action, args, { onComplete?, context?, retry? })`; the `onComplete` handler is an `internalMutation` whose args are `vOnCompleteValidator(contextSchema)` and whose handler receives `{ workId, context, result }` where `result.kind` is `'success' | 'failed' | 'canceled'` (one 'l').
 - `@convex-dev/rate-limiter@0.3.2` — `new RateLimiter(components.rateLimiter, { name: { kind, rate, period, capacity? } })`; exports `SECOND`, `MINUTE`, `HOUR`; `rateLimiter.limit(ctx, name, { key?, count?, throws?, config?, reserve? })` returns `{ ok, retryAfter }`. **`config` lets you override the named rate/period at call time** — so per-tenant `pacePerMinute` can be passed directly; no ceiling/`count` arithmetic is needed (see correction in Unit 2).
 
 **Plan 005 dependency** (`2026-06-17-005-feat-voice-runtime-elevenlabs-plan.md`):
+
 - The outbound action is **`internal.calls.initiateOutbound`** (NOT `dialOutbound`), in flat `convex/calls.ts`. It reads `tenant.phones[phoneNumberId]`, branches on `telephonyMode`, calls the ElevenLabs SDK, and upserts a `calls` row via `internal.calls.upsert` with `status: 'pending'`, then patches `conversationId` via `internal.calls.patchConversationId`. Its arg list must include `batchId` and `contactId` (coordinate — plan 005 already lists `calls.batchId`).
 - Plan 005's `calls.batchId` is declared `v.optional(v.string())` (stores `batches._id` as a string) with a `by_batch` index. **NOTE the cross-plan inconsistency:** plan 009 line 221 declares `calls.batchId` as `v.optional(v.id('batches'))`. See Open Questions → VERIFY.
 
 **Plan 009 dependency** (`2026-06-17-009-feat-surveys-sentiment-analytics-plan.md`):
+
 - Plan 009 does **not** expose `internal.aggregates.*` increment/progress functions. It registers `@convex-dev/aggregate` and maintains named aggregators (e.g. `calls_total`, `calls_duration_ms`) via **Convex Triggers on the `calls` table** (`insert` fires `aggregate.insert(namespace=tenantId, …)`), with `tenantId` as the aggregate namespace. Its dashboard read is `convex/analytics.ts:dashboardSummary` (action-cache wrapped). Consequently this plan must NOT call increment mutations from `dialOne`; the `calls` insert that plan 005 performs automatically feeds plan 009's Trigger. Batch progress is read either from a plan-009 aggregator scoped to `(namespace=tenantId, batchId bound)` if plan 009 adds a `calls`-by-batch aggregator, or — for MVP — by counting the `calls.by_batch` index. See Open Questions → VERIFY.
 
 ## Key Technical Decisions
 
-| Decision | Rationale |
-|---|---|
-| One `WorkflowManager` workflow per batch (not a cron loop) | Durability is the point: the workflow survives restarts, carries loop state as durable step outputs, and is observable/cancellable via the Convex dashboard. The legacy `autoStart` cron and `paused/resuming` string states are deleted. |
-| **Dashboard reaches batch functions directly via Convex (`@convex-dev/react-query`), not oRPC** | The repo's oRPC layer (`src/server/rpc`) wraps the WorkOS Management API and has no Convex client in its context (`RpcContextType` = `{ headers, resHeaders, session, workOs }`). Batch CRUD is plain Convex `authMutation`/`authQuery` reached through the same client the rest of the dashboard uses. This corrects the original plan's oRPC route unit, which assumed a non-existent `context.convex`. |
-| Workpool `maxParallelism` is a compile-time config (not per-tenant) | Per-tenant parallelism would require dynamic pool creation, which the component does not support. A safe platform ceiling is set at the pool definition; `pacePerMinute` is the per-tenant throttle via the rate limiter. |
-| Rate limiter `dialPace` key = `tenantId` (token bucket), **per-call `config` override** | Token bucket handles burst allowance (a tenant accumulates tokens while idle, then bursts at batch start). The rate-limiter's `config` option lets `dialOne` pass the tenant's `pacePerMinute` as the rate at call time — no ceiling/`count` arithmetic needed (the original plan's "ceiling trick" is removed). |
-| ElevenLabs provider cap as a separate fixed-window rate limit (singleton key) | ElevenLabs has a platform-level concurrent-call limit independent of any one tenant; a global fixed-window limit (no `key` arg) enforces it without coupling to tenant logic. |
-| Batch contact list stored as `contactIds: v.array(v.id('contacts'))` on `batchConfigurations`, NOT a staged table | For MVP batch sizes (hundreds to low thousands) an embedded array fits the Convex 1 MiB doc limit. A `stagedContacts` table is the deferred path for 10k+ imports (plan 010). |
-| `calls.batchId` is the only linkage — no `batchContacts` join table | Progress is read from plan 009's aggregate counters (or the `calls.by_batch` index), keeping the dial hot-path to a single `calls` upsert per call. |
-| Workflow cancellation via `batches.status = 'cancelled'` flag checked each loop iteration | `@convex-dev/workflow` *does* expose an external `cancel(ctx, components.workflow, workflowId)`, but it hard-cancels (only in-flight `step.runAction` finishes). For *graceful* drain of an already-enqueued batch we prefer the DB-flag check at the top of each loop iteration so already-enqueued workpool jobs complete naturally. (The original plan claimed no cancel API exists — that is incorrect; the flag approach is a deliberate choice, not a workaround.) |
+| Decision                                                                                                          | Rationale                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| One `WorkflowManager` workflow per batch (not a cron loop)                                                        | Durability is the point: the workflow survives restarts, carries loop state as durable step outputs, and is observable/cancellable via the Convex dashboard. The legacy `autoStart` cron and `paused/resuming` string states are deleted.                                                                                                                                                                                                                                |
+| **Dashboard reaches batch functions directly via Convex (`@convex-dev/react-query`), not oRPC**                   | The repo's oRPC layer (`src/server/rpc`) wraps the WorkOS Management API and has no Convex client in its context (`RpcContextType` = `{ headers, resHeaders, session, workOs }`). Batch CRUD is plain Convex `authMutation`/`authQuery` reached through the same client the rest of the dashboard uses. This corrects the original plan's oRPC route unit, which assumed a non-existent `context.convex`.                                                                |
+| Workpool `maxParallelism` is a compile-time config (not per-tenant)                                               | Per-tenant parallelism would require dynamic pool creation, which the component does not support. A safe platform ceiling is set at the pool definition; `pacePerMinute` is the per-tenant throttle via the rate limiter.                                                                                                                                                                                                                                                |
+| Rate limiter `dialPace` key = `tenantId` (token bucket), **per-call `config` override**                           | Token bucket handles burst allowance (a tenant accumulates tokens while idle, then bursts at batch start). The rate-limiter's `config` option lets `dialOne` pass the tenant's `pacePerMinute` as the rate at call time — no ceiling/`count` arithmetic needed (the original plan's "ceiling trick" is removed).                                                                                                                                                         |
+| ElevenLabs provider cap as a separate fixed-window rate limit (singleton key)                                     | ElevenLabs has a platform-level concurrent-call limit independent of any one tenant; a global fixed-window limit (no `key` arg) enforces it without coupling to tenant logic.                                                                                                                                                                                                                                                                                            |
+| Batch contact list stored as `contactIds: v.array(v.id('contacts'))` on `batchConfigurations`, NOT a staged table | For MVP batch sizes (hundreds to low thousands) an embedded array fits the Convex 1 MiB doc limit. A `stagedContacts` table is the deferred path for 10k+ imports (plan 010).                                                                                                                                                                                                                                                                                            |
+| `calls.batchId` is the only linkage — no `batchContacts` join table                                               | Progress is read from plan 009's aggregate counters (or the `calls.by_batch` index), keeping the dial hot-path to a single `calls` upsert per call.                                                                                                                                                                                                                                                                                                                      |
+| Workflow cancellation via `batches.status = 'cancelled'` flag checked each loop iteration                         | `@convex-dev/workflow` _does_ expose an external `cancel(ctx, components.workflow, workflowId)`, but it hard-cancels (only in-flight `step.runAction` finishes). For _graceful_ drain of an already-enqueued batch we prefer the DB-flag check at the top of each loop iteration so already-enqueued workpool jobs complete naturally. (The original plan claimed no cancel API exists — that is incorrect; the flag approach is a deliberate choice, not a workaround.) |
 
 ## Open Questions
 
 ### Resolved
+
 - **Workpool vs workflow-native parallelism:** the workflow can run steps in parallel via `Promise.all`, but it does not enforce a cross-batch ceiling. Use both — workflow orchestrates the loop, workpool bounds each dial. (Resolved.)
 - **Rate limiter placement:** `rateLimiter.limit(...)` must run in a mutation/action, never inside the deterministic workflow handler. Place it inside the `dialOne` action (the workpool job). (Resolved.)
 - **`pacePerMinute` source of truth:** stored on `batchConfigurations.pacePerMinute`, passed to the workflow as an arg, and passed to `rateLimiter.limit(..., { config })` at dial time. (Resolved.)
@@ -101,6 +108,7 @@ In scope:
 - **oRPC vs Convex for batch CRUD:** Convex `authQuery`/`authMutation` via `@convex-dev/react-query` (no oRPC). (Resolved — see Key Technical Decisions.)
 
 ### Deferred to Implementation
+
 - **VERIFY:** `calls.batchId` type discrepancy between plan 005 (`v.optional(v.string())`) and plan 009 (`v.optional(v.id('batches'))`). Align all three plans before implementation; this plan assumes the plan-005 form (`v.string()` holding `batches._id`) since plan 005 owns the `calls` table and the dial write.
 - **VERIFY:** Whether plan 009 adds a per-batch `calls` aggregator (namespace=`tenantId`, sort/bound by `batchId`) that yields `{ dialed, answered, failed }`, or whether batch progress for MVP counts the `calls.by_batch` index directly in `convex/batches/queries.ts`. The `remaining` figure = `batch.totalContacts − dialed` regardless.
 - **VERIFY:** Exact `maxParallelism` ceiling for the dial workpool — start at 20; confirm the current Convex plan's concurrent-action ceiling and ElevenLabs concurrent-call limit before raising.
@@ -175,6 +183,7 @@ Progress query (reactive)
 **Dependencies:** plan 001 (schema base established, `contacts` table exists for id references).
 
 **Files:**
+
 - `convex/schema.ts` — Modify: add `batches` and `batchConfigurations` table definitions.
 
 **Approach:**
@@ -192,7 +201,11 @@ export default defineSchema({
 	batchConfigurations: defineTable({
 		tenantId: v.string(),
 		name: v.string(),
-		channel: v.union(v.literal('voice'), v.literal('sms'), v.literal('whatsapp')),
+		channel: v.union(
+			v.literal('voice'),
+			v.literal('sms'),
+			v.literal('whatsapp'),
+		),
 		agentId: v.optional(v.string()), // ElevenLabs agent externalId (voice)
 		phoneId: v.optional(v.string()), // phoneNumberId from tenant.phones[]
 		scriptId: v.optional(v.id('scripts')),
@@ -211,7 +224,11 @@ export default defineSchema({
 	batches: defineTable({
 		tenantId: v.string(),
 		configurationId: v.id('batchConfigurations'),
-		channel: v.union(v.literal('voice'), v.literal('sms'), v.literal('whatsapp')),
+		channel: v.union(
+			v.literal('voice'),
+			v.literal('sms'),
+			v.literal('whatsapp'),
+		),
 		status: v.union(
 			v.literal('draft'),
 			v.literal('running'),
@@ -233,12 +250,14 @@ export default defineSchema({
 **Patterns to follow:** every table has `tenantId: v.string()` required (design doc §7); no nullable tenant key. Tabs + single quotes + no semicolons (Biome).
 
 **Test scenarios:**
+
 - `batches` insert with `status: 'draft'` → round-trips; `by_tenant_status` index returns it.
 - `batches.workflowRunId` starts `undefined`, is patched to a string after start → `db.get` returns updated doc.
 - `batchConfigurations.contactIds` empty array → insert succeeds (valid draft state).
 - `batchConfigurations` with `channel: 'sms'` and no `agentId` → insert allowed (voice fields optional).
 
 **Verification:**
+
 ```
 node_modules/.bin/tsc --noEmit
 node_modules/.bin/biome check --write convex/schema.ts
@@ -255,11 +274,13 @@ node_modules/.bin/biome check --write convex/schema.ts
 **Dependencies:** unit 1 (schema exists so `_generated/api` regenerates with the new tables).
 
 **Install (not yet in `node_modules`):**
+
 ```
 bun add @convex-dev/workflow@0.4.4 @convex-dev/workpool@0.4.7 @convex-dev/rate-limiter@0.3.2
 ```
 
 **Files:**
+
 - `convex/convex.config.ts` — Modify: add `workflow`, `workpool` (`{ name: 'dialWorkpool' }`), `rateLimiter`.
 - `convex/batches/pool.ts` — Create: `Workpool` instance export.
 - `convex/batches/rateLimiter.ts` — Create: `RateLimiter` instance with `dialPace` + `elOutbound` limits.
@@ -318,11 +339,13 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
 **Patterns to follow:** import `components` from `../_generated/api` (regenerated by `convex dev`); component `convex.config` imports use the `.js` suffix (matches the workflow/workpool/rate-limiter READMEs and the existing resend/workos pattern).
 
 **Test scenarios:**
+
 - After registration, `bunx convex dev --once` compiles and `_generated/api.ts` includes `components.workflow`, `components.dialWorkpool`, `components.rateLimiter`.
 - `rateLimiter.limit(ctx, 'dialPace', { key: 'org_test', config: { kind: 'token bucket', rate: 10, period: MINUTE, capacity: 10 } })` → `ok: true` on first call, depletes a token.
 - `dialPool` exported from `pool.ts` is a `Workpool` instance.
 
 **Verification:**
+
 ```
 node_modules/.bin/tsc --noEmit
 node_modules/.bin/biome check --write convex/convex.config.ts convex/batches/pool.ts convex/batches/rateLimiter.ts
@@ -339,12 +362,14 @@ node_modules/.bin/biome check --write convex/convex.config.ts convex/batches/poo
 **Dependencies:** unit 2 (components registered; `dialPool`/`rateLimiter` exported); unit 1 (schema); plan 005 (`internal.calls.initiateOutbound` exists).
 
 **Files:**
+
 - `convex/batches/workflow.ts` — Create: `WorkflowManager` export + `dialWorkflow` definition.
 - `convex/batches/queries.ts` — Create (internal portion): `isCancelled`, `getContactIds` internal queries.
 
 **Approach:**
 
 The workflow handler must be deterministic — no raw `fetch`/env-vars/`crypto`; all side-effects via `step.run*`. (`Date`/`Math.random` are patched and safe, but this handler needs neither.) The loop:
+
 1. Reads the contact list via `step.runQuery(internal.batches.queries.getContactIds, …)`.
 2. Iterates; at each iteration checks cancellation via `step.runQuery(internal.batches.queries.isCancelled, …)` → `break`.
 3. Enqueues a dial via `step.runMutation(internal.batches.mutations.enqueueDialOne, …)`. **Workpool `enqueueAction` must run from a mutation context, not directly inside the workflow handler**, hence the thin `enqueueDialOne` mutation.
@@ -406,7 +431,9 @@ export const dialWorkflow = workflow
 			if (paceGapMs > 0) await step.sleep(paceGapMs)
 		}
 
-		await step.runMutation(internal.batches.mutations.markCompleted, { batchId })
+		await step.runMutation(internal.batches.mutations.markCompleted, {
+			batchId,
+		})
 		return null
 	})
 ```
@@ -436,12 +463,14 @@ export const getContactIds = internalQuery({
 **Patterns to follow:** workflow handler deterministic; all mutations/queries/actions via `step.run*`; `internalQuery` from `./_generated/server`. Function reference is `internal.batches.queries.getContactIds` etc. (folder `batches`, file `queries`, export name).
 
 **Test scenarios:**
+
 - 3-contact batch, no cancellation → `enqueueDialOne` called 3×, `markCompleted` once.
 - `isCancelled` returns `true` after the 1st contact → loop breaks; `enqueueDialOne` called once; `markCompleted` still called.
 - `pacePerMinute: 30` → `step.sleep` called with ≈ 1600 ms gap.
 - Simulated restart mid-loop → re-hydrates from the last completed step (validate via the workflow component's status helper).
 
 **Verification:**
+
 ```
 node_modules/.bin/tsc --noEmit
 node_modules/.bin/vp test run convex/batches/__tests__/workflow.test.ts
@@ -459,12 +488,14 @@ node_modules/.bin/biome check --write convex/batches/workflow.ts convex/batches/
 **Dependencies:** unit 2 (pool + rateLimiter); unit 3 (workflow calls `enqueueDialOne`); plan 005 (`internal.calls.initiateOutbound` + `calls` table).
 
 **Files:**
+
 - `convex/batches/actions.ts` — Create: `dialOne` internal action.
 - `convex/batches/mutations.ts` — Create: `enqueueDialOne`, `onDialComplete`, `markCompleted`, `cancelBatch`, `createConfiguration`, `createAndStartBatch`, `onWorkflowComplete`.
 
 **Approach:**
 
 `dialOne` is an `internalAction` (from `./_generated/server`). It:
+
 1. `rateLimiter.limit(ctx, 'dialPace', { key: tenantId, throws: true, config: { kind: 'token bucket', rate: pacePerMinute, period: MINUTE, capacity: pacePerMinute } })` — per-tenant pace via the `config` override (no `count` math).
 2. `rateLimiter.limit(ctx, 'elOutbound', { throws: true })` — global EL cap (singleton).
 3. `ctx.runAction(internal.calls.initiateOutbound, { tenantId, contactId, agentId, phoneId, batchId })` — plan 005 creates the ElevenLabs call + upserts the `calls` row.
@@ -670,6 +701,7 @@ export const cancelBatch = internalMutation({
 **Patterns to follow:** `internalAction` / `internalMutation` from `./_generated/server`; `tenantId` always passed through from an already-verified context (the public wrapper in unit 5 injects `ctx.org.organizationId`); never accept a raw tenant id from untrusted client input.
 
 **Test scenarios:**
+
 - `dialOne` with `pacePerMinute: 30` → `dialPace` consumes from a 30/min bucket; `initiateOutbound` called once.
 - `dialOne` when `elOutbound` is exhausted → throws; workpool `onDialComplete` gets `result.kind === 'failed'`.
 - `cancelBatch` on a non-`running` batch → throws `'Batch not running'`.
@@ -679,6 +711,7 @@ export const cancelBatch = internalMutation({
 - `enqueueDialOne` → `dialPool.enqueueAction` called with the `onDialComplete` reference and `retry: false`.
 
 **Verification:**
+
 ```
 node_modules/.bin/tsc --noEmit
 node_modules/.bin/vp test run convex/batches/__tests__/mutations.test.ts
@@ -696,6 +729,7 @@ node_modules/.bin/biome check --write convex/batches/actions.ts convex/batches/m
 **Dependencies:** unit 1 (schema); unit 4 (`createConfiguration`, `createAndStartBatch`, `cancelBatch` internals); plan 009 (aggregate on `calls`, if available); plan 005 (`calls` table + `by_batch` index).
 
 **Files:**
+
 - `convex/batches/queries.ts` — Modify: add `getBatch`, `listBatches`, `batchProgress` `authQuery`s.
 - `convex/batches/mutations.ts` — Modify: add `createConfig`, `startBatch`, `cancel` public `authMutation` wrappers (thin: inject `ctx.org.organizationId`, delegate to the internal mutations from unit 4 via `ctx.runMutation`).
 
@@ -824,6 +858,7 @@ export const cancel = authMutation({
 **Patterns to follow:** `authQuery`/`authMutation` from `convex/utils.ts`; read tenant as `ctx.org.organizationId`; validate `tenantId === ctx.org.organizationId` before returning/mutating; use indexes (the `batchProgress` `.collect()` over `by_batch` is bounded to one batch's calls — acceptable for MVP, upgrade to the aggregate when plan 009 lands).
 
 **Test scenarios:**
+
 - `getBatch` with wrong tenant → `null` (no cross-tenant leak).
 - `listBatches` with `status: 'running'` → only running batches for this tenant.
 - `batchProgress` during an active batch → `{ batch, dialed, answered, failed, remaining }`.
@@ -831,6 +866,7 @@ export const cancel = authMutation({
 - `startBatch` → underlying `createAndStartBatch` runs with `tenantId = ctx.org.organizationId` (never client-supplied).
 
 **Verification:**
+
 ```
 node_modules/.bin/tsc --noEmit
 node_modules/.bin/vp test run convex/batches/__tests__/queries.test.ts
@@ -841,27 +877,27 @@ node_modules/.bin/biome check --write convex/batches/queries.ts convex/batches/m
 
 ## System-Wide Impact
 
-| Area | Impact |
-|---|---|
-| `convex/schema.ts` | Gains `batches` + `batchConfigurations`; first domain tables in the empty schema. |
-| `convex/convex.config.ts` | Gains `workflow`, `dialWorkpool`, `rateLimiter`. Convex deployment must be re-pushed (`bunx convex deploy`) after this change. |
-| `_generated/api.ts` | Regenerated after schema + config changes; downstream imports update automatically. |
-| `calls` table (plan 005) | `dialOne` → `internal.calls.initiateOutbound` writes `calls` rows with `batchId` set. Plan 005's `initiateOutbound` arg list must accept `batchId` and `contactId`. Coordinate. |
-| Aggregate counters (plan 009) | No direct call from this plan. Plan 009's Trigger on the `calls` insert maintains counters. `batchProgress` reads the aggregate (or `calls.by_batch` for MVP). |
-| Polar billing (plan 007) | No direct call here — Polar ingest happens in plan 005's post-call webhook; `batchId` is passed through to `calls` so plan 007 can attribute per-batch costs. |
-| Dashboard / oRPC | Batch CRUD is Convex-direct via `@convex-dev/react-query`. **No oRPC contract/route is added** — the oRPC layer stays WorkOS-only. |
+| Area                          | Impact                                                                                                                                                                          |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `convex/schema.ts`            | Gains `batches` + `batchConfigurations`; first domain tables in the empty schema.                                                                                               |
+| `convex/convex.config.ts`     | Gains `workflow`, `dialWorkpool`, `rateLimiter`. Convex deployment must be re-pushed (`bunx convex deploy`) after this change.                                                  |
+| `_generated/api.ts`           | Regenerated after schema + config changes; downstream imports update automatically.                                                                                             |
+| `calls` table (plan 005)      | `dialOne` → `internal.calls.initiateOutbound` writes `calls` rows with `batchId` set. Plan 005's `initiateOutbound` arg list must accept `batchId` and `contactId`. Coordinate. |
+| Aggregate counters (plan 009) | No direct call from this plan. Plan 009's Trigger on the `calls` insert maintains counters. `batchProgress` reads the aggregate (or `calls.by_batch` for MVP).                  |
+| Polar billing (plan 007)      | No direct call here — Polar ingest happens in plan 005's post-call webhook; `batchId` is passed through to `calls` so plan 007 can attribute per-batch costs.                   |
+| Dashboard / oRPC              | Batch CRUD is Convex-direct via `@convex-dev/react-query`. **No oRPC contract/route is added** — the oRPC layer stays WorkOS-only.                                              |
 
 ## Risks & Dependencies
 
-| Risk / Dependency | Severity | Mitigation |
-|---|---|---|
-| Plan 005 `initiateOutbound` must accept `batchId` + `contactId` | High | Coordinate with plan 005; `calls.batchId` already exists as `v.optional(v.string())` there. |
-| `calls.batchId` type mismatch across plans 005 (`v.string()`) and 009 (`v.id('batches')`) | Medium | Align before implementation; this plan assumes the plan-005 string form. VERIFY. |
-| Plan 009 aggregate shape for per-batch progress not finalized | Medium | MVP `batchProgress` counts the `calls.by_batch` index (bounded to one batch); swap to the aggregate when plan 009 publishes a per-batch `calls` aggregator. |
-| Workflow handler determinism | Low | All I/O via `step.run*`; no raw `fetch`/env/`crypto`. `Date`/`Math.random` are patched and safe but unused here. The ElevenLabs SDK call lives in `dialOne` (action, Node runtime), never in the handler. |
-| ElevenLabs concurrent-call ceiling unknown | Medium | Placeholder `elOutbound: 100/min`; confirm in the ElevenLabs dashboard and update before production. VERIFY. |
-| `batchConfigurations.contactIds` embedded array — 1 MiB doc limit | Low-Medium | Fits MVP batches (< ~5k contact ids); large-import path via `stagedContacts` deferred to plan 010. |
-| Workpool `maxParallelism: 20` shared across ALL active batches (multi-tenant) | Medium | Conservative start; raise after confirming the Convex plan's action-concurrency ceiling and the EL concurrent-call limit. High-volume tenants share the pool; revisit per-tenant isolation post-MVP. |
+| Risk / Dependency                                                                         | Severity   | Mitigation                                                                                                                                                                                                |
+| ----------------------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Plan 005 `initiateOutbound` must accept `batchId` + `contactId`                           | High       | Coordinate with plan 005; `calls.batchId` already exists as `v.optional(v.string())` there.                                                                                                               |
+| `calls.batchId` type mismatch across plans 005 (`v.string()`) and 009 (`v.id('batches')`) | Medium     | Align before implementation; this plan assumes the plan-005 string form. VERIFY.                                                                                                                          |
+| Plan 009 aggregate shape for per-batch progress not finalized                             | Medium     | MVP `batchProgress` counts the `calls.by_batch` index (bounded to one batch); swap to the aggregate when plan 009 publishes a per-batch `calls` aggregator.                                               |
+| Workflow handler determinism                                                              | Low        | All I/O via `step.run*`; no raw `fetch`/env/`crypto`. `Date`/`Math.random` are patched and safe but unused here. The ElevenLabs SDK call lives in `dialOne` (action, Node runtime), never in the handler. |
+| ElevenLabs concurrent-call ceiling unknown                                                | Medium     | Placeholder `elOutbound: 100/min`; confirm in the ElevenLabs dashboard and update before production. VERIFY.                                                                                              |
+| `batchConfigurations.contactIds` embedded array — 1 MiB doc limit                         | Low-Medium | Fits MVP batches (< ~5k contact ids); large-import path via `stagedContacts` deferred to plan 010.                                                                                                        |
+| Workpool `maxParallelism: 20` shared across ALL active batches (multi-tenant)             | Medium     | Conservative start; raise after confirming the Convex plan's action-concurrency ceiling and the EL concurrent-call limit. High-volume tenants share the pool; revisit per-tenant isolation post-MVP.      |
 
 ## Documentation & References
 
@@ -872,6 +908,7 @@ bun add @convex-dev/workflow@0.4.4
 bun add @convex-dev/workpool@0.4.7
 bun add @convex-dev/rate-limiter@0.3.2
 ```
+
 (`@convex-dev/aggregate@0.2.1` is installed by plan 009, not here.)
 
 - **@convex-dev/workflow** — https://www.convex.dev/components/workflow · README: https://github.com/get-convex/workflow ·
@@ -883,6 +920,7 @@ bun add @convex-dev/rate-limiter@0.3.2
 - **@convex-dev/aggregate** (referenced, owned by plan 009) — https://www.convex.dev/components/aggregate · README: https://github.com/get-convex/aggregate · Used implicitly: plan 009's Trigger on `calls` maintains counters this plan's `batchProgress` reads.
 
 ### Design-doc sections this plan builds on
+
 - `docs/rebuild-architecture.md §4` (lines 234–249) — voice runtime + durable workflow/workpool/rate-limiter trio.
 - `docs/rebuild-architecture.md §5` (ERD lines 414, 504–514) — `batches`, `batchConfigurations`, `batches ||--o{ calls`.
 - `docs/rebuild-architecture.md §5b` (lines 610, 613, 624–625) — `batches` = Register, `batchConfigurations` = Setup/Configuration.
@@ -890,6 +928,7 @@ bun add @convex-dev/rate-limiter@0.3.2
 - `docs/threads-model.md §2` — `calls` table definition.
 
 ### Existing agent.io substrate (verified by reading)
+
 - `convex/convex.config.ts` — current registrations (`workOSAuthKit`, `resend`).
 - `convex/utils.ts` — exports `query`, `mutation`, `authQuery`, `authMutation` only; `org.organizationId` injected from WorkOS JWT. `internal*` come from `./_generated/server`.
 - `convex/schema.ts` — currently `defineSchema({})`.
@@ -898,6 +937,7 @@ bun add @convex-dev/rate-limiter@0.3.2
 - `src/server/rpc/routes/work-os.router.ts` — reference for the contract-first oRPC pattern (WorkOS-only).
 
 ### Sibling plan dependencies
+
 - `2026-06-17-005-feat-voice-runtime-elevenlabs-plan.md` — `internal.calls.initiateOutbound`, `calls` table + `by_batch` index, `calls.batchId: v.optional(v.string())`.
 - `2026-06-17-009-feat-surveys-sentiment-analytics-plan.md` — `@convex-dev/aggregate` + Triggers on `calls`; `convex/analytics.ts:dashboardSummary` (no `internal.aggregates.*`).
 - `2026-06-17-001-feat-convex-foundations-rls-plan.md` — component-registration substrate, `contacts` table, Triggers infrastructure.

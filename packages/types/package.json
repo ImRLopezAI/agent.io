@@ -1,0 +1,12 @@
+{
+	"name": "@agent.io/ts",
+	"private": true,
+	"scripts": {
+		"clean": "rm -rf node_modules .turbo"
+	},
+	"exports": {
+		"./base.json": "./base.json",
+		"./react-app.json": "./react-app.json",
+		"./convex.json": "./convex.json"
+	}
+}

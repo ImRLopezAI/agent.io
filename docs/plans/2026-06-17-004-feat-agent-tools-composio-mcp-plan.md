@@ -1,5 +1,5 @@
 ---
-title: "feat: Agent tools — Composio (per-tenant) + BYO MCP"
+title: 'feat: Agent tools — Composio (per-tenant) + BYO MCP'
 type: feat
 status: active
 date: 2026-06-17
@@ -37,6 +37,7 @@ The current orchestrator in `src/server/ai/index.ts` is scaffolded (no real tool
 ## Scope Boundaries
 
 **In scope:**
+
 - `agents` Convex table schema + indexes + authQuery/authMutation accessors.
 - Composio tool factory (per-tenant isolation, per-specialist toolkit filter at session creation).
 - AI SDK MCP client factory (transport resolver, credential resolution via Vault action stub).
@@ -62,6 +63,7 @@ The current orchestrator in `src/server/ai/index.ts` is scaffolded (no real tool
 ### Relevant Code and Patterns
 
 **Existing AI layer (agent.io):**
+
 - `src/server/ai/index.ts` — `agentRequestHandler`: bare orchestrator with no tools; `new ToolLoopAgent({ id, model, reasoning, instructions })` + `createAgentUIStreamResponse({ agent, uiMessages, sendStart, sendFinish, sendReasoning, headers, abortSignal })` wired to `gateway(model)` from `@ai-sdk/gateway`. Default model `'anthropic/claude-haiku-4.5'`.
 - `src/server/ai/agents/routing.ts` — `routing({ description, agent })` and `customRouting({ description, agent, overrideTool })` helpers. Both build a `tool({ description, inputSchema, execute })` whose async-generator `execute` runs the sub-agent via `opts.agent.stream({ prompt, abortSignal })` and yields UIMessages through `readUIMessageStream({ stream: toUIMessageStream({ stream: result.stream }) })` — the **top-level** `toUIMessageStream`, because the result method `result.toUIMessageStream()` was removed in `ai@7.0.0-beta.178`.
 - `src/server/ai/__tests__/chat-handler.test.ts` — test pattern: `MockLanguageModelV*`, `simulateReadableStream`, mock `@ai-sdk/gateway`, import handler, assert SSE response. (VERIFY: exact mock class name in this repo — `MockLanguageModelV2`/`V4`; check at test time.)
@@ -77,11 +79,13 @@ The current orchestrator in `src/server/ai/index.ts` is scaffolded (no real tool
 - `convex/http.ts` — V8 HTTP runtime (Hono via `convex-helpers/server/hono`), hosts `agentRequestHandler`. This is the V8 boundary the Node action must NOT collapse into.
 
 **Reference repos:**
+
 - `/Users/angel/dev/sunday/sunday-ontology/apps/sunday/src/server/ai` — clean `ToolLoopAgent` factory + `tools()` helper pattern: `(model) => new ToolLoopAgent({ instructions, model, tools: tools() })`. The agent.io specialist follows this exact shape but adds Composio + MCP hydration (async).
 - `/Users/angel/dev/sunday/sunday-ontology/apps/sunday/src/server/ai/index.ts` — `createAgentUIStreamResponse` + routing-tool composition pattern.
 - `/Users/angel/dev/ontology/src/server/ai/agents` — heavier special-case sub-agents (JSON-render renderer, db-doctor) — the intent `customRouting()` exists to serve.
 
 **Design-doc sections (docs/rebuild-architecture.md):**
+
 - §2 "Agent tools" — Composio day-one, `user_id = organizationId`, toolkit-filter at session creation, no flat merge, BYO MCP via `tenant.mcpServers[]`.
 - §4b "Text agent runtime" — orchestrator + specialist flow diagram; code sketch (adapt from Next.js `after()` → TanStack server route + Convex action; `createMCPClient` import).
 - §1 `tenant.mcpServers[]` schema — `key`, `transport`, `url`, `command`, `backedBy`, `vaultSecretId`.
@@ -97,15 +101,15 @@ The current orchestrator in `src/server/ai/index.ts` is scaffolded (no real tool
 
 ## Key Technical Decisions
 
-| Decision | Rationale |
-|---|---|
-| **Composio tools resolved per-specialist invocation, scoped at session creation** | `composio.create(organizationId, { toolkits: spec.toolkits })` (or `composio.tools.get(organizationId, { toolkits })`) inside the specialist's routing-tool `execute`; each specialist gets exactly its declared toolkits. Reuses Composio's server-side token storage per tenant (`user_id`). Filtering at creation (not post-fetch slicing) is the verified-correct API. |
-| **Process-level singleton `Composio` instance** | `new Composio({ provider: new VercelProvider() })` is constructed once at module scope; only `composio.create(...)`/`composio.tools.get(...)` do I/O. (VERIFY at spike: confirm the singleton is safe to reuse across Node-action invocations — Composio constructor reads `COMPOSIO_API_KEY` from env.) |
-| **`'use node'` Convex action for `runAgentTurn`** | Composio SDK, `@ai-sdk/mcp` `createMCPClient` (esp. stdio), and the AI SDK tool loop require Node.js. Convex V8 HTTP actions (`convex/http.ts`) cannot run these safely. Node actions run in a separate runtime and call back via `ctx.runQuery`/`ctx.runMutation`/`ctx.runAction`. The TanStack server route (phase 002/003) ACKs then `ctx.scheduler.runAfter(0, internal.agentRuntime.runAgentTurn, ...)`. |
-| **BYO MCP transport is per-server config from `tenant.mcpServers[]`** | Never hardcode transport. `sse`/`http` → `MCPTransportConfig { type, url, headers }`; `stdio` → `new StdioMCPTransport({ command, args })` from `@ai-sdk/mcp/mcp-stdio`. Credentials come from the Vault action stub (phase 008). |
-| **`agents.specialists[]` embedded in the agents doc** | Specialists are bounded per agent (typically 3-8); embedding avoids an extra table + join. Agent config is read once per turn (resolved from `organizationId`). |
-| **oRPC `org`/`adminOrg` middleware enforces `organizationId` from session** | Never accept `organizationId` from client input. Matches the existing middleware in `src/server/rpc/init.ts`. Reads use `org`; mutations use `adminOrg`. |
-| **Composio + `@ai-sdk/mcp` imported in agent.io `src/server/ai/...`, called from the Convex Node action** | The Convex Node runtime shares the project root `node_modules`. The action file imports the builder from `../../src/server/ai/agents/specialist`. (VERIFY at spike: relative import across the convex↔src boundary resolves under the Convex bundler; if not, colocate the builder under `convex/` or expose via a path alias.) |
+| Decision                                                                                                  | Rationale                                                                                                                                                                                                                                                                                                                                                                                                     |
+| --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Composio tools resolved per-specialist invocation, scoped at session creation**                         | `composio.create(organizationId, { toolkits: spec.toolkits })` (or `composio.tools.get(organizationId, { toolkits })`) inside the specialist's routing-tool `execute`; each specialist gets exactly its declared toolkits. Reuses Composio's server-side token storage per tenant (`user_id`). Filtering at creation (not post-fetch slicing) is the verified-correct API.                                    |
+| **Process-level singleton `Composio` instance**                                                           | `new Composio({ provider: new VercelProvider() })` is constructed once at module scope; only `composio.create(...)`/`composio.tools.get(...)` do I/O. (VERIFY at spike: confirm the singleton is safe to reuse across Node-action invocations — Composio constructor reads `COMPOSIO_API_KEY` from env.)                                                                                                      |
+| **`'use node'` Convex action for `runAgentTurn`**                                                         | Composio SDK, `@ai-sdk/mcp` `createMCPClient` (esp. stdio), and the AI SDK tool loop require Node.js. Convex V8 HTTP actions (`convex/http.ts`) cannot run these safely. Node actions run in a separate runtime and call back via `ctx.runQuery`/`ctx.runMutation`/`ctx.runAction`. The TanStack server route (phase 002/003) ACKs then `ctx.scheduler.runAfter(0, internal.agentRuntime.runAgentTurn, ...)`. |
+| **BYO MCP transport is per-server config from `tenant.mcpServers[]`**                                     | Never hardcode transport. `sse`/`http` → `MCPTransportConfig { type, url, headers }`; `stdio` → `new StdioMCPTransport({ command, args })` from `@ai-sdk/mcp/mcp-stdio`. Credentials come from the Vault action stub (phase 008).                                                                                                                                                                             |
+| **`agents.specialists[]` embedded in the agents doc**                                                     | Specialists are bounded per agent (typically 3-8); embedding avoids an extra table + join. Agent config is read once per turn (resolved from `organizationId`).                                                                                                                                                                                                                                               |
+| **oRPC `org`/`adminOrg` middleware enforces `organizationId` from session**                               | Never accept `organizationId` from client input. Matches the existing middleware in `src/server/rpc/init.ts`. Reads use `org`; mutations use `adminOrg`.                                                                                                                                                                                                                                                      |
+| **Composio + `@ai-sdk/mcp` imported in agent.io `src/server/ai/...`, called from the Convex Node action** | The Convex Node runtime shares the project root `node_modules`. The action file imports the builder from `../../src/server/ai/agents/specialist`. (VERIFY at spike: relative import across the convex↔src boundary resolves under the Convex bundler; if not, colocate the builder under `convex/` or expose via a path alias.)                                                                               |
 
 ## Open Questions
 
@@ -205,6 +209,7 @@ Convex Node action: convex/funcs/agentRuntime.ts  ('use node')
 **Dependencies:** Phase 001 plan (`2026-06-17-001-feat-convex-foundations-plan.md`) — the `tenant` table (with `mcpServers[]`) must exist in the same schema. The `agents` table can be added in the same schema commit.
 
 **Files:**
+
 - `convex/schema.ts` — Modify (add `agents` table definition)
 
 **Approach:** Add the `agents` table to the `defineSchema({})` call. Embed `specialists[]` as `v.array(v.object({...}))` — bounded per agent, resolved in one read. Each specialist carries its own `toolkits` and `mcpServerKeys` so the runtime never infers them. `tenantId` holds the WorkOS organization id.
@@ -245,11 +250,13 @@ export default defineSchema({
 **Patterns to follow:** Design-doc §5 ERD `agents` fields; `tenant` table shape in design-doc §1 + phase-001 plan (same `tenantId: v.string()` pattern, no FK mirror).
 
 **Test scenarios:**
+
 - Schema compiles without Convex type errors.
 - `specialists` array accepts empty `[]` (agent with no tools).
 - `specialists[].toolkits: []` is valid (specialist registered for BYO MCP only).
 
 **Verification:**
+
 - `node_modules/.bin/tsc --noEmit` — zero net-new errors in `convex/schema.ts` and `convex/_generated/`.
 - `bunx convex dev --once` (or codegen) regenerates `_generated/` without error.
 - `node_modules/.bin/biome check --write convex/schema.ts`.
@@ -265,9 +272,11 @@ export default defineSchema({
 **Dependencies:** Composio packages installed at exact versions (`bun add @composio/core@0.6.7 @composio/vercel@0.6.3`).
 
 **Files:**
+
 - `src/server/ai/agents/specialist/composio.ts` — Create
 
 **Approach:** Export an async `buildComposioTools(tenantId: string, toolkits: string[]): Promise<ToolSet>` that:
+
 1. Reuses a module-level `Composio` singleton (`new Composio({ provider: new VercelProvider() })` — constructor only reads `COMPOSIO_API_KEY`; I/O happens in `create`/`tools.get`). (VERIFY singleton reuse at spike; fallback = construct per call.)
 2. Returns `{}` immediately if `toolkits` is empty (no Composio call).
 3. Resolves toolkit-scoped tools with the **session-creation** filter (verified-correct API):
@@ -303,12 +312,14 @@ export async function buildComposioTools(
 **Patterns to follow:** Design-doc §2; brief-verified correction (filter at session creation). Reference: `/Users/angel/dev/sunday/sunday-ontology/apps/sunday/src/server/ai` — `tools()` helper shape (sync there; async here for network I/O). Docs: https://docs.composio.dev/docs/providers/vercel , https://docs.composio.dev/docs/tools-direct/executing-tools .
 
 **Test scenarios:**
+
 - `buildComposioTools(tenantId, [])` → returns `{}` without calling Composio.
 - `buildComposioTools(tenantId, ['HUBSPOT'])` → calls `composio.create` with `(tenantId, { toolkits: ['HUBSPOT'] })`, returns the tool set.
 - Two calls with different `tenantId` → same singleton, distinct sessions (isolation — assert `create` called twice with distinct ids).
 - Network error from Composio propagates (no silent swallow).
 
 **Verification:**
+
 - `node_modules/.bin/vp test run src/server/ai/agents/specialist/composio.test.ts` (mock `@composio/core` + `@composio/vercel`).
 - `node_modules/.bin/tsc --noEmit`.
 - `node_modules/.bin/biome check --write src/server/ai/agents/specialist/composio.ts`.
@@ -324,9 +335,11 @@ export async function buildComposioTools(
 **Dependencies:** Unit 1 (schema for the `McpServer` shape); Phase 008 stub (`resolveVaultSecret`); `@ai-sdk/mcp` (installed `2.0.0-beta.66`).
 
 **Files:**
+
 - `src/server/ai/agents/specialist/mcp.ts` — Create
 
 **Approach:** Export `buildMcpClients(mcpServerKeys, mcpServers)` that:
+
 1. Returns empty + no-op `close` if `mcpServerKeys` is empty.
 2. Filters `mcpServers` by `key ∈ mcpServerKeys`.
 3. Resolves transport per server:
@@ -379,7 +392,10 @@ export async function buildMcpClients(
 			// stdio: only valid in 'use node' (Node action) — NEVER from V8 HTTP.
 			if (s.transport === 'stdio' && s.command) {
 				return createMCPClient({
-					transport: new StdioMCPTransport({ command: s.command, args: s.args }),
+					transport: new StdioMCPTransport({
+						command: s.command,
+						args: s.args,
+					}),
 				})
 			}
 			const transport: MCPTransportConfig = {
@@ -391,7 +407,9 @@ export async function buildMcpClients(
 		}),
 	)
 
-	const toolSets = (await Promise.all(clients.map((c) => c.tools()))) as ToolSet[]
+	const toolSets = (await Promise.all(
+		clients.map((c) => c.tools()),
+	)) as ToolSet[]
 	let closed = false
 	const close = async () => {
 		if (closed) return
@@ -405,6 +423,7 @@ export async function buildMcpClients(
 **Patterns to follow:** Design-doc §4b (`createMCPClient`), §1 `tenant.mcpServers[]` schema; `src/server/ai/agents/routing.ts` close-in-finally discipline. Docs: https://ai-sdk.dev/docs/reference/ai-sdk-core/create-mcp-client . VERIFY `StdioMCPTransport` constructor signature in `node_modules/@ai-sdk/mcp/dist/mcp-stdio/index.d.ts`.
 
 **Test scenarios:**
+
 - `buildMcpClients([], mcpServers)` → empty toolSets + no-op close, no client opened.
 - `buildMcpClients(['search'], [{ key: 'search', transport: 'sse', url: 'https://...', backedBy: 'none' }])` → opens one SSE client (`createMCPClient` from `@ai-sdk/mcp`), returns its tools.
 - `backedBy: 'vault'` → calls `resolveVaultSecret`, injects `Authorization` header.
@@ -412,6 +431,7 @@ export async function buildMcpClients(
 - `stdio` transport → builds `StdioMCPTransport`; documented as Node-only (lint/doc note, not a runtime guard).
 
 **Verification:**
+
 - `node_modules/.bin/vp test run src/server/ai/agents/specialist/mcp.test.ts` (mock `@ai-sdk/mcp` `createMCPClient` + `@ai-sdk/mcp/mcp-stdio`).
 - `node_modules/.bin/tsc --noEmit`.
 - `node_modules/.bin/biome check --write src/server/ai/agents/specialist/mcp.ts`.
@@ -427,23 +447,26 @@ export async function buildMcpClients(
 **Dependencies:** Units 2, 3; `src/server/ai/agents/routing.ts` (`routing`/`customRouting`).
 
 **Files:**
+
 - `src/server/ai/agents/specialist/builder.ts` — Create (builds one specialist `ToolLoopAgent` + its `close`)
 - `src/server/ai/agents/specialist/index.ts` — Create (exports `buildOrchestratorTools`)
 
 **Approach:**
 
 `builder.ts` — `buildSpecialist(tenantId, spec, mcpServers, defaultModel)`:
+
 1. `buildComposioTools(tenantId, spec.toolkits)` → `composioTools`.
 2. `buildMcpClients(spec.mcpServerKeys ?? [], mcpServers)` → `{ toolSets, close }`.
 3. Merge into one scoped bag: `Object.assign({}, composioTools, ...toolSets)`.
 4. Return `{ agent: new ToolLoopAgent({ model: gateway(spec.model ?? defaultModel), instructions: spec.instructions, tools }), close }`.
 
 `index.ts` — `buildOrchestratorTools(tenantId, specialists, mcpServers, defaultModel)`:
+
 - Maps each spec to a routing-tool keyed by `spec.key`.
 - Specialist is built **lazily inside `execute`** so Composio sessions + MCP clients open only when the orchestrator routes to that specialist, and `close()` runs in `finally`.
 - Returns `Record<string, ReturnType<typeof tool>>` keyed by `spec.key`.
 
-**Lazy seam — important correction:** the existing `routing()` takes a *pre-built* `ToolLoopAgent` (eager — wrong for laziness). `customRouting()` exists for special-case sub-agents, but as currently typed it *also* requires a real `agent` (it reads `opts.agent.tools` for the description). Two clean options — pick at implementation:
+**Lazy seam — important correction:** the existing `routing()` takes a _pre-built_ `ToolLoopAgent` (eager — wrong for laziness). `customRouting()` exists for special-case sub-agents, but as currently typed it _also_ requires a real `agent` (it reads `opts.agent.tools` for the description). Two clean options — pick at implementation:
 
 - **Option A (preferred): add a `lazyRouting` helper to `routing.ts`** that takes `description`, an explicit `toolNames: string[]` (for the description text, sourced from `spec` without opening a session), and a `factory: () => Promise<{ agent, close }>`. Its `execute` async-generator builds the specialist, streams via `readUIMessageStream({ stream: toUIMessageStream({ stream: result.stream }) })`, and `close()`s in `finally`. This avoids the `agent: null as never` hack entirely.
 - **Option B (interim, no routing.ts change): build the routing-tool inline** with the `ai` `tool()` primitive directly in `index.ts`, mirroring `routing.ts`'s `execute` body (shown below).
@@ -536,6 +559,7 @@ export function buildOrchestratorTools(
 **Patterns to follow:** `src/server/ai/agents/routing.ts` (`execute` body, top-level `toUIMessageStream`); `/Users/angel/dev/sunday/sunday-ontology/apps/sunday/src/server/ai/index.ts` (orchestrator routing-tool composition).
 
 **Test scenarios:**
+
 - `buildOrchestratorTools` with 2 specialists → object with 2 entries, keys = `spec.key`.
 - Routing-tool for specialist A, when its `execute` runs, opens a Composio session only for A's toolkits (assert `buildComposioTools` called with A's toolkits, never B's).
 - Routing-tool `execute` calls `close()` in `finally` even when the specialist stream throws.
@@ -543,6 +567,7 @@ export function buildOrchestratorTools(
 - Tool-name collision: two specialists each with a `search` tool → no collision at orchestrator level (orchestrator sees only `spec.key` routing-tools; each `search` is scoped inside its own specialist `ToolLoopAgent`).
 
 **Verification:**
+
 - `node_modules/.bin/vp test run src/server/ai/agents/specialist/builder.test.ts`.
 - `node_modules/.bin/tsc --noEmit`.
 - `node_modules/.bin/biome check --write src/server/ai/agents/specialist/`.
@@ -558,6 +583,7 @@ export function buildOrchestratorTools(
 **Dependencies:** Units 1, 4; `convex/funcs/agents.ts` `resolveForTurn` (Unit 6); Phase 002/003 (`internal.messages.*`, `internal.channels.send` — stubbed).
 
 **Files:**
+
 - `convex/funcs/agentRuntime.ts` — Create (`'use node'` `internalAction`)
 
 **Approach:** Read agent config + history, call `buildOrchestratorTools`, instantiate the orchestrator `ToolLoopAgent`, call `orchestrator.generate({ messages, stopWhen: isStepCount(6) })`, persist the result with usage (phase-007 metering seam), dispatch the outbound send. MCP clients close inside each specialist's `execute` `finally` (no top-level close needed). The model wrapping for Polar metering is marked with a seam comment.
@@ -630,15 +656,17 @@ export const runAgentTurn = internalAction({
 })
 ```
 
-**Patterns to follow:** Design-doc §4b `runAgentTurn` sketch (adapted Next.js → Convex `internalAction`); `convex/utils.ts` (this is *internal* — no auth at this layer; the public TanStack server route authenticates before scheduling). `'use node'` must be the first statement in the file.
+**Patterns to follow:** Design-doc §4b `runAgentTurn` sketch (adapted Next.js → Convex `internalAction`); `convex/utils.ts` (this is _internal_ — no auth at this layer; the public TanStack server route authenticates before scheduling). `'use node'` must be the first statement in the file.
 
 **Test scenarios:**
+
 - Happy path: resolves config, builds orchestrator, persists message, calls `channels.send` (Convex test harness with a seeded agent).
 - Config not found: `resolveForTurn` returns null → action throws before persisting.
 - Generate throws: `messages.append` not called; error propagates to the Convex action handler.
 - `stopWhen: isStepCount(6)` caps the loop (no infinite tool loop).
 
 **Verification:**
+
 - `node_modules/.bin/tsc --noEmit` (zero net-new errors in `convex/funcs/agentRuntime.ts`).
 - `node_modules/.bin/biome check --write convex/funcs/agentRuntime.ts`.
 - Integration: schedule `runAgentTurn` in a dev deployment with a seeded agent config; confirm Node runtime + `@ai-sdk/mcp`/Composio load (this IS the R9 spike).
@@ -654,6 +682,7 @@ export const runAgentTurn = internalAction({
 **Dependencies:** Unit 1 (schema); `convex/utils.ts` (`authQuery`, `authMutation`); phase 001 (`tenant` table for the join in `resolveForTurn`).
 
 **Files:**
+
 - `convex/funcs/agents.ts` — Create
 
 **Approach:** Use `authQuery`/`authMutation` from `convex/utils.ts` — they inject `{ user, org }`; `ctx.org.organizationId` is the tenant. Note these are built on `convex-helpers/server/zod4` (`zCustomQuery`/`zCustomMutation`), so `args` are **zod** schemas, not `convex/values` validators. Add an `internalQuery` `resolveForTurn` that joins `tenant.mcpServers` in one pass.
@@ -723,12 +752,14 @@ export const resolveForTurn = internalQuery({
 **Patterns to follow:** `convex/utils.ts` `authQuery`/`authMutation` (zod4-based — args are zod schemas, ctx has `{ user, org }`); `convex/workos.ts` for WorkOS access; design-doc §7.1 "RLS enforced by the framework." VERIFY the `tenant` table index name (`by_tenant`) against the phase-001 plan.
 
 **Test scenarios:**
+
 - `list` for `org_A` never returns `org_B` documents.
 - `get` for an agentId in another org → `null`.
 - `resolveForTurn` returns `tenantMcpServers: []` when the tenant doc is missing (graceful).
 - `upsert` sets `tenantId` from `ctx.org.organizationId`, ignores any `tenantId` in args.
 
 **Verification:**
+
 - `node_modules/.bin/tsc --noEmit`.
 - `node_modules/.bin/biome check --write convex/funcs/agents.ts`.
 - Manual: `bunx convex run agents:list` in a dev deployment with a seeded tenant.
@@ -744,6 +775,7 @@ export const resolveForTurn = internalQuery({
 **Dependencies:** Unit 6 (Convex functions); `src/server/rpc/init.ts` (`os`, `org`, `adminOrg`); `src/server/rpc/contracts/{base.ts,index.ts}`, `src/server/rpc/index.ts`.
 
 **Files:**
+
 - `src/server/rpc/contracts/agents.contract.ts` — Create
 - `src/server/rpc/routes/agents.router.ts` — Create
 - `src/server/rpc/contracts/index.ts` — Modify (add `agents` to the `contract` object)
@@ -824,6 +856,7 @@ export const agentsRouter = os.agents.router({
 **Patterns to follow:** `src/server/rpc/contracts/work-os.contract.ts` (base.route().input().output() with raw zod; named input schemas exported for client form reuse); `src/server/rpc/routes/work-os.router.ts` (`os.<ns>.router`, `org`/`adminOrg` handlers, Convex access); `src/server/rpc/init.ts` middleware. VERIFY the Convex server-client access pattern actually used in the work-os router at implementation.
 
 **Test scenarios:**
+
 - `agents.list` without auth → `UNAUTHORIZED` (from `auth` under `org`).
 - `agents.list` authed but no active org → `NO_ACTIVE_ORGANIZATION`.
 - `agents.upsert` by a non-admin → `NO_ADMIN_ROLE` (from `adminOrg`).
@@ -831,6 +864,7 @@ export const agentsRouter = os.agents.router({
 - Type inference: `organizationId` is absent from `upsert` input (enforced by `upsertAgentInput` omit).
 
 **Verification:**
+
 - `node_modules/.bin/tsc --noEmit` (zero net-new errors in `src/server/rpc/`).
 - `node_modules/.bin/biome check --write src/server/rpc/contracts/agents.contract.ts src/server/rpc/routes/agents.router.ts`.
 - Manual: call `agents.list` from a TanStack route in dev; assert typed `[]`.
@@ -847,15 +881,15 @@ export const agentsRouter = os.agents.router({
 
 ## Risks & Dependencies
 
-| Risk | Severity | Mitigation |
-|---|---|---|
-| Convex Node action cannot load `@ai-sdk/mcp` (esp. stdio) or Composio | High | R9 spike (Unit 5 integration test): schedule `runAgentTurn` in dev, confirm imports resolve + a real MCP/Composio call works. Fallback: run the tool loop in the TanStack server route (Node) and write results back to Convex. |
-| Composio SDK pre-1.0 (preview) API churn between patch versions | High | Pin exact (`@composio/core@0.6.7`, `@composio/vercel@0.6.3`); review the Composio changelog (https://docs.composio.dev/docs/changelog) at pin time; the `entity_id → user_id` rename already landed. |
-| Relative import `convex/funcs/... → src/server/ai/...` may not resolve under the Convex bundler | Medium | VERIFY at spike; fallback colocate the builder under `convex/ai/` or add a bundler-honored path alias. |
-| `customRouting`/`routing` cannot express lazy specialist construction without an `agent` | Low | Use Option B (inline `tool()` in `index.ts`) now, or add `lazyRouting` to `routing.ts` (Option A). Tracked as tech debt; both avoid the `agent: null as never` hack. |
-| Convex Node cold-start + Composio/MCP I/O per turn | Medium | Measure P95 in staging; if > 2s, cache Composio tool resolution in a short-lived cache (phase 007 action-cache component). |
-| Phase 001 `tenant` table not committed when this lands | Medium | Build Units 1-7 in a branch; merge after phase-001 schema commit. `resolveForTurn` degrades gracefully (`mcpServers: []`). |
-| WorkOS Vault `resolveVaultSecret` stub always throws | Low | Only affects `backedBy: 'vault'` MCP servers. Phase 008 implements it; until then those servers return a descriptive error. |
+| Risk                                                                                            | Severity | Mitigation                                                                                                                                                                                                                      |
+| ----------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Convex Node action cannot load `@ai-sdk/mcp` (esp. stdio) or Composio                           | High     | R9 spike (Unit 5 integration test): schedule `runAgentTurn` in dev, confirm imports resolve + a real MCP/Composio call works. Fallback: run the tool loop in the TanStack server route (Node) and write results back to Convex. |
+| Composio SDK pre-1.0 (preview) API churn between patch versions                                 | High     | Pin exact (`@composio/core@0.6.7`, `@composio/vercel@0.6.3`); review the Composio changelog (https://docs.composio.dev/docs/changelog) at pin time; the `entity_id → user_id` rename already landed.                            |
+| Relative import `convex/funcs/... → src/server/ai/...` may not resolve under the Convex bundler | Medium   | VERIFY at spike; fallback colocate the builder under `convex/ai/` or add a bundler-honored path alias.                                                                                                                          |
+| `customRouting`/`routing` cannot express lazy specialist construction without an `agent`        | Low      | Use Option B (inline `tool()` in `index.ts`) now, or add `lazyRouting` to `routing.ts` (Option A). Tracked as tech debt; both avoid the `agent: null as never` hack.                                                            |
+| Convex Node cold-start + Composio/MCP I/O per turn                                              | Medium   | Measure P95 in staging; if > 2s, cache Composio tool resolution in a short-lived cache (phase 007 action-cache component).                                                                                                      |
+| Phase 001 `tenant` table not committed when this lands                                          | Medium   | Build Units 1-7 in a branch; merge after phase-001 schema commit. `resolveForTurn` degrades gracefully (`mcpServers: []`).                                                                                                      |
+| WorkOS Vault `resolveVaultSecret` stub always throws                                            | Low      | Only affects `backedBy: 'vault'` MCP servers. Phase 008 implements it; until then those servers return a descriptive error.                                                                                                     |
 
 ## Documentation & References
 

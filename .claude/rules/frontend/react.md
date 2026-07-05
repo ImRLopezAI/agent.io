@@ -1,7 +1,7 @@
 ---
 paths:
-  - "src/**/*.ts"
-  - "src/**/*.tsx"
+  - 'src/**/*.ts'
+  - 'src/**/*.tsx'
 ---
 
 # React Rules

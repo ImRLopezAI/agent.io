@@ -1,0 +1,19 @@
+{
+	"extends": "@agent.io/ts/react-app.json",
+	"include": ["**/*.ts", "**/*.tsx"],
+	"exclude": ["node_modules"],
+	"compilerOptions": {
+		"paths": {
+			"#/*": ["./src/*"],
+			"@/*": ["./src/*"],
+			"@lib/*": ["./src/lib/*"],
+			"@server/*": ["./src/server/*"],
+			"@convex/*": ["../../packages/convex/src/_generated/*"],
+			"@convex-root/*": ["../../packages/convex/src/*"],
+			"@components/*": ["./src/components/*"],
+			"@hooks/*": ["./src/hooks/*"],
+			"@app/*": ["./src/app/*"],
+			"@ui/*": ["./src/components/ui/*"]
+		}
+	}
+}

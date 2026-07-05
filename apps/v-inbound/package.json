@@ -1,0 +1,16 @@
+{
+	"name": "@agent.io/v-inbound",
+	"type": "module",
+	"scripts": {
+		"dev": "bun run --hot src/index.ts",
+		"lint": "biome check . --write",
+		"typecheck": "tsc --noEmit",
+		"start": "bun run src/index.ts"
+	},
+	"dependencies": {
+		"hono": "catalog:server"
+	},
+	"devDependencies": {
+		"@agent.io/ts": "workspace:*"
+	}
+}

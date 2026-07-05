@@ -1,37 +1,6 @@
 {
-	"include": ["**/*.ts", "**/*.tsx"],
-	"exclude": ["docs/references/**", "docs/ref/**", "node_modules"],
+	"extends": "@agent.io/ts/base.json",
 	"compilerOptions": {
-		"target": "es2024",
-		"jsx": "react-jsx",
-		"module": "ESNext",
-		"paths": {
-			"#/*": ["./src/*"],
-			"@/*": ["./src/*"],
-			"@lib/*": ["./src/lib/*"],
-			"@server/*": ["./src/server/*"],
-			"@convex/*": ["./convex/_generated/*"],
-			"@convex-root/*": ["./convex/*"],
-			"@components/*": ["./src/components/*"],
-			"@hooks/*": ["./src/hooks/*"],
-			"@app/*": ["./src/app/*"],
-			"@ui/*": ["./src/components/ui/*"]
-		},
-		"lib": ["ES2024", "DOM", "DOM.Iterable"],
-		"types": ["vite/client"],
-
-		/* Bundler mode */
-		"moduleResolution": "bundler",
-		"allowImportingTsExtensions": true,
-		"verbatimModuleSyntax": true,
-		"noEmit": true,
-
-		/* Linting */
-		"skipLibCheck": true,
-		"strict": true,
-		"noUnusedLocals": true,
-		"noUnusedParameters": true,
-		"noFallthroughCasesInSwitch": true,
-		"noUncheckedSideEffectImports": true
+		"types": ["bun"]
 	}
 }

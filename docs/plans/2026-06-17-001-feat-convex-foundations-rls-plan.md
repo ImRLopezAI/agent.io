@@ -19,6 +19,7 @@ Phase 001 establishes the non-negotiable substrate that every subsequent phase b
 > Ground-truth note (verified against `convex/utils.ts`): `getAuthUser` returns `{ user, org }` and the input fn spreads `...user` (i.e. spreads the whole `{ user, org }` object). So inside a handler the org id is `ctx.org.organizationId` — **not** `ctx.user.org.organizationId`. The original plan's RLS sketch used `user.org.organizationId`, which is wrong; corrected throughout.
 
 Without this foundation:
+
 - Domain functions can be written that silently ignore `tenantId` — a cross-tenant data leak by omission.
 - `@convex-dev/workflow`, `workpool`, `rate-limiter`, `aggregate`, and `action-cache` are unavailable; 003–009 cannot reference them.
 - The `tenant` config row (with embedded `phones[]`, `whatsapps[]`, `widgets[]`, `mcpServers[]`) has no home — webhook routing (002+) and channel adapters (003) cannot resolve tenants.
@@ -37,6 +38,7 @@ Without this foundation:
 ## Scope Boundaries
 
 **In scope:**
+
 - `convex/convex.config.ts` — register 6 additional components.
 - `convex/schema.ts` — `tenant` table only (with `by_tenant` index).
 - `convex/utils.ts` — extend `authQuery`/`authMutation` to expose `ctx.tenantId` and wrap `ctx.db` with RLS; define the RLS rules registry.
@@ -62,13 +64,13 @@ Without this foundation:
 
 **agent.io (actual stack — the only paths that matter for implementation):**
 
-| File | Current state (verified) | Role in this plan |
-|---|---|---|
-| `convex/convex.config.ts` | imports from `@convex-dev/resend/convex.config` + `@convex-dev/workos-authkit/convex.config` (no `.js` suffix), `defineApp()`, `app.use(workOSAuthKit)`, `app.use(resend)` | Add 6 components |
-| `convex/schema.ts` | `defineSchema({})` | Add `tenant` table |
-| `convex/utils.ts` | exports `query`/`mutation` (`zCustomQuery(convexQuery, NoOp)` etc.), `authQuery`/`authMutation` (`zCustomQuery`/`zCustomMutation` with `input` calling `getAuthUser`, spreading `...user` = `{user, org}`), `AuthCtx<T>` = `ZCustomCtx<typeof authQuery|authMutation>`, plus an `includes()` query helper. `getOrgFromJwt` derives `organizationId` from `identity.organization.organizationId ?? identity.org_id` | Extend: expose `ctx.tenantId`; wrap `ctx.db` with RLS |
-| `convex/auth.config.ts` | two `customJwt` providers (SSO issuer `https://api.workos.com/` + user_management issuer `https://api.workos.com/user_management/${clientId}`) | Read-only reference; already correct |
-| `convex/auth.ts` | `authKit` instance (imported by `utils.ts`); org lifecycle event wiring | Read-only reference; Unit 6 adds `tenant.ensure` call |
+| File                      | Current state (verified)                                                                                                                                                                                                                                | Role in this plan                                                                                                                                    |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `convex/convex.config.ts` | imports from `@convex-dev/resend/convex.config` + `@convex-dev/workos-authkit/convex.config` (no `.js` suffix), `defineApp()`, `app.use(workOSAuthKit)`, `app.use(resend)`                                                                              | Add 6 components                                                                                                                                     |
+| `convex/schema.ts`        | `defineSchema({})`                                                                                                                                                                                                                                      | Add `tenant` table                                                                                                                                   |
+| `convex/utils.ts`         | exports `query`/`mutation` (`zCustomQuery(convexQuery, NoOp)` etc.), `authQuery`/`authMutation` (`zCustomQuery`/`zCustomMutation` with `input` calling `getAuthUser`, spreading `...user` = `{user, org}`), `AuthCtx<T>` = `ZCustomCtx<typeof authQuery | authMutation>`, plus an `includes()`query helper.`getOrgFromJwt`derives`organizationId`from`identity.organization.organizationId ?? identity.org_id` | Extend: expose `ctx.tenantId`; wrap `ctx.db` with RLS |
+| `convex/auth.config.ts`   | two `customJwt` providers (SSO issuer `https://api.workos.com/` + user_management issuer `https://api.workos.com/user_management/${clientId}`)                                                                                                          | Read-only reference; already correct                                                                                                                 |
+| `convex/auth.ts`          | `authKit` instance (imported by `utils.ts`); org lifecycle event wiring                                                                                                                                                                                 | Read-only reference; Unit 6 adds `tenant.ensure` call                                                                                                |
 
 **Design-doc authority (read for WHAT, adapt for HOW):**
 
@@ -85,31 +87,45 @@ Without this foundation:
 ### Verified API shapes (read from installed `.d.ts` — use these, do not re-derive)
 
 `convex-helpers/server/rowLevelSecurity.d.ts`:
+
 ```ts
 type Rule<Ctx, D> = (ctx: Ctx, doc: D) => Promise<boolean>
 export type Rules<Ctx, DataModel> = {
-  [T in TableNamesInDataModel<DataModel>]?: {
-    read?: Rule<Ctx, DocumentByName<DataModel, T>>
-    modify?: Rule<Ctx, DocumentByName<DataModel, T>>          // replace/patch/delete
-    insert?: Rule<Ctx, WithoutSystemFields<DocumentByName<DataModel, T>>>
-  }
+	[T in TableNamesInDataModel<DataModel>]?: {
+		read?: Rule<Ctx, DocumentByName<DataModel, T>>
+		modify?: Rule<Ctx, DocumentByName<DataModel, T>> // replace/patch/delete
+		insert?: Rule<Ctx, WithoutSystemFields<DocumentByName<DataModel, T>>>
+	}
 }
-export function wrapDatabaseReader<Ctx, DataModel>(ctx: Ctx, db, rules, config?): GenericDatabaseReader<DataModel>
-export function wrapDatabaseWriter<Ctx, DataModel>(ctx: Ctx, db, rules, config?): GenericDatabaseWriter<DataModel>
+export function wrapDatabaseReader<Ctx, DataModel>(
+	ctx: Ctx,
+	db,
+	rules,
+	config?,
+): GenericDatabaseReader<DataModel>
+export function wrapDatabaseWriter<Ctx, DataModel>(
+	ctx: Ctx,
+	db,
+	rules,
+	config?,
+): GenericDatabaseWriter<DataModel>
 // config?: { defaultPolicy?: "allow" | "deny" }  (default "allow")
 // NOTE: the older RowLevelSecurity({...}) middleware is @deprecated — use wrap*+customFunction.
 ```
+
 **Key correction:** RLS rules are **per-document predicates** `(ctx, doc) => Promise<boolean>`, applied row-by-row as the DB is read/written. They do **not** rewrite `db.query()` into a `.withIndex('by_tenant', …)`. A `db.query('tenant').collect()` still scans, but rows failing the `read` predicate are filtered out; `modify`/`insert` predicates **throw** on violation. (The original plan claimed the wrapper returns `db.query(table).withIndex(...)` for all tables — that is incorrect.)
 
 `convex-helpers/server/triggers.d.ts`:
+
 ```ts
 export class Triggers<DataModel, Ctx = GenericMutationCtx<DataModel>> {
-  register<T>(tableName: T, trigger: Trigger<Ctx, DataModel, T>): void
-  wrapDB: <C extends Ctx>(ctx: C) => C            // pass to customCtx(...)
+	register<T>(tableName: T, trigger: Trigger<Ctx, DataModel, T>): void
+	wrapDB: <C extends Ctx>(ctx: C) => C // pass to customCtx(...)
 }
 // Trigger = (ctx & { innerDb: GenericDatabaseWriter }, change) => Promise<void>
 // Change = { id } & ( {operation:"insert", oldDoc:null, newDoc} | {operation:"update", oldDoc, newDoc} | {operation:"delete", oldDoc, newDoc:null} )
 ```
+
 **Key correction:** there is **no** `triggers.middleware()` method. Wrap with `customMutation(rawMutation, customCtx(triggers.wrapDB))`. The trigger callback receives `ctx.innerDb` (un-triggered writer for use inside the callback) and a `change` whose update operation is `"update"` (not `"patch"`), with `oldDoc`/`newDoc`.
 
 `convex-helpers/server/zod4.d.ts`: exports `zCustomQuery`, `zCustomMutation`, `zCustomAction`, `zid`, `zodToConvex`, `zodToConvexFields`, type `ZCustomCtx` (all verified present).
@@ -219,22 +235,24 @@ convex/convex.config.ts
 **Dependencies:** None (purely additive).
 
 **Files:**
+
 - `convex/convex.config.ts` — Modify (add 6 `app.use()` calls)
 - `package.json` — Modified implicitly by `bun add`
 
 **Approach:**
 Install packages with `bun add`, then wire each component into `convex.config.ts` following the existing registration pattern (the file imports from `<pkg>/convex.config` without a `.js` suffix; keep that convention). Component packages and their export paths:
 
-| Package | Import path (repo convention) | Local name | app.use shape |
-|---|---|---|---|
-| `@convex-dev/workflow` | `@convex-dev/workflow/convex.config` | `workflow` | `app.use(workflow)` |
-| `@convex-dev/workpool` | `@convex-dev/workpool/convex.config` | `workpool` | `app.use(workpool, { name })` (named) |
-| `@convex-dev/rate-limiter` | `@convex-dev/rate-limiter/convex.config` | `rateLimiter` | `app.use(rateLimiter)` |
-| `@convex-dev/aggregate` | `@convex-dev/aggregate/convex.config` | `aggregate` | `app.use(aggregate, { name })` for >1 instance |
-| `@convex-dev/action-cache` | `@convex-dev/action-cache/convex.config` | `actionCache` | `app.use(actionCache)` |
-| `@convex-dev/migrations` | `@convex-dev/migrations/convex.config` | `migrations` | `app.use(migrations)` |
+| Package                    | Import path (repo convention)            | Local name    | app.use shape                                  |
+| -------------------------- | ---------------------------------------- | ------------- | ---------------------------------------------- |
+| `@convex-dev/workflow`     | `@convex-dev/workflow/convex.config`     | `workflow`    | `app.use(workflow)`                            |
+| `@convex-dev/workpool`     | `@convex-dev/workpool/convex.config`     | `workpool`    | `app.use(workpool, { name })` (named)          |
+| `@convex-dev/rate-limiter` | `@convex-dev/rate-limiter/convex.config` | `rateLimiter` | `app.use(rateLimiter)`                         |
+| `@convex-dev/aggregate`    | `@convex-dev/aggregate/convex.config`    | `aggregate`   | `app.use(aggregate, { name })` for >1 instance |
+| `@convex-dev/action-cache` | `@convex-dev/action-cache/convex.config` | `actionCache` | `app.use(actionCache)`                         |
+| `@convex-dev/migrations`   | `@convex-dev/migrations/convex.config`   | `migrations`  | `app.use(migrations)`                          |
 
 Install command:
+
 ```bash
 bun add @convex-dev/workflow @convex-dev/workpool @convex-dev/rate-limiter @convex-dev/aggregate @convex-dev/action-cache @convex-dev/migrations
 ```
@@ -276,6 +294,7 @@ export default app
 - **Error:** Misspelled import path (e.g. `@convex-dev/ratelimiter/...` instead of `@convex-dev/rate-limiter/...`) — TypeScript errors at import; caught by typecheck.
 
 **Verification:**
+
 - Outcome: `convex/_generated/api.d.ts` contains `components.workflow`, `components.dialWorkpool` (or whatever names you chose), `components.rateLimiter`, `components.threadCounts`, `components.actionCache`, `components.migrations`.
 - Run: `node_modules/.bin/tsc --noEmit` — zero net-new errors in `convex/convex.config.ts`.
 - Run: `node_modules/.bin/biome check --write convex/convex.config.ts` (or `bunx biome ...`).
@@ -291,6 +310,7 @@ export default app
 **Dependencies:** Unit 1 (components registered so codegen can re-run and `DataModel` updates).
 
 **Files:**
+
 - `convex/schema.ts` — Modify (replace empty `defineSchema({})`)
 
 **Approach:**
@@ -306,89 +326,93 @@ import { defineSchema, defineTable } from 'convex/server'
 import { v } from 'convex/values'
 
 export default defineSchema({
-  tenant: defineTable({
-    tenantId: v.string(), // WorkOS org id — unique by convention (enforced in mutation)
-    timezone: v.optional(v.string()),
-    branding: v.optional(v.any()),
-    loginStyle: v.optional(v.any()),
-    aiSettings: v.optional(v.any()),
-    customContactFields: v.optional(v.any()),
-    defaultModules: v.optional(v.array(v.string())),
+	tenant: defineTable({
+		tenantId: v.string(), // WorkOS org id — unique by convention (enforced in mutation)
+		timezone: v.optional(v.string()),
+		branding: v.optional(v.any()),
+		loginStyle: v.optional(v.any()),
+		aiSettings: v.optional(v.any()),
+		customContactFields: v.optional(v.any()),
+		defaultModules: v.optional(v.array(v.string())),
 
-    defaults: v.optional(
-      v.object({
-        phone: v.optional(v.string()),
-        sms: v.optional(v.string()),
-        whatsapp: v.optional(v.string()),
-        elevenlabs: v.optional(v.string()),
-      }),
-    ),
+		defaults: v.optional(
+			v.object({
+				phone: v.optional(v.string()),
+				sms: v.optional(v.string()),
+				whatsapp: v.optional(v.string()),
+				elevenlabs: v.optional(v.string()),
+			}),
+		),
 
-    phones: v.optional(
-      v.array(
-        v.object({
-          phoneNumberId: v.string(),
-          phoneNumber: v.string(),
-          label: v.optional(v.string()),
-          capabilities: v.optional(v.array(v.string())),
-          agentIds: v.optional(v.array(v.string())),
-          telephonyMode: v.union(v.literal('managed'), v.literal('byo_sip')),
-          sipTrunkId: v.optional(v.string()),
-          carrier: v.optional(v.string()),
-          brandedCallerId: v.optional(v.boolean()),
-        }),
-      ),
-    ),
+		phones: v.optional(
+			v.array(
+				v.object({
+					phoneNumberId: v.string(),
+					phoneNumber: v.string(),
+					label: v.optional(v.string()),
+					capabilities: v.optional(v.array(v.string())),
+					agentIds: v.optional(v.array(v.string())),
+					telephonyMode: v.union(v.literal('managed'), v.literal('byo_sip')),
+					sipTrunkId: v.optional(v.string()),
+					carrier: v.optional(v.string()),
+					brandedCallerId: v.optional(v.boolean()),
+				}),
+			),
+		),
 
-    whatsapps: v.optional(
-      v.array(
-        v.object({
-          accountId: v.string(),
-          wabaId: v.optional(v.string()),
-          phoneNumber: v.optional(v.string()),
-          label: v.optional(v.string()),
-          metaUserId: v.optional(v.string()),
-          agentIds: v.optional(v.array(v.string())),
-        }),
-      ),
-    ),
+		whatsapps: v.optional(
+			v.array(
+				v.object({
+					accountId: v.string(),
+					wabaId: v.optional(v.string()),
+					phoneNumber: v.optional(v.string()),
+					label: v.optional(v.string()),
+					metaUserId: v.optional(v.string()),
+					agentIds: v.optional(v.array(v.string())),
+				}),
+			),
+		),
 
-    widgets: v.optional(
-      v.array(
-        v.object({
-          token: v.string(),
-          enabledAgentIds: v.array(v.string()),
-          allowVoice: v.boolean(),
-          allowText: v.boolean(),
-          allowWhatsApp: v.optional(v.boolean()),
-          branding: v.optional(v.any()),
-          welcomeMessage: v.optional(v.string()),
-          isActive: v.boolean(),
-        }),
-      ),
-    ),
+		widgets: v.optional(
+			v.array(
+				v.object({
+					token: v.string(),
+					enabledAgentIds: v.array(v.string()),
+					allowVoice: v.boolean(),
+					allowText: v.boolean(),
+					allowWhatsApp: v.optional(v.boolean()),
+					branding: v.optional(v.any()),
+					welcomeMessage: v.optional(v.string()),
+					isActive: v.boolean(),
+				}),
+			),
+		),
 
-    mcpServers: v.optional(
-      v.array(
-        v.object({
-          key: v.string(),
-          label: v.optional(v.string()),
-          transport: v.union(v.literal('sse'), v.literal('http'), v.literal('stdio')),
-          url: v.optional(v.string()),
-          command: v.optional(v.string()),
-          backedBy: v.union(
-            v.literal('hostedOAuth'),
-            v.literal('pipes'),
-            v.literal('vault'),
-            v.literal('none'),
-          ),
-          vaultSecretId: v.optional(v.string()),
-        }),
-      ),
-    ),
+		mcpServers: v.optional(
+			v.array(
+				v.object({
+					key: v.string(),
+					label: v.optional(v.string()),
+					transport: v.union(
+						v.literal('sse'),
+						v.literal('http'),
+						v.literal('stdio'),
+					),
+					url: v.optional(v.string()),
+					command: v.optional(v.string()),
+					backedBy: v.union(
+						v.literal('hostedOAuth'),
+						v.literal('pipes'),
+						v.literal('vault'),
+						v.literal('none'),
+					),
+					vaultSecretId: v.optional(v.string()),
+				}),
+			),
+		),
 
-    updatedAt: v.number(),
-  }).index('by_tenant', ['tenantId']),
+		updatedAt: v.number(),
+	}).index('by_tenant', ['tenantId']),
 })
 ```
 
@@ -401,6 +425,7 @@ export default defineSchema({
 - **Error:** A second `tenant` row for the same `tenantId` — prevented by the upsert in Unit 6 (not a DB constraint); a test confirms one row after two `ensure` calls.
 
 **Verification:**
+
 - Outcome: `DataModel['tenant']` compiles; `convex/_generated/dataModel.d.ts` contains the `tenant` table type.
 - Run: `node_modules/.bin/tsc --noEmit` — zero net-new errors in `convex/schema.ts`.
 - Run: `node_modules/.bin/biome check --write convex/schema.ts`.
@@ -416,6 +441,7 @@ export default defineSchema({
 **Dependencies:** Unit 2 (schema must be defined so `DataModel` is non-empty and RLS rule types resolve table names).
 
 **Files:**
+
 - `convex/utils.ts` — Modify (extend `authQuery`/`authMutation` `input`; add `rlsRules`; export the `tenantId` alias via ctx; preserve all existing exports)
 
 **Approach:**
@@ -432,9 +458,9 @@ export default defineSchema({
 ```ts
 // convex/utils.ts — extension; preserve existing `includes`, `query`, `mutation`, AuthCtx, getAuthUser, getOrgFromJwt
 import {
-  type Rules,
-  wrapDatabaseReader,
-  wrapDatabaseWriter,
+	type Rules,
+	wrapDatabaseReader,
+	wrapDatabaseWriter,
 } from 'convex-helpers/server/rowLevelSecurity'
 // ...existing imports (NoOp, zCustom*, DataModel, convexQuery/Mutation, authKit)...
 
@@ -443,32 +469,32 @@ type RlsCtx = { tenantId: string }
 // One rule per table; all assert the doc belongs to the calling tenant.
 // Add a new entry whenever a table is added in a later plan.
 const rlsRules: Rules<RlsCtx, DataModel> = {
-  tenant: {
-    read: async ({ tenantId }, doc) => doc.tenantId === tenantId,
-    modify: async ({ tenantId }, doc) => doc.tenantId === tenantId,
-    insert: async ({ tenantId }, doc) => doc.tenantId === tenantId,
-  },
-  // threads, calls, messages, contacts, etc. added in 002+
+	tenant: {
+		read: async ({ tenantId }, doc) => doc.tenantId === tenantId,
+		modify: async ({ tenantId }, doc) => doc.tenantId === tenantId,
+		insert: async ({ tenantId }, doc) => doc.tenantId === tenantId,
+	},
+	// threads, calls, messages, contacts, etc. added in 002+
 }
 
 export const authQuery = zCustomQuery(convexQuery, {
-  args: {},
-  input: async (ctx) => {
-    const { user, org } = await getAuthUser(ctx)
-    const tenantId = org.organizationId
-    const db = wrapDatabaseReader({ tenantId }, ctx.db, rlsRules)
-    return { ctx: { ...ctx, user, org, tenantId, db }, args: {} }
-  },
+	args: {},
+	input: async (ctx) => {
+		const { user, org } = await getAuthUser(ctx)
+		const tenantId = org.organizationId
+		const db = wrapDatabaseReader({ tenantId }, ctx.db, rlsRules)
+		return { ctx: { ...ctx, user, org, tenantId, db }, args: {} }
+	},
 })
 
 export const authMutation = zCustomMutation(convexMutation, {
-  args: {},
-  input: async (ctx) => {
-    const { user, org } = await getAuthUser(ctx)
-    const tenantId = org.organizationId
-    const db = wrapDatabaseWriter({ tenantId }, ctx.db, rlsRules)
-    return { ctx: { ...ctx, user, org, tenantId, db }, args: {} }
-  },
+	args: {},
+	input: async (ctx) => {
+		const { user, org } = await getAuthUser(ctx)
+		const tenantId = org.organizationId
+		const db = wrapDatabaseWriter({ tenantId }, ctx.db, rlsRules)
+		return { ctx: { ...ctx, user, org, tenantId, db }, args: {} }
+	},
 })
 ```
 
@@ -486,6 +512,7 @@ export const authMutation = zCustomMutation(convexMutation, {
 - **Error:** JWT missing org claims — `getOrgFromJwt` throws with the WorkOS-JWT-template guidance.
 
 **Verification:**
+
 - Outcome: `AuthCtx<'query'>` / `AuthCtx<'mutation'>` include `tenantId: string` and a wrapped `db`.
 - Run: `node_modules/.bin/tsc --noEmit` — zero net-new errors in `convex/utils.ts`.
 - Run: `node_modules/.bin/biome check --write convex/utils.ts`.
@@ -502,10 +529,12 @@ export const authMutation = zCustomMutation(convexMutation, {
 **Dependencies:** Unit 2 (schema defines at least `tenant` so `DataModel` is importable); Unit 3 (RLS-aware `authMutation` finalized before composing it with Triggers).
 
 **Files:**
+
 - `convex/triggers.ts` — Create
 
 **Approach:**
 Create a module-level `Triggers<DataModel>` singleton (registrations are cold-start side-effects, so it must not be re-created per call). Export:
+
 - `triggers` — the singleton; 002 calls `triggers.register('messages', cb)` from the feature file that owns the table.
 - `mutationWithTriggers` — `customMutation(rawMutation, customCtx(triggers.wrapDB))` for internal/scheduler mutations that need triggers without auth.
 - The auth-aware variant is composed in `utils.ts` (or here) by combining the RLS-wrapped writer (Unit 3) with `triggers.wrapDB`. Triggers wrap the innermost real writer.
@@ -516,7 +545,10 @@ Trigger registrations themselves (e.g. `threads.messageCount` increment) live in
 
 ```ts
 // convex/triggers.ts
-import { customCtx, customMutation } from 'convex-helpers/server/customFunctions'
+import {
+	customCtx,
+	customMutation,
+} from 'convex-helpers/server/customFunctions'
 import { Triggers } from 'convex-helpers/server/triggers'
 import type { DataModel } from './_generated/dataModel'
 import { mutation as rawMutation } from './_generated/server'
@@ -525,7 +557,10 @@ import { mutation as rawMutation } from './_generated/server'
 export const triggers = new Triggers<DataModel>()
 
 // Internal mutation with triggers (scheduler-called fns — no auth needed)
-export const mutationWithTriggers = customMutation(rawMutation, customCtx(triggers.wrapDB))
+export const mutationWithTriggers = customMutation(
+	rawMutation,
+	customCtx(triggers.wrapDB),
+)
 
 // A registered trigger receives ctx.innerDb (untriggered writer) + a Change:
 //   change.operation: 'insert' | 'update' | 'delete'
@@ -555,6 +590,7 @@ export const mutationWithTriggers = customMutation(rawMutation, customCtx(trigge
 - **Error:** A trigger callback that throws — the wrapping mutation fails too (atomicity); DB not left partial.
 
 **Verification:**
+
 - Outcome: `triggers.ts` exports `triggers`, `mutationWithTriggers`; no circular import.
 - Run: `node_modules/.bin/tsc --noEmit` — zero net-new errors in `convex/triggers.ts`.
 - Run: `node_modules/.bin/biome check --write convex/triggers.ts`.
@@ -571,6 +607,7 @@ export const mutationWithTriggers = customMutation(rawMutation, customCtx(trigge
 **Dependencies:** Unit 2 (schema exists so `DataModel` is available for typed `zid()` usage downstream). No hard dep on Units 3–4.
 
 **Files:**
+
 - `convex/validators.ts` — Create
 
 **Approach:**
@@ -600,10 +637,10 @@ export const tenantArgs = { tenantId: tenantIdValidator }
 // Metadata seam: pair a Zod schema with v.any() for loose Convex storage.
 // Usage in 002+: const { convexValidator, parse } = makeMetadataValidator(MyMetaSchema)
 export function makeMetadataValidator<T extends z.ZodTypeAny>(schema: T) {
-  return {
-    convexValidator: v.any(), // stored loosely — no schema migration on metadata change
-    parse: (raw: unknown) => schema.parse(raw), // parse at edge (mutation arg / webhook ingress)
-  }
+	return {
+		convexValidator: v.any(), // stored loosely — no schema migration on metadata change
+		parse: (raw: unknown) => schema.parse(raw), // parse at edge (mutation arg / webhook ingress)
+	}
 }
 ```
 
@@ -617,6 +654,7 @@ export function makeMetadataValidator<T extends z.ZodTypeAny>(schema: T) {
 - **Error:** metadata not matching the kind schema — `parse()` throws a Zod error with a field-level message; the calling mutation surfaces it as a typed oRPC error.
 
 **Verification:**
+
 - Outcome: `convex/validators.ts` exports `tenantIdValidator`, `tenantArgs`, `zodToConvex`, `zid`, `makeMetadataValidator`.
 - Run: `node_modules/.bin/tsc --noEmit` — zero net-new errors in `convex/validators.ts`.
 - Run: `node_modules/.bin/vp test run convex/validators.test.ts` (pure-Zod unit test — needs no Convex runtime, so no `convex-test` dependency).
@@ -633,6 +671,7 @@ export function makeMetadataValidator<T extends z.ZodTypeAny>(schema: T) {
 **Dependencies:** Units 2, 3, 4, 5.
 
 **Files:**
+
 - `convex/tenant.ts` — Create
 - `convex/tenant.test.ts` — Create (integration test stubs)
 
@@ -655,52 +694,58 @@ import { authMutation, authQuery } from './utils'
 // Called by the WorkOS org.created webhook (internal — not exposed to client).
 // Uses raw internalMutation ctx.db: runs before the tenant row / RLS context exists.
 export const ensure = internalMutation({
-  args: { organizationId: v.string() },
-  handler: async (ctx, { organizationId }) => {
-    const existing = await ctx.db
-      .query('tenant')
-      .withIndex('by_tenant', (q) => q.eq('tenantId', organizationId))
-      .unique()
-    if (existing) return existing._id
-    return ctx.db.insert('tenant', { tenantId: organizationId, updatedAt: Date.now() })
-  },
+	args: { organizationId: v.string() },
+	handler: async (ctx, { organizationId }) => {
+		const existing = await ctx.db
+			.query('tenant')
+			.withIndex('by_tenant', (q) => q.eq('tenantId', organizationId))
+			.unique()
+		if (existing) return existing._id
+		return ctx.db.insert('tenant', {
+			tenantId: organizationId,
+			updatedAt: Date.now(),
+		})
+	},
 })
 
 // Public read — calling org's config row (or null if not yet provisioned).
 // ctx.db is RLS-wrapped, so .unique() already only sees this tenant's row.
 export const get = authQuery({
-  args: {},
-  handler: async (ctx) =>
-    ctx.db
-      .query('tenant')
-      .withIndex('by_tenant', (q) => q.eq('tenantId', ctx.tenantId))
-      .unique(),
+	args: {},
+	handler: async (ctx) =>
+		ctx.db
+			.query('tenant')
+			.withIndex('by_tenant', (q) => q.eq('tenantId', ctx.tenantId))
+			.unique(),
 })
 
 // Partial update — only the calling org's row; updatedAt always stamped.
 export const patch = authMutation({
-  args: {
-    timezone: z.string().optional(),
-    branding: z.any().optional(),
-    aiSettings: z.any().optional(),
-    defaults: z
-      .object({
-        phone: z.string().optional(),
-        sms: z.string().optional(),
-        whatsapp: z.string().optional(),
-        elevenlabs: z.string().optional(),
-      })
-      .optional(),
-    // phones/whatsapps/widgets/mcpServers updated via dedicated mutations in later plans
-  },
-  handler: async (ctx, args) => {
-    const row = await ctx.db
-      .query('tenant')
-      .withIndex('by_tenant', (q) => q.eq('tenantId', ctx.tenantId))
-      .unique()
-    if (!row) throw new Error(`Tenant ${ctx.tenantId} not provisioned — call ensure first`)
-    await ctx.db.patch(row._id, { ...args, updatedAt: Date.now() })
-  },
+	args: {
+		timezone: z.string().optional(),
+		branding: z.any().optional(),
+		aiSettings: z.any().optional(),
+		defaults: z
+			.object({
+				phone: z.string().optional(),
+				sms: z.string().optional(),
+				whatsapp: z.string().optional(),
+				elevenlabs: z.string().optional(),
+			})
+			.optional(),
+		// phones/whatsapps/widgets/mcpServers updated via dedicated mutations in later plans
+	},
+	handler: async (ctx, args) => {
+		const row = await ctx.db
+			.query('tenant')
+			.withIndex('by_tenant', (q) => q.eq('tenantId', ctx.tenantId))
+			.unique()
+		if (!row)
+			throw new Error(
+				`Tenant ${ctx.tenantId} not provisioned — call ensure first`,
+			)
+		await ctx.db.patch(row._id, { ...args, updatedAt: Date.now() })
+	},
 })
 ```
 
@@ -718,6 +763,7 @@ Wire `internal.tenant.ensure` into the WorkOS `organization.created` lifecycle h
 - **Integration:** the `organization.created` handler in `convex/auth.ts` calls `ensure`; `get` immediately after returns the provisioned row.
 
 **Verification:**
+
 - Outcome: `tenant.get` returns `Doc<'tenant'> | null`; `tenant.patch` is type-safe against `DataModel['tenant']` fields.
 - Run: `node_modules/.bin/tsc --noEmit` — zero net-new errors in `convex/tenant.ts`.
 - Run: `node_modules/.bin/vp test run convex/tenant.test.ts`. NOTE: runtime tests need a Convex test harness. `convex-test` is NOT installed — either `bun add -d convex-test` first, or write the integration check as a `bunx convex run` smoke against the dev deployment. Keep `tenant.test.ts` a stub (module-loads + type assertions) if the harness is deferred.
@@ -737,16 +783,16 @@ Wire `internal.tenant.ensure` into the WorkOS `organization.created` lifecycle h
 
 ## Risks & Dependencies
 
-| Risk | Likelihood | Impact | Mitigation |
-|---|---|---|---|
-| A `@convex-dev/*` component version is incompatible with `convex@1.41.0` | Medium | High — codegen fails | Check each component's `peerDependencies` before `bun add`; pin to a compatible version |
-| RLS rule semantics misunderstood (predicate filter vs query rewrite) | Medium | High — false sense of isolation | Rules are per-doc predicates: reads filter, writes throw. Confirm with the read/modify/insert test scenarios in Unit 3 |
-| Triggers + RLS + `zCustomMutation` composition order breaks types or transactionality | Medium | Medium — Unit 4/3 rework | Prototype `wrapDatabaseWriter` ∘ `customCtx(triggers.wrapDB)` in `bunx convex dev` before 002 (see VERIFY item) |
-| `convex-test` not installed → integration tests can't run | Medium | Low | `bun add -d convex-test`, or smoke via `bunx convex run`; keep test files as stubs until then |
-| `tenantId` missing in WorkOS JWT for some SSO tokens | Low | High — every authQuery throws | Already handled: `getOrgFromJwt` throws with clear JWT-template guidance; test in staging |
-| Circular import in `triggers.ts` | Low | Medium — build fails | Import only `_generated/server` + `_generated/dataModel`; never `_generated/api` |
-| Polymorphic-FK decision deferred creates friction in 002 | Medium | Low | Document the tradeoff in 002; flagged in Open Questions |
-| Pre-existing baseline TypeScript errors grow | Low | Medium | Run `node_modules/.bin/tsc --noEmit` before/after each unit; diff the error count |
+| Risk                                                                                  | Likelihood | Impact                          | Mitigation                                                                                                             |
+| ------------------------------------------------------------------------------------- | ---------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| A `@convex-dev/*` component version is incompatible with `convex@1.41.0`              | Medium     | High — codegen fails            | Check each component's `peerDependencies` before `bun add`; pin to a compatible version                                |
+| RLS rule semantics misunderstood (predicate filter vs query rewrite)                  | Medium     | High — false sense of isolation | Rules are per-doc predicates: reads filter, writes throw. Confirm with the read/modify/insert test scenarios in Unit 3 |
+| Triggers + RLS + `zCustomMutation` composition order breaks types or transactionality | Medium     | Medium — Unit 4/3 rework        | Prototype `wrapDatabaseWriter` ∘ `customCtx(triggers.wrapDB)` in `bunx convex dev` before 002 (see VERIFY item)        |
+| `convex-test` not installed → integration tests can't run                             | Medium     | Low                             | `bun add -d convex-test`, or smoke via `bunx convex run`; keep test files as stubs until then                          |
+| `tenantId` missing in WorkOS JWT for some SSO tokens                                  | Low        | High — every authQuery throws   | Already handled: `getOrgFromJwt` throws with clear JWT-template guidance; test in staging                              |
+| Circular import in `triggers.ts`                                                      | Low        | Medium — build fails            | Import only `_generated/server` + `_generated/dataModel`; never `_generated/api`                                       |
+| Polymorphic-FK decision deferred creates friction in 002                              | Medium     | Low                             | Document the tradeoff in 002; flagged in Open Questions                                                                |
+| Pre-existing baseline TypeScript errors grow                                          | Low        | Medium                          | Run `node_modules/.bin/tsc --noEmit` before/after each unit; diff the error count                                      |
 
 ## Documentation & References
 
@@ -762,6 +808,7 @@ bun add -d convex-test     # NOT currently installed
 ```
 
 **Convex components (canonical docs verified 2026-06):**
+
 - `@convex-dev/workflow` — https://www.npmjs.com/package/@convex-dev/workflow · https://github.com/get-convex/workflow · https://www.convex.dev/components/workflow · https://docs.convex.dev/understanding/workflow
 - `@convex-dev/workpool` — https://www.npmjs.com/package/@convex-dev/workpool · https://github.com/get-convex/workpool · https://www.convex.dev/components/workpool (registered as named instances: `app.use(workpool, { name })`)
 - `@convex-dev/rate-limiter` — https://www.npmjs.com/package/@convex-dev/rate-limiter · https://github.com/get-convex/rate-limiter · https://www.convex.dev/components/rate-limiter
@@ -770,10 +817,12 @@ bun add -d convex-test     # NOT currently installed
 - `@convex-dev/migrations` — https://www.npmjs.com/package/@convex-dev/migrations · https://github.com/get-convex/migrations · https://www.convex.dev/components/migrations
 
 **Convex core / components general:**
+
 - Defining components & `defineApp`/`app.use` — https://docs.convex.dev/components
 - Schemas & validators (`defineTable`, `v.*`) — https://docs.convex.dev/database/schemas · https://docs.convex.dev/api/modules/values
 
 **convex-helpers (installed 0.1.119 — APIs confirmed against installed `.d.ts`):**
+
 - Package — https://www.npmjs.com/package/convex-helpers · https://github.com/get-convex/convex-helpers/tree/main/packages/convex-helpers
 - Row-Level Security (`wrapDatabaseReader`/`wrapDatabaseWriter`, `Rules` with `read`/`modify`/`insert`) — https://github.com/get-convex/convex-helpers#row-level-security — also: installed `node_modules/convex-helpers/server/rowLevelSecurity.d.ts`
 - Triggers (`new Triggers<DataModel>()`, `triggers.register`, `customMutation(rawMutation, customCtx(triggers.wrapDB))`) — https://stack.convex.dev/triggers · https://github.com/get-convex/convex-helpers#triggers — installed `node_modules/convex-helpers/server/triggers.d.ts`
@@ -781,17 +830,21 @@ bun add -d convex-test     # NOT currently installed
 - Zod (zod4 variant: `zCustomQuery`/`zCustomMutation`, `zodToConvex`, `zid`) — https://github.com/get-convex/convex-helpers#zod-validation — installed `node_modules/convex-helpers/server/zod4.d.ts`
 
 **WorkOS (auth context — reference only, no change in this plan):**
+
 - AuthKit + Convex — https://workos.com/docs · `@convex-dev/workos-authkit@0.2.7` (installed) · https://github.com/get-convex/workos-authkit
 - JWT template (must include `organization.organizationId`) — https://workos.com/docs/user-management/sessions/jwt-templates
 
 **Design docs (authoritative WHAT):**
+
 - `docs/rebuild-architecture.md` §1 tenant table (lines 43–119), components list (`@convex-dev/rate-limiter` ~line 249), RLS rationale, Pipes/Vault credential model.
 - `docs/threads-model.md` §2 (messages polymorphic FK), §4 (zodToConvex metadata seam), §6 (trigger sketch for messageCount/lastMessageAt).
 
 **agent.io baseline files (verified current state):**
+
 - `convex/convex.config.ts`, `convex/schema.ts`, `convex/utils.ts`, `convex/auth.config.ts`, `convex/auth.ts`.
 
 **Sibling plans (cross-reference):**
+
 - `2026-06-17-002-*` — conversation substrate (threads/calls/messages); consumes `tenant.get`, the Triggers singleton, RLS-aware ctx; settles the polymorphic-FK decision; adds `rlsRules` entries.
 - `2026-06-17-006-*` — batch dialing (workflow/workpool/rate-limiter runtime usage).
 - `2026-06-17-007-*` — billing (`@convex-dev/polar` component; not registered here).

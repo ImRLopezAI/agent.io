@@ -1,5 +1,5 @@
 ---
-title: "feat: Per-tenant data migration from the legacy Convex app"
+title: 'feat: Per-tenant data migration from the legacy Convex app'
 type: feat
 status: active
 date: 2026-06-17
@@ -17,7 +17,7 @@ fallback until a tenant is fully verified on the new platform.
 
 > **CRITICAL ARCHITECTURE NOTE (corrected):** `@convex-dev/migrations` walks
 > tables **in the deployment it runs in** — its `migrateOne(ctx, doc)` reads
-> documents from the *current* deployment's own schema (`_generated/schema`).
+> documents from the _current_ deployment's own schema (`_generated/schema`).
 > The legacy tables (`companies`, `calls`, `contacts`, …) live in a **separate
 > Convex deployment** (the legacy app) and **do not exist in the new
 > deployment's schema**. Therefore the cross-deployment read is the primary
@@ -32,6 +32,7 @@ fallback until a tenant is fully verified on the new platform.
 > passes.
 
 Six concerns drive the full cutover:
+
 1. Provision the tenant in WorkOS and create its `tenant` config row.
 2. Map legacy domain data (companies → tenant, contacts, calls/widgetSessions/
    messages → threads/calls/messages, surveys, KB) into the new schema.
@@ -84,6 +85,7 @@ the legacy rows are decommissioned — this is the highest-risk step.
 ## Scope Boundaries
 
 In scope:
+
 - WorkOS org + member + role provisioning for each tenant.
 - WorkOS Feature Flag targeting for module access (maps from `companyModules`).
 - All legacy domain data listed in threads-model.md §5 migration mapping.
@@ -114,6 +116,7 @@ In scope:
 ### Relevant Code and Patterns
 
 **Legacy source** (read-only via cross-deployment client during migration):
+
 - `convex/schema.ts` (legacy, `/Users/angel/dev/agentio/convex/schema.ts`) —
   full table definitions; VERIFIED key legacy shapes used below:
   - `companies` — `apiKey`, `timezone`, `branding`, `hubspot.accessToken`,
@@ -143,6 +146,7 @@ In scope:
   new schema eliminates; reference for understanding legacy call/message shapes.
 
 **New app substrate** (migration writes into these):
+
 - `convex/schema.ts` (agent.io) — filled by phases 001–009.
 - `convex/utils.ts` (agent.io) — VERIFIED: exports `authQuery`/`authMutation`
   (convex-helpers `zCustomQuery`/`zCustomMutation` from
@@ -161,6 +165,7 @@ In scope:
   `https://api.workos.com/user_management/${clientId}`).
 
 **Design doc sections**:
+
 - `docs/rebuild-architecture.md §1` — WorkOS is the system of record; no
   `orgs`/`members` mirror; `tenant` table is app config only.
 - `docs/rebuild-architecture.md §2` — Pipes (OAuth) vs Vault (static/PII):
@@ -177,6 +182,7 @@ In scope:
   legacy table shapes (kept only for this migration).
 
 **oRPC layer** (agent.io, VERIFIED — contract-first):
+
 - `src/server/rpc/init.ts` — `os = implement(contract).$context<RpcContextType>()`;
   middleware ladder `auth` → `admin` (checks `context.session.role === 'admin'`,
   throws `errors.NO_ADMIN_ROLE()`) → `org` (adds `organizationId`). Context
@@ -192,7 +198,7 @@ In scope:
 
 > **Runtime correction:** `@workos-inc/node` ships a dedicated **`convex`
 > export condition** (`package.json` `exports["."].convex →
-> ./lib/index.worker.mjs`). The SDK therefore runs in the **Convex V8
+./lib/index.worker.mjs`). The SDK therefore runs in the **Convex V8
 > runtime** — WorkOS Management API calls do **NOT** require a `"use node"`
 > action. Use plain `internalAction` (V8). (The `"use node"` requirement
 > applies only to genuinely Node-only deps, e.g. the AI SDK / MCP-stdio — not
@@ -202,10 +208,11 @@ In scope:
 Migration uses the `WorkOS` client (`@/lib/work-os` in oRPC, or
 `new WorkOS(process.env.WORKOS_API_KEY!)` in Convex actions) for — VERIFIED
 method names/signatures:
+
 - `organizations.createOrganization({ name })` → `Promise<Organization>`
   (`org.id` is the `tenantId`).
 - `userManagement.createOrganizationMembership({ organizationId, userId,
-  roleSlug })` — adds an **existing** WorkOS user to the org.
+roleSlug })` — adds an **existing** WorkOS user to the org.
 - `userManagement.sendInvitation({ email, organizationId, roleSlug })` — invites
   a user who does not yet exist (triggers a WorkOS invitation email).
 - `userManagement.listOrganizationMemberships({ organizationId })` — verify
@@ -213,7 +220,7 @@ method names/signatures:
 - `featureFlags.addFlagTarget({ slug, targetId })` / `removeFlagTarget` /
   `enableFeatureFlag(slug)` / `disableFeatureFlag(slug)` / `getFeatureFlag(slug)`
   — per-org module access. **NOTE:** there is **NO**
-  `createFeatureFlagVariation`; the flag *slug* is created once in the WorkOS
+  `createFeatureFlagVariation`; the flag _slug_ is created once in the WorkOS
   Dashboard, then targeted per-org via `addFlagTarget({ slug, targetId: orgId })`.
 - Vault: `vault.createObject({ name, value, context })` → `ObjectMetadata`
   (`.id` is the Vault object id); read via `vault.readObjectByName(name)` or
@@ -255,11 +262,11 @@ export const run = migrations.runner()
 
 // a transform pass over a NEW table:
 export const backfillThreadCounts = migrations.define({
-  table: 'threads',
-  batchSize: 50,
-  migrateOne: async (ctx, thread) => {
-    // ctx.db reads/writes the CURRENT deployment's tables only
-  },
+	table: 'threads',
+	batchSize: 50,
+	migrateOne: async (ctx, thread) => {
+		// ctx.db reads/writes the CURRENT deployment's tables only
+	},
 })
 ```
 
@@ -278,7 +285,7 @@ Rationale (corrected): the legacy tables do not exist in the new deployment's
 schema, so `migrations.define({ table: 'companies' })` cannot walk them. Each
 import action pages legacy rows via a read-only `ConvexHttpClient`
 (`LEGACY_CONVEX_URL` + deploy key) and writes them with existence-checked
-inserts. `@convex-dev/migrations` then runs *over the new tables* for FK
+inserts. `@convex-dev/migrations` then runs _over the new tables_ for FK
 repoints (e.g. `surveyResponses.callId/threadId`), `sequence` backfills, and
 the scratch-map drop.
 
@@ -325,6 +332,7 @@ callback. Override is `POST /<WABA_ID>/subscribed_apps` with body
 ## Open Questions
 
 **Resolved:**
+
 - WorkOS `customJwt` providers — already in `convex/auth.config.ts` (two
   providers, VERIFIED).
 - Org claims pattern — `getOrgFromJwt` in `convex/utils.ts` is the canonical
@@ -334,6 +342,7 @@ callback. Override is `POST /<WABA_ID>/subscribed_apps` with body
   condition; no `"use node"` needed for WorkOS/Meta-fetch calls.
 
 **Deferred to Implementation:**
+
 - VERIFY: exact WorkOS Feature Flag **slugs** for each legacy
   `companyModules.module` value (e.g. `"whatsapp"`, `"analytics"`, `"surveys"`)
   — flags must be created in the WorkOS Dashboard before `addFlagTarget` runs;
@@ -342,7 +351,7 @@ callback. Override is `POST /<WABA_ID>/subscribed_apps` with body
   fresh (recommend regenerate; surface as a cutover-checklist step).
 - VERIFY: WorkOS Management API rate limits during bulk org provisioning; add
   `@convex-dev/rate-limiter` if needed (already installed — `node_modules/
-  @convex-dev/rate-limiter` present).
+@convex-dev/rate-limiter` present).
 - VERIFY: cross-deployment read mechanism — confirm a read-only Convex deploy
   key for the legacy deployment + that `ConvexHttpClient` from
   `convex/browser` runs inside a V8 `internalAction` (it makes outbound HTTPS;
@@ -433,6 +442,7 @@ Prerequisite for all other units.
 deployment legacy read client (`_legacyClient.ts`). No prior phase dependency.
 
 **Files:**
+
 - `convex/convex.config.ts` — Modify: add `app.use(migrations)`.
 - `convex/migrations.ts` — Create: `Migrations` instance + `runner()`.
 - `convex/migrations/_legacyClient.ts` — Create: read-only `ConvexHttpClient`.
@@ -447,7 +457,7 @@ deployment legacy read client (`_legacyClient.ts`). No prior phase dependency.
    `migrations.ts` instance (`new Migrations(components.migrations)` +
    `migrations.runner()`).
 2. Define `_migrationMap` table: `{ companyId, tenantId, provisionedAt, status,
-   notes? }` with `by_company` (unique) and `by_status` indexes. Scratch table;
+notes? }` with `by_company` (unique) and `by_status` indexes. Scratch table;
    dropped by a final cleanup migration after all tenants are `'decommissioned'`.
 3. The provisioning action (V8 `internalAction`) reads the legacy `companies`
    doc via `_legacyClient`, calls
@@ -455,15 +465,15 @@ deployment legacy read client (`_legacyClient.ts`). No prior phase dependency.
    (https://workos.com/docs/reference/organization), then:
    - For each legacy `companyUsers` member resolved to a WorkOS user → either
      `userManagement.createOrganizationMembership({ organizationId, userId,
-     roleSlug })` (existing user) or `userManagement.sendInvitation({ email,
-     organizationId, roleSlug })` (new user). Map legacy role
+roleSlug })` (existing user) or `userManagement.sendInvitation({ email,
+organizationId, roleSlug })` (new user). Map legacy role
      `admin|agent|viewer` → WorkOS `roleSlug`.
    - For each enabled `companyModules` row → `featureFlags.addFlagTarget({ slug,
-     targetId: org.id })` (slug = the module's flag; see VERIFY in Open
+targetId: org.id })` (slug = the module's flag; see VERIFY in Open
      Questions). NO `createFeatureFlagVariation`.
    - Write the `_migrationMap` entry via an `internalMutation`.
 4. Idempotent: if `_migrationMap` has a `companyId` row with `status:
-   'provisioned'` (or later), return its `tenantId` and skip re-provisioning.
+'provisioned'` (or later), return its `tenantId` and skip re-provisioning.
 
 **Technical design (directional, not implementation spec):**
 
@@ -500,14 +510,20 @@ export const provisionTenant = internalAction({
 		const existing = await ctx.runQuery(internal.migrations._migrationMap.get, {
 			companyId,
 		})
-		if (existing?.status === 'provisioned') return { tenantId: existing.tenantId }
+		if (existing?.status === 'provisioned')
+			return { tenantId: existing.tenantId }
 
 		const legacy = legacyClient()
-		const company = await legacy.query(/* legacy internal getCompany */ 'companies:get' as any, {
-			id: companyId,
-		})
+		const company = await legacy.query(
+			/* legacy internal getCompany */ 'companies:get' as any,
+			{
+				id: companyId,
+			},
+		)
 
-		const org = await wos.organizations.createOrganization({ name: company.name })
+		const org = await wos.organizations.createOrganization({
+			name: company.name,
+		})
 		// invite members → createOrganizationMembership / sendInvitation per role
 		// target module flags → featureFlags.addFlagTarget({ slug, targetId: org.id })
 
@@ -528,10 +544,10 @@ import { defineTable } from 'convex/server'
 import { v } from 'convex/values'
 
 export const migrationMapTable = defineTable({
-	companyId: v.string(),  // legacy companies._id (string form)
-	tenantId: v.string(),   // WorkOS org id
+	companyId: v.string(), // legacy companies._id (string form)
+	tenantId: v.string(), // WorkOS org id
 	provisionedAt: v.number(),
-	status: v.string(),     // provisioned | secrets_migrated | data_migrated | verified | decommissioned
+	status: v.string(), // provisioned | secrets_migrated | data_migrated | verified | decommissioned
 	notes: v.optional(v.string()),
 })
 	.index('by_company', ['companyId'])
@@ -540,12 +556,14 @@ export const migrationMapTable = defineTable({
 ```
 
 **Patterns to follow:**
+
 - `convex/utils.ts` — `getOrgFromJwt` pattern (`organizationId = tenantId`).
 - `@workos-inc/node` 8.13.0 — `organizations.createOrganization`,
   `userManagement.{createOrganizationMembership,sendInvitation}`,
   `featureFlags.addFlagTarget`. V8 runtime (convex export condition).
 
 **Test scenarios:**
+
 - `provisionTenant(companyId)` → WorkOS org created, `_migrationMap` row with
   status `provisioned`.
 - Re-run same `companyId` → returns existing `tenantId`, no second org.
@@ -555,6 +573,7 @@ export const migrationMapTable = defineTable({
 - Missing `WORKOS_API_KEY` → action throws early; no partial state.
 
 **Verification:**
+
 - Outcome: `_migrationMap` row `status: 'provisioned'`; org visible in WorkOS
   dashboard.
 - `node_modules/.bin/tsc --noEmit` — zero net-new errors in touched files.
@@ -575,6 +594,7 @@ a new `tenant` row; embed `companyPhoneNumbers` → `tenant.phones[]`,
 `schema.ts`).
 
 **Files:**
+
 - `convex/migrations/tenant.ts` — Create: import action (cross-deployment read +
   idempotent insert; NOT a `migrations.define` legacy walk).
 - `schema.ts` — Modify: confirm `tenant` table exists (phase 001).
@@ -654,10 +674,12 @@ export const importTenant = internalAction({
 ```
 
 **Patterns to follow:**
+
 - `docs/rebuild-architecture.md §1` — tenant schema with embedded arrays.
 - Existence-check before insert in the `upsert` mutation (idempotency).
 
 **Test scenarios:**
+
 - Company with 2 phones / 1 whatsapp / 1 widget → `tenant` row with correctly
   shaped arrays; no tokens in `whatsapps[]`.
 - `isDefault: true` phone → `tenant.defaults.phone` set to its `phoneNumberId`.
@@ -665,6 +687,7 @@ export const importTenant = internalAction({
 - Missing `_migrationMap` entry → orchestrator throws before calling import.
 
 **Verification:**
+
 - Outcome: one `tenant` row per migrated company; no plaintext tokens anywhere.
 - `node_modules/.bin/tsc --noEmit` — zero net-new errors.
 - `bunx biome check --write`.
@@ -684,11 +707,13 @@ write plaintext to a new table.
 (V8 runtime); `_legacyClient` for the legacy reads.
 
 **Files:**
+
 - `convex/migrations/secrets.ts` — Create: V8 `internalAction`.
 
 **Approach:**
 
 Legacy plaintext credentials (VERIFIED field paths):
+
 - `companies.twilio.{accountSid,authToken}` → Vault object `twilio:{tenantId}`
   (JSON value).
 - `companies.hubspot.accessToken` → Vault object `hubspot:{tenantId}`.
@@ -749,11 +774,14 @@ export const migrateSecrets = internalAction({
 					}),
 					context: keyContext,
 				})
-				await ctx.runMutation(internal.migrations.tenant.patchWhatsAppVaultRef, {
-					tenantId,
-					accountId: wa.accountId,
-					vaultObjectId: obj.id,
-				})
+				await ctx.runMutation(
+					internal.migrations.tenant.patchWhatsAppVaultRef,
+					{
+						tenantId,
+						accountId: wa.accountId,
+						vaultObjectId: obj.id,
+					},
+				)
 			}
 		}
 
@@ -779,10 +807,12 @@ export const migrateSecrets = internalAction({
 ```
 
 **Patterns to follow:**
+
 - `docs/rebuild-architecture.md §2` — OAuth → Pipes, static → Vault.
 - `@workos-inc/node` Vault: `createObject`/`readObjectByName` (VERIFIED).
 
 **Test scenarios:**
+
 - Twilio creds present → Vault object created; `tenant.vaultRefs.twilio` set;
   `authToken` never written to a new table.
 - No Twilio → no Vault write; no error.
@@ -793,6 +823,7 @@ export const migrateSecrets = internalAction({
   `'data_migrated'` (or prior); safe to retry.
 
 **Verification:**
+
 - Outcome: no plaintext credential field exists anywhere in the new Convex DB.
 - `node_modules/.bin/tsc --noEmit` — zero net-new errors.
 - `bunx biome check --write`.
@@ -813,6 +844,7 @@ all message/transcript arrays → `messages` rows. Merge `smsMessages` /
 threads-model.md §2).
 
 **Files:**
+
 - `convex/migrations/contacts.ts` — Create.
 - `convex/migrations/conversations.ts` — Create: calls → new calls + threads.
 - `convex/migrations/messages.ts` — Create: message arrays → messages rows.
@@ -833,6 +865,7 @@ skip if a contact with the same `(tenantId, phone)` exists
 
 **Voice calls (`conversations.ts`):** Page legacy `calls` where
 `type === 'voice'` (or null). Insert into new `calls`:
+
 - `tenantId` from map.
 - `kind` from `platform`/`serviceType`: `voice_call` | `whatsapp_voice` |
   `widget_voice` (threads-model.md §2 — `calls.kind` union).
@@ -847,6 +880,7 @@ skip if a contact with the same `(tenantId, phone)` exists
 **Chat calls / widgetSessions → threads:** Page legacy `calls` where
 `type === 'chat'` AND `widgetSessions` where `mode === 'text'`. Insert into new
 `threads`:
+
 - `channel` from `platform`/source (`whatsapp` | `widget` | …).
 - `kind` (threads-model.md §2 union): `whatsapp_chat` | `widget_text` | …
 - `contactId` → resolved.
@@ -859,6 +893,7 @@ skip if a contact with the same `(tenantId, phone)` exists
 `{ kind: 'widget_voice' }`.
 
 **Messages (`messages.ts`):**
+
 - For each new `calls` row with `metadata.legacyCallId`: load legacy
   `calls.messages[]` → one `messages` row per element (`sequence` = array index,
   `parentType: 'call'`, `parentId: newCall._id`, `role` mapped from legacy
@@ -928,6 +963,7 @@ export const importContacts = internalMutation({
 ```
 
 **Patterns to follow:**
+
 - `docs/threads-model.md §5` — migration mapping (canonical).
 - `docs/threads-model.md §2` — `threads`/`calls`/`messages` field shapes,
   `kind` unions, `by_parent_sequence` / `by_conversation` /
@@ -937,6 +973,7 @@ export const importContacts = internalMutation({
   the message pass or let the trigger fire on insert.
 
 **Test scenarios:**
+
 - Voice call (type=voice) → new `calls`; `conversationId` preserved;
   `metadata.legacyCallId` set.
 - Chat call (type=chat, platform=whatsapp) → new `thread`
@@ -950,6 +987,7 @@ export const importContacts = internalMutation({
   `conversationId`, messages by `(parentType, parentId, providerMessageId|seq)`).
 
 **Verification:**
+
 - Outcome: new `threads`/`calls`/`messages` counts match legacy source counts
   for the test tenant (spot-check via `bunx convex dashboard`).
 - `node_modules/.bin/tsc --noEmit` — zero net-new errors.
@@ -969,6 +1007,7 @@ export const importContacts = internalMutation({
 phases 001 + 009 (`surveys`, `surveyResponses`, `knowledgeBaseDocs` schema).
 
 **Files:**
+
 - `convex/migrations/surveys.ts` — Create.
 - `convex/migrations/kb.ts` — Create.
 - `convex/migrations/documents.ts` — Create: scripts, smsTemplates,
@@ -1012,6 +1051,7 @@ deployment move — if not, re-upload via `ctx.storage` and remap IDs). Page
 (reuse Unit 3 `vault.createObject` pattern).
 
 **Test scenarios:**
+
 - `surveyResponse` with `callId` → voice call → new `surveyResponse`
   `{ callId: newCall._id, threadId: undefined }`.
 - `surveyResponse` with `callId` → chat call → new `surveyResponse`
@@ -1022,6 +1062,7 @@ deployment move — if not, re-upload via `ctx.storage` and remap IDs). Page
 - Re-run → idempotent.
 
 **Verification:**
+
 - Outcome: survey-response counts match per tenant; KB doc count matches.
 - `node_modules/.bin/tsc --noEmit` — zero net-new errors.
 - `bunx biome check --write`.
@@ -1041,6 +1082,7 @@ programmatically set the Meta per-WABA callback override
 `managementToken` now in Vault); phase 003 (channel adapters + webhook routes).
 
 **Files:**
+
 - `convex/migrations/channels.ts` — Create: channel reconnection V8 action.
 - `src/server/rpc/contracts/migration.contract.ts` — Create: oRPC contract.
 - `src/server/rpc/routes/migration.router.ts` — Create: admin-gated router.
@@ -1048,13 +1090,14 @@ programmatically set the Meta per-WABA callback override
 **Approach:**
 
 The reconnection action (V8 `internalAction`) updates each provider's webhook:
+
 - **Twilio**: `client.incomingPhoneNumbers(sid).update({ smsUrl, voiceUrl })`
   pointing at `https://{deployment}/webhooks/twilio/{tenantId}` (creds from
   Vault). VERIFY: Twilio Node SDK is Node-only (no `convex` export) — if so this
   specific call goes in a `"use node"` action; WorkOS/Meta-fetch parts stay V8.
 - **Meta/WhatsApp**: Graph API `POST /{waba-id}/subscribed_apps` with body
   `{ override_callback_uri: "https://{deployment}/webhooks/whatsapp/{tenantId}",
-  verify_token: <tenant verify token> }` (CORRECTED key — was `callback_url`),
+verify_token: <tenant verify token> }` (CORRECTED key — was `callback_url`),
   `Authorization: Bearer <managementToken>` (from Vault), scope
   `whatsapp_business_management`. (rebuild-architecture.md §5;
   https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks/override)
@@ -1064,11 +1107,12 @@ skip if it already points to the new platform.
 
 **oRPC routes** (contract-first, `migration.contract.ts` + `migration.router.ts`,
 all `.use(admin)`):
+
 - `migration.start({ companyId })` — `ctx.runAction(internal.migrations.index.runTenantMigration, { companyId })`.
 - `migration.status({ companyId })` — returns `_migrationMap.status`.
 - `migration.verify({ companyId })` — runs the Unit-7 checklist.
 - `migration.decommission({ companyId })` — sets `_migrationMap.status:
-  'decommissioned'` after a passing verify.
+'decommissioned'` after a passing verify.
 
 Admin gating uses the existing `admin` middleware in `src/server/rpc/init.ts`
 (`admin = auth.use(...)`, throws `errors.NO_ADMIN_ROLE()`); the WorkOS client is
@@ -1082,35 +1126,44 @@ export const reconnectWhatsApp = internalAction({
 	args: { tenantId: v.string() },
 	handler: async (ctx, { tenantId }) => {
 		const wos = new WorkOS(process.env.WORKOS_API_KEY!)
-		const tenant = await ctx.runQuery(internal.tenant.getByTenantId, { tenantId })
+		const tenant = await ctx.runQuery(internal.tenant.getByTenantId, {
+			tenantId,
+		})
 		const deployment = process.env.CONVEX_SITE_URL!
 		for (const wa of tenant.whatsapps ?? []) {
-			const obj = await wos.vault.readObjectByName(`whatsapp:${tenantId}:${wa.accountId}`)
+			const obj = await wos.vault.readObjectByName(
+				`whatsapp:${tenantId}:${wa.accountId}`,
+			)
 			const { managementToken } = JSON.parse(obj.value)
 			const overrideUri = `${deployment}/webhooks/whatsapp/${tenantId}`
-			await fetch(`https://graph.facebook.com/v21.0/${wa.wabaId}/subscribed_apps`, {
-				method: 'POST',
-				headers: {
-					Authorization: `Bearer ${managementToken}`,
-					'Content-Type': 'application/json',
+			await fetch(
+				`https://graph.facebook.com/v21.0/${wa.wabaId}/subscribed_apps`,
+				{
+					method: 'POST',
+					headers: {
+						Authorization: `Bearer ${managementToken}`,
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({
+						override_callback_uri: overrideUri, // CORRECTED key
+						verify_token: tenantId,
+					}),
 				},
-				body: JSON.stringify({
-					override_callback_uri: overrideUri, // CORRECTED key
-					verify_token: tenantId,
-				}),
-			})
+			)
 		}
 	},
 })
 ```
 
 **Patterns to follow:**
+
 - `docs/rebuild-architecture.md §5` — webhook routing; tenant from route; Meta
   per-WABA override.
 - `src/server/rpc/init.ts` — `admin` middleware; `context.workOs`.
 - `src/server/rpc/contracts/*.contract.ts` + `routes/*.router.ts` naming.
 
 **Test scenarios:**
+
 - Tenant with 1 WhatsApp account → Graph API called with correct WABA id +
   `override_callback_uri`; no error.
 - Token missing from Vault → action throws; `_migrationMap.status` not advanced.
@@ -1118,6 +1171,7 @@ export const reconnectWhatsApp = internalAction({
 - `migration.start()` twice → second call is a no-op (status check).
 
 **Verification:**
+
 - Outcome: Meta webhook config shows the new override URI per WABA.
 - `node_modules/.bin/tsc --noEmit` — zero net-new errors.
 - `bunx biome check --write`.
@@ -1135,6 +1189,7 @@ Provide a structured checklist action and a `decommission` mutation.
 phase 005 (ElevenLabs agent resolves); phase 007 (Polar subscription visible).
 
 **Files:**
+
 - `convex/migrations/verify.ts` — Create: verification checklist action.
 - `src/server/rpc/contracts/migration.contract.ts` — Modify: add `verify` +
   `decommission`.
@@ -1156,8 +1211,8 @@ type VerificationResult = {
 		messagesCount: number
 		surveysCount: number
 		kbDocsCount: number
-		secretsInVault: boolean       // vault.readObjectByName(`twilio:${tenantId}`) etc. resolves
-		webhookRouteActive: boolean   // test inbound event creates a threads row
+		secretsInVault: boolean // vault.readObjectByName(`twilio:${tenantId}`) etc. resolves
+		webhookRouteActive: boolean // test inbound event creates a threads row
 		polarSubscriptionVisible: boolean
 		elevenLabsAgentResolvable: boolean
 	}
@@ -1172,6 +1227,7 @@ External checks: Vault existence via `vault.readObjectByName` (or
 surfaces it); ElevenLabs `agents.get(externalId)` via the phase-005 client.
 
 If `allPassed`, the oRPC `decommission` route:
+
 1. Sets `_migrationMap.status: 'decommissioned'`.
 2. Calls a legacy-app action (via `_legacyClient.mutation` / legacy HTTP action)
    to set `companies.status: 'disabled'`.
@@ -1179,12 +1235,14 @@ If `allPassed`, the oRPC `decommission` route:
    the table only after ALL tenants are decommissioned).
 
 **Patterns to follow:**
+
 - `src/server/rpc/contracts/*.contract.ts` — define contract types before the
   router; `errors.ts` for typed errors (use `PRECONDITION_FAILED` / a contract
   error for "verify not passed").
 - `src/server/rpc/init.ts` — `admin` middleware.
 
 **Test scenarios:**
+
 - All data + external checks pass → `allPassed: true`.
 - Missing Polar subscription → `polarSubscriptionVisible: false`,
   `allPassed: false`, actionable `notes`.
@@ -1195,6 +1253,7 @@ If `allPassed`, the oRPC `decommission` route:
 - Re-run `verifyTenant` after decommission → returns current state, no error.
 
 **Verification:**
+
 - Outcome: test tenant passes all checks; `decommission` succeeds; legacy tenant
   inaccessible on the old app.
 - `node_modules/.bin/tsc --noEmit` — zero net-new errors.
@@ -1227,21 +1286,21 @@ If `allPassed`, the oRPC `decommission` route:
 
 ## Risks & Dependencies
 
-| Risk | Severity | Mitigation |
-|------|----------|------------|
-| Legacy tables don't exist in the new deployment's schema; `migrations.define({table:'companies'})` is impossible | High | Import via cross-deployment `ConvexHttpClient` + idempotent inserts; reserve `@convex-dev/migrations` for new-table transform passes (corrected throughout). |
-| `@convex-dev/migrations` not yet installed | High | `bun add @convex-dev/migrations`; register in `convex.config.ts`; create `convex/migrations.ts` instance + `runner()` (Unit 1). |
-| Cross-deployment `ConvexHttpClient` runtime in a V8 internalAction (outbound HTTPS) | Medium-High | VERIFY in a spike; fall back to a `"use node"` action if the V8 runtime blocks the legacy fetch. WorkOS SDK itself is V8-safe (convex export condition). |
-| WorkOS Vault API name `createSecret` does not exist | High (was a hard bug) | Use `vault.createObject({name,value,context})` / `readObjectByName`; store `.id` (corrected). |
-| WorkOS Feature Flag `createFeatureFlagVariation` does not exist | High (was a hard bug) | Create flag slugs in the Dashboard once; target per-org via `featureFlags.addFlagTarget({slug,targetId:orgId})` (corrected). |
-| Meta override key `callback_url` is wrong | High (was a hard bug) | Use `override_callback_uri` in the `POST /<WABA_ID>/subscribed_apps` body (corrected). |
-| Convex `_storage` IDs are per-deployment | Medium | Re-upload KB blobs in Unit 5; remap `sourceStorageId` (VERIFY). |
-| `calls.messages[]` OCC during legacy read | Low | Reads happen via the legacy client (read-once, no write-back); no OCC on reads. |
-| Meta override switches traffic instantly per WABA | Medium | Run in a per-tenant maintenance window; test inbound on new platform first. |
-| WorkOS `sendInvitation` triggers welcome emails | Low-Medium | Coordinate tenant timing; prefer `createOrganizationMembership` for already-synced users (no email). |
-| WorkOS Management API rate limits on bulk provisioning | Low | `@convex-dev/rate-limiter` already installed; throttle if needed (VERIFY limits). |
-| Legacy `surveyResponses.callId` may point to a call that became a thread | Medium | Unit 5 resolves via `metadata.legacyCallId`/`metadata.legacyId`; test explicitly. |
-| `_migrationMap` persists in schema indefinitely | Low | `dropMigrationMap` cleanup migration after all tenants `'decommissioned'`. |
+| Risk                                                                                                             | Severity              | Mitigation                                                                                                                                                   |
+| ---------------------------------------------------------------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Legacy tables don't exist in the new deployment's schema; `migrations.define({table:'companies'})` is impossible | High                  | Import via cross-deployment `ConvexHttpClient` + idempotent inserts; reserve `@convex-dev/migrations` for new-table transform passes (corrected throughout). |
+| `@convex-dev/migrations` not yet installed                                                                       | High                  | `bun add @convex-dev/migrations`; register in `convex.config.ts`; create `convex/migrations.ts` instance + `runner()` (Unit 1).                              |
+| Cross-deployment `ConvexHttpClient` runtime in a V8 internalAction (outbound HTTPS)                              | Medium-High           | VERIFY in a spike; fall back to a `"use node"` action if the V8 runtime blocks the legacy fetch. WorkOS SDK itself is V8-safe (convex export condition).     |
+| WorkOS Vault API name `createSecret` does not exist                                                              | High (was a hard bug) | Use `vault.createObject({name,value,context})` / `readObjectByName`; store `.id` (corrected).                                                                |
+| WorkOS Feature Flag `createFeatureFlagVariation` does not exist                                                  | High (was a hard bug) | Create flag slugs in the Dashboard once; target per-org via `featureFlags.addFlagTarget({slug,targetId:orgId})` (corrected).                                 |
+| Meta override key `callback_url` is wrong                                                                        | High (was a hard bug) | Use `override_callback_uri` in the `POST /<WABA_ID>/subscribed_apps` body (corrected).                                                                       |
+| Convex `_storage` IDs are per-deployment                                                                         | Medium                | Re-upload KB blobs in Unit 5; remap `sourceStorageId` (VERIFY).                                                                                              |
+| `calls.messages[]` OCC during legacy read                                                                        | Low                   | Reads happen via the legacy client (read-once, no write-back); no OCC on reads.                                                                              |
+| Meta override switches traffic instantly per WABA                                                                | Medium                | Run in a per-tenant maintenance window; test inbound on new platform first.                                                                                  |
+| WorkOS `sendInvitation` triggers welcome emails                                                                  | Low-Medium            | Coordinate tenant timing; prefer `createOrganizationMembership` for already-synced users (no email).                                                         |
+| WorkOS Management API rate limits on bulk provisioning                                                           | Low                   | `@convex-dev/rate-limiter` already installed; throttle if needed (VERIFY limits).                                                                            |
+| Legacy `surveyResponses.callId` may point to a call that became a thread                                         | Medium                | Unit 5 resolves via `metadata.legacyCallId`/`metadata.legacyId`; test explicitly.                                                                            |
+| `_migrationMap` persists in schema indefinitely                                                                  | Low                   | `dropMigrationMap` cleanup migration after all tenants `'decommissioned'`.                                                                                   |
 
 ## Documentation & References
 
@@ -1254,13 +1313,13 @@ If `allPassed`, the oRPC `decommission` route:
   `migrations.define({ table, migrateOne, batchSize?, customRange? })`,
   `migrations.runner([...])`, `migrations.runSerially(ctx, [...])`,
   `migrations.runOne(ctx, fn)`. CLI: `bunx convex run migrations:<name>
-  '{dryRun:true}'`. Docs: https://www.convex.dev/components/migrations ·
+'{dryRun:true}'`. Docs: https://www.convex.dev/components/migrations ·
   https://github.com/get-convex/migrations#readme
 
 **Dependencies already installed (verified versions/locations):**
 
 - `@workos-inc/node` 8.13.0 (`/Users/angel/dev/agent.io/node_modules/
-  @workos-inc/node`) — runs in Convex **V8** via the package's `convex` export
+@workos-inc/node`) — runs in Convex **V8** via the package's `convex` export
   condition (`./lib/index.worker.mjs`). Verified methods:
   `organizations.createOrganization({name})`;
   `userManagement.createOrganizationMembership({organizationId,userId,roleSlug})`,
@@ -1283,7 +1342,7 @@ If `allPassed`, the oRPC `decommission` route:
   `messageCount`/`lastMessageAt` (threads-model.md §6). Docs:
   https://github.com/get-convex/convex-helpers
 - `@convex-dev/rate-limiter` (installed at `node_modules/@convex-dev/
-  rate-limiter`) — optional throttle for bulk WorkOS provisioning.
+rate-limiter`) — optional throttle for bulk WorkOS provisioning.
 - `@orpc/server` — contract-first oRPC (`implement(contract).$context<...>()`,
   `os.use(...)` middleware). Docs: https://orpc.unnoq.com
 

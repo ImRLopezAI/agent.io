@@ -27,22 +27,23 @@ Supported channels in this phase: **WhatsApp** (Meta Cloud API), **SMS**
 the **web widget** (public token = `${tenantId}.${nonce}`).
 
 > **Ground-truth corrections applied during review.** The most load-bearing:
+>
 > 1. **`messages` is polymorphic** (`parentType: 'thread' | 'call'`, `parentId:
->    string`) — there is **no `threadId` column**. Every `messages.insert` call
+string`) — there is **no `threadId` column**. Every `messages.insert` call
 >    here passes `parentType: 'thread'` + `parentId: threadId` (`threads-model.md
->    §2`).
+§2`).
 > 2. **`by_provider_message` is NOT a unique index** — Convex has no unique
 >    constraints. Idempotency (R8) is a **query-then-skip** inside the insert
 >    mutation, not a DB constraint. The design doc's phrasing "insert by unique
 >    `(parentType, parentId, providerMessageId)`" (`threads-model.md §6`) is an
->    *intent*, realised in code as a guarded read.
+>    _intent_, realised in code as a guarded read.
 > 3. **Resend delivery status flows through the component's `onEmailEvent`
 >    mutation** (`convex/resend.ts` → `handleEmailEvent`), **not** a hand-written
 >    `/resend/events` route. The `/resend/events` route already exists in
 >    `convex/http.ts` and is owned by the component.
 > 4. **HMAC uses Web Crypto (`crypto.subtle`)** — available in the Convex V8
 >    runtime; `node:crypto` is not. Twilio signing is **HMAC-SHA1 over (URL +
->    sorted POST params)**, *not* a raw-body HMAC.
+>    sorted POST params)**, _not_ a raw-body HMAC.
 
 ---
 
@@ -75,8 +76,8 @@ The new platform fixes this at two levels:
 - **R2** — Per-WABA callback override for WhatsApp so Meta's single app-level
   callback self-identifies by tenant (`rebuild-architecture.md §5`).
 - **R3** — Normalised `InboundMessage` envelope: `{ tenantId, channel, kind,
-  channelExternalId, contactPhone, text, attachments, providerMessageId,
-  metadata }` (`threads-model.md §4`).
+channelExternalId, contactPhone, text, attachments, providerMessageId,
+metadata }` (`threads-model.md §4`).
 - **R4** — Per-tenant endpoint resolution in-memory against
   `tenant.phones[]` / `whatsapps[]` / `widgets[]`; no reverse-lookup table
   (`rebuild-architecture.md §5`).
@@ -100,6 +101,7 @@ The new platform fixes this at two levels:
 ## Scope Boundaries
 
 In scope:
+
 - Hono webhook routes on the Convex HTTP router (via `HttpRouterWithHono`) for
   WhatsApp, SMS (Twilio), and widget. Email delivery status is **not** a new
   route — it rides the existing `/resend/events` component route.
@@ -135,16 +137,16 @@ In scope:
 
 ### Relevant code (repo-relative, agent.io) — verified to exist
 
-| Path | Role | Verified |
-|---|---|---|
-| `convex/http.ts` | `HonoWithConvex<ActionCtx>` app under `HttpRouterWithHono`; `app.use(cors())`, `app.use(requestId())`; existing `/resend/events`, `/api/agents`, `/api/chat` routes; `authKit.registerRoutes(http)` | ✅ read |
-| `convex/convex.config.ts` | `defineApp()` + `app.use(workOSAuthKit)` + `app.use(resend)` | ✅ read |
-| `convex/resend.ts` | `new Resend(components.resend, { testMode: false, onEmailEvent: internal.resend.handleEmailEvent })`; `handleEmailEvent` is an `internalMutation` taking `vOnEmailEventArgs` and currently only `console.log`s | ✅ read |
-| `convex/utils.ts` | `authQuery`/`authMutation` via convex-helpers `zCustomQuery`/`zCustomMutation` (zod4) injecting `{ user, org }`; `getOrgFromJwt`. **No `internalAction` helper here** — import `internalAction`/`internalMutation` from `./_generated/server` directly | ✅ read |
-| `convex/schema.ts` | Owned by 001 (`tenant`) + 002 (`threads`/`calls`/`messages`/`contacts`); not modified by this plan | doc-verified |
-| `src/server/rpc/init.ts` | `os = implement(contract).$context<RpcContextType>()`; middleware `auth`/`admin`/`org`/`adminOrg` are **derived** (`auth.use(...)`, `org.use(...)`) and exported from this file; context carries `session`, `workOs`, `headers`, `resHeaders` | ✅ read |
-| `src/server/rpc/contracts/index.ts` | `export const contract = { health, workOs }` — add `channels` here | ✅ read |
-| `src/server/rpc/routes/work-os.router.ts` | Router shape: `os.workOs.router({...})` with handlers built off the imported `org`/`adminOrg`/`auth` proxies (e.g. `org.workOs.organization.getActive.handler(...)`) | ✅ read |
+| Path                                      | Role                                                                                                                                                                                                                                                   | Verified     |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------ |
+| `convex/http.ts`                          | `HonoWithConvex<ActionCtx>` app under `HttpRouterWithHono`; `app.use(cors())`, `app.use(requestId())`; existing `/resend/events`, `/api/agents`, `/api/chat` routes; `authKit.registerRoutes(http)`                                                    | ✅ read      |
+| `convex/convex.config.ts`                 | `defineApp()` + `app.use(workOSAuthKit)` + `app.use(resend)`                                                                                                                                                                                           | ✅ read      |
+| `convex/resend.ts`                        | `new Resend(components.resend, { testMode: false, onEmailEvent: internal.resend.handleEmailEvent })`; `handleEmailEvent` is an `internalMutation` taking `vOnEmailEventArgs` and currently only `console.log`s                                         | ✅ read      |
+| `convex/utils.ts`                         | `authQuery`/`authMutation` via convex-helpers `zCustomQuery`/`zCustomMutation` (zod4) injecting `{ user, org }`; `getOrgFromJwt`. **No `internalAction` helper here** — import `internalAction`/`internalMutation` from `./_generated/server` directly | ✅ read      |
+| `convex/schema.ts`                        | Owned by 001 (`tenant`) + 002 (`threads`/`calls`/`messages`/`contacts`); not modified by this plan                                                                                                                                                     | doc-verified |
+| `src/server/rpc/init.ts`                  | `os = implement(contract).$context<RpcContextType>()`; middleware `auth`/`admin`/`org`/`adminOrg` are **derived** (`auth.use(...)`, `org.use(...)`) and exported from this file; context carries `session`, `workOs`, `headers`, `resHeaders`          | ✅ read      |
+| `src/server/rpc/contracts/index.ts`       | `export const contract = { health, workOs }` — add `channels` here                                                                                                                                                                                     | ✅ read      |
+| `src/server/rpc/routes/work-os.router.ts` | Router shape: `os.workOs.router({...})` with handlers built off the imported `org`/`adminOrg`/`auth` proxies (e.g. `org.workOs.organization.getActive.handler(...)`)                                                                                   | ✅ read      |
 
 ### Design-doc references (verified line ranges)
 
@@ -185,17 +187,17 @@ In scope:
 
 ## Key Technical Decisions
 
-| Decision | Rationale |
-|---|---|
-| **Hono on Convex HTTP router** (`HttpRouterWithHono`) for all webhook ingress | Webhooks are unauthenticated POST from providers; they belong on the Convex HTTP layer (already wired). TanStack server functions expect a session. The app is typed `HonoWithConvex<ActionCtx>`, so handlers reach `runAction`/`scheduler` off the Convex env. |
-| **Tenant from route path, not DB scan** (`/webhooks/{provider}/{tenantId}`) | Single indexed read on `tenant.by_tenant`; consistent with the design-doc rule ("no reverse-lookup table"). Widget is the only exception — token is parsed (`split('.')`) to extract tenantId. |
-| **Per-WABA callback override registered at embedded-signup** for WhatsApp | Meta controls the app-level webhook URL; the override lets each WABA self-identify to `/webhooks/whatsapp/{tenantId}` without server-side fan-out. |
-| **WorkOS Vault at action call-time** for Twilio/Meta creds (stub with env vars until plan 008 lands) | Design-doc §2: static creds → Vault, never inline or in DB. Stub reads `process.env.*`; real impl fetches via plan 008's Vault interface at send time. |
-| **HMAC via `crypto.subtle` (Web Crypto)**, not `node:crypto` | Convex V8 runtime exposes `crypto.subtle` (HMAC-SHA256/SHA1 verified working; only ECDH `deriveBits` is unimplemented). `node:crypto` is unavailable in V8. No `'use node'` action needed for signature verification. |
-| **Twilio signature = HMAC-SHA1 over (full URL + alphabetically-sorted POST params)** | Per Twilio security docs — NOT a raw-body HMAC. We reconstruct the signed string from the parsed form params + the request URL, then compare base64 HMAC-SHA1 against `X-Twilio-Signature`. (twilio-node's `validateRequest` does the same but pulls in the Node SDK; a small `crypto.subtle` helper avoids the dependency in V8.) |
-| **Idempotency via guarded `providerMessageId` read** (not a unique index) | Convex has no unique indexes. The insert mutation (plan 002) reads `by_provider_message` first; if a row exists, it no-ops. Re-delivered webhooks converge. |
-| **In-memory endpoint resolution** (load tenant once per action, match in the array) | Arrays are bounded (≤ ~52 phones for the largest tenant); the `tenant` doc is a single indexed read; no secondary table. |
-| **Email delivery status via `onEmailEvent`** (not a custom route) | The Resend component owns `/resend/events` and routes every event through the `handleEmailEvent` internalMutation in `convex/resend.ts`. Patch `messages.deliveryStatus` there. |
+| Decision                                                                                             | Rationale                                                                                                                                                                                                                                                                                                                          |
+| ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Hono on Convex HTTP router** (`HttpRouterWithHono`) for all webhook ingress                        | Webhooks are unauthenticated POST from providers; they belong on the Convex HTTP layer (already wired). TanStack server functions expect a session. The app is typed `HonoWithConvex<ActionCtx>`, so handlers reach `runAction`/`scheduler` off the Convex env.                                                                    |
+| **Tenant from route path, not DB scan** (`/webhooks/{provider}/{tenantId}`)                          | Single indexed read on `tenant.by_tenant`; consistent with the design-doc rule ("no reverse-lookup table"). Widget is the only exception — token is parsed (`split('.')`) to extract tenantId.                                                                                                                                     |
+| **Per-WABA callback override registered at embedded-signup** for WhatsApp                            | Meta controls the app-level webhook URL; the override lets each WABA self-identify to `/webhooks/whatsapp/{tenantId}` without server-side fan-out.                                                                                                                                                                                 |
+| **WorkOS Vault at action call-time** for Twilio/Meta creds (stub with env vars until plan 008 lands) | Design-doc §2: static creds → Vault, never inline or in DB. Stub reads `process.env.*`; real impl fetches via plan 008's Vault interface at send time.                                                                                                                                                                             |
+| **HMAC via `crypto.subtle` (Web Crypto)**, not `node:crypto`                                         | Convex V8 runtime exposes `crypto.subtle` (HMAC-SHA256/SHA1 verified working; only ECDH `deriveBits` is unimplemented). `node:crypto` is unavailable in V8. No `'use node'` action needed for signature verification.                                                                                                              |
+| **Twilio signature = HMAC-SHA1 over (full URL + alphabetically-sorted POST params)**                 | Per Twilio security docs — NOT a raw-body HMAC. We reconstruct the signed string from the parsed form params + the request URL, then compare base64 HMAC-SHA1 against `X-Twilio-Signature`. (twilio-node's `validateRequest` does the same but pulls in the Node SDK; a small `crypto.subtle` helper avoids the dependency in V8.) |
+| **Idempotency via guarded `providerMessageId` read** (not a unique index)                            | Convex has no unique indexes. The insert mutation (plan 002) reads `by_provider_message` first; if a row exists, it no-ops. Re-delivered webhooks converge.                                                                                                                                                                        |
+| **In-memory endpoint resolution** (load tenant once per action, match in the array)                  | Arrays are bounded (≤ ~52 phones for the largest tenant); the `tenant` doc is a single indexed read; no secondary table.                                                                                                                                                                                                           |
+| **Email delivery status via `onEmailEvent`** (not a custom route)                                    | The Resend component owns `/resend/events` and routes every event through the `handleEmailEvent` internalMutation in `convex/resend.ts`. Patch `messages.deliveryStatus` there.                                                                                                                                                    |
 
 ---
 
@@ -320,9 +322,9 @@ Widget inbound:
 
 **Files**
 
-| Path | Action |
-|---|---|
-| `convex/channels/types.ts` | Create |
+| Path                         | Action |
+| ---------------------------- | ------ |
+| `convex/channels/types.ts`   | Create |
 | `convex/channels/resolve.ts` | Create |
 
 **Approach**
@@ -408,7 +410,12 @@ export interface ChannelAdapter {
 
 ```ts
 // convex/channels/resolve.ts
-import type { TenantDoc, WhatsAppEndpoint, PhoneEndpoint, WidgetEndpoint } from './types'
+import type {
+	TenantDoc,
+	WhatsAppEndpoint,
+	PhoneEndpoint,
+	WidgetEndpoint,
+} from './types'
 
 export function resolveWhatsAppEndpoint(
 	tenant: TenantDoc,
@@ -441,13 +448,13 @@ export function resolveWidgetEndpoint(
 
 **Test scenarios**
 
-| Input | Outcome |
-|---|---|
-| `resolveWhatsAppEndpoint(tenant, knownAccountId)` | Returns matching entry |
-| `resolveWhatsAppEndpoint(tenant, unknownId)` | Returns `null` |
-| `resolveWidgetEndpoint(tenant, token)` where `isActive: false` | Returns `null` |
-| `resolveWidgetEndpoint(tenant, validToken)` | Returns entry with `enabledAgentIds` |
-| `resolveSmsEndpoint(tenant, number)` where phone has `capabilities: ['voice']` only | Returns `null` |
+| Input                                                                               | Outcome                              |
+| ----------------------------------------------------------------------------------- | ------------------------------------ |
+| `resolveWhatsAppEndpoint(tenant, knownAccountId)`                                   | Returns matching entry               |
+| `resolveWhatsAppEndpoint(tenant, unknownId)`                                        | Returns `null`                       |
+| `resolveWidgetEndpoint(tenant, token)` where `isActive: false`                      | Returns `null`                       |
+| `resolveWidgetEndpoint(tenant, validToken)`                                         | Returns entry with `enabledAgentIds` |
+| `resolveSmsEndpoint(tenant, number)` where phone has `capabilities: ['voice']` only | Returns `null`                       |
 
 **Verification**
 
@@ -470,9 +477,9 @@ app in `convex/http.ts`; verify provider signatures; ack 200 and schedule the
 
 **Files**
 
-| Path | Action |
-|---|---|
-| `convex/http.ts` | Modify — add webhook + widget routes |
+| Path                        | Action                                                      |
+| --------------------------- | ----------------------------------------------------------- |
+| `convex/http.ts`            | Modify — add webhook + widget routes                        |
 | `convex/channels/verify.ts` | Create — per-provider signature verifiers (`crypto.subtle`) |
 
 **Approach**
@@ -500,7 +507,7 @@ return `Promise<boolean>`:
   hex-encode, constant-time compare.
 - **Twilio** (`verifyTwilioSignature`): `X-Twilio-Signature` is a **base64
   HMAC-SHA1** of `url + <alphabetically-sorted POST params concatenated as
-  key+value>` keyed by the **Twilio Auth Token**. We parse the form body, sort
+key+value>` keyed by the **Twilio Auth Token**. We parse the form body, sort
   keys, concat, HMAC-SHA1 via `crypto.subtle`, base64-encode, compare. The `url`
   must be the exact public URL Twilio called (scheme+host+path; include the
   `.convex.site` host).
@@ -586,7 +593,9 @@ app.post('/widget/:token', async (c) => {
 ```ts
 // convex/channels/verify.ts — Web Crypto only (no node:crypto in V8)
 function toHex(buf: ArrayBuffer): string {
-	return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('')
+	return [...new Uint8Array(buf)]
+		.map((b) => b.toString(16).padStart(2, '0'))
+		.join('')
 }
 
 function timingSafeEqual(a: string, b: string): boolean {
@@ -596,7 +605,10 @@ function timingSafeEqual(a: string, b: string): boolean {
 	return diff === 0
 }
 
-export async function verifyMetaHmac(rawBody: string, headers: Headers): Promise<boolean> {
+export async function verifyMetaHmac(
+	rawBody: string,
+	headers: Headers,
+): Promise<boolean> {
 	const header = headers.get('x-hub-signature-256') ?? ''
 	const sig = header.startsWith('sha256=') ? header.slice('sha256='.length) : ''
 	const secret = process.env.META_APP_SECRET ?? ''
@@ -608,7 +620,11 @@ export async function verifyMetaHmac(rawBody: string, headers: Headers): Promise
 		false,
 		['sign'],
 	)
-	const mac = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(rawBody))
+	const mac = await crypto.subtle.sign(
+		'HMAC',
+		key,
+		new TextEncoder().encode(rawBody),
+	)
 	return timingSafeEqual(sig, toHex(mac))
 }
 
@@ -632,7 +648,11 @@ export async function verifyTwilioSignature(
 		false,
 		['sign'],
 	)
-	const mac = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data))
+	const mac = await crypto.subtle.sign(
+		'HMAC',
+		key,
+		new TextEncoder().encode(data),
+	)
 	const expected = btoa(String.fromCharCode(...new Uint8Array(mac)))
 	return timingSafeEqual(provided, expected)
 }
@@ -650,16 +670,16 @@ a `'use node'`-annotated action.
 
 **Test scenarios**
 
-| Input | Outcome |
-|---|---|
-| GET `/webhooks/whatsapp/org_x?hub.mode=subscribe&hub.verify_token=<ok>&hub.challenge=123` | Returns `123` |
-| POST `/webhooks/whatsapp/org_x` with valid Meta HMAC | 200 + schedules ingest |
-| POST `/webhooks/whatsapp/org_x` with bad HMAC | 403, no action scheduled |
-| POST `/webhooks/twilio/org_x` with valid `X-Twilio-Signature` | 200 + schedules ingest |
-| POST `/webhooks/twilio/org_x` with bad signature | 403 |
-| POST `/widget/org_abc.nonce123` | parses tenantId `org_abc`, schedules ingest |
-| POST `/widget/.nonce` (missing tenantId) | 400 |
-| POST `/webhooks/twilio/org_x/status` | 200 + schedules deliveryStatus |
+| Input                                                                                     | Outcome                                     |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------- |
+| GET `/webhooks/whatsapp/org_x?hub.mode=subscribe&hub.verify_token=<ok>&hub.challenge=123` | Returns `123`                               |
+| POST `/webhooks/whatsapp/org_x` with valid Meta HMAC                                      | 200 + schedules ingest                      |
+| POST `/webhooks/whatsapp/org_x` with bad HMAC                                             | 403, no action scheduled                    |
+| POST `/webhooks/twilio/org_x` with valid `X-Twilio-Signature`                             | 200 + schedules ingest                      |
+| POST `/webhooks/twilio/org_x` with bad signature                                          | 403                                         |
+| POST `/widget/org_abc.nonce123`                                                           | parses tenantId `org_abc`, schedules ingest |
+| POST `/widget/.nonce` (missing tenantId)                                                  | 400                                         |
+| POST `/webhooks/twilio/org_x/status`                                                      | 200 + schedules deliveryStatus              |
 
 **Verification**
 
@@ -683,8 +703,8 @@ stub with `process.env.META_SYSTEM_USER_TOKEN` until 008 lands.
 
 **Files**
 
-| Path | Action |
-|---|---|
+| Path                                   | Action |
+| -------------------------------------- | ------ |
 | `convex/channels/adapters/whatsapp.ts` | Create |
 
 **Approach**
@@ -765,7 +785,9 @@ export const whatsappAdapter: ChannelAdapter = {
 }
 
 // Maps msg.image / msg.document / msg.audio → attachments[]. media.id → providerFileId.
-function buildAttachments(msg: Record<string, any>): InboundMessage['attachments'] {
+function buildAttachments(
+	msg: Record<string, any>,
+): InboundMessage['attachments'] {
 	const out: NonNullable<InboundMessage['attachments']> = []
 	for (const t of ['image', 'document', 'audio'] as const) {
 		const m = msg[t]
@@ -787,14 +809,14 @@ function buildAttachments(msg: Record<string, any>): InboundMessage['attachments
 
 **Test scenarios**
 
-| Input | Outcome |
-|---|---|
-| Meta text message payload with valid `phone_number_id` | `InboundMessage { kind: 'whatsapp_chat' }` |
-| Meta status-only payload (no `messages[]`) | Returns `null` (delivery path handles it) |
-| `phone_number_id` not in `tenant.whatsapps[]` | Returns `null` |
-| Media (image) message | `attachments[0].providerFileId` set, `kind: 'image'` |
-| `send()` with valid creds | `{ providerMessageId: 'wamid…' }` |
-| Meta API error JSON | Throws with the response body |
+| Input                                                  | Outcome                                              |
+| ------------------------------------------------------ | ---------------------------------------------------- |
+| Meta text message payload with valid `phone_number_id` | `InboundMessage { kind: 'whatsapp_chat' }`           |
+| Meta status-only payload (no `messages[]`)             | Returns `null` (delivery path handles it)            |
+| `phone_number_id` not in `tenant.whatsapps[]`          | Returns `null`                                       |
+| Media (image) message                                  | `attachments[0].providerFileId` set, `kind: 'image'` |
+| `send()` with valid creds                              | `{ providerMessageId: 'wamid…' }`                    |
+| Meta API error JSON                                    | Throws with the response body                        |
 
 **Verification**
 
@@ -817,8 +839,8 @@ with `process.env.TWILIO_ACCOUNT_SID` + `process.env.TWILIO_AUTH_TOKEN`.
 
 **Files**
 
-| Path | Action |
-|---|---|
+| Path                              | Action |
+| --------------------------------- | ------ |
 | `convex/channels/adapters/sms.ts` | Create |
 
 **Approach**
@@ -877,7 +899,8 @@ export const smsAdapter: ChannelAdapter = {
 			From: (endpoint as PhoneEndpoint).phoneNumber,
 			Body: payload.text,
 		})
-		if (creds.statusCallbackUrl) body.set('StatusCallback', creds.statusCallbackUrl)
+		if (creds.statusCallbackUrl)
+			body.set('StatusCallback', creds.statusCallbackUrl)
 		const res = await fetch(url, {
 			method: 'POST',
 			headers: {
@@ -887,7 +910,8 @@ export const smsAdapter: ChannelAdapter = {
 			body,
 		})
 		const data = (await res.json()) as { sid?: string; error_message?: string }
-		if (!data.sid) throw new Error(`Twilio send failed: ${data.error_message ?? 'unknown'}`)
+		if (!data.sid)
+			throw new Error(`Twilio send failed: ${data.error_message ?? 'unknown'}`)
 		return { providerMessageId: data.sid }
 	},
 }
@@ -911,14 +935,14 @@ Twilio Messages resource + StatusCallback.
 
 **Test scenarios**
 
-| Input | Outcome |
-|---|---|
+| Input                                               | Outcome                                                                 |
+| --------------------------------------------------- | ----------------------------------------------------------------------- |
 | Twilio inbound form with `To` matching tenant phone | `InboundMessage { kind: 'sms' }`, `providerMessageId` from `MessageSid` |
-| `To` not in `tenant.phones[]` | Returns `null` |
-| Phone with only `capabilities: ['voice']` | Returns `null` |
-| `send()` with valid creds | `{ providerMessageId: 'SM…' }` |
-| Twilio API error (no `sid`) | Throws with `error_message` |
-| `mapTwilioStatus('undelivered')` | `'failed'` |
+| `To` not in `tenant.phones[]`                       | Returns `null`                                                          |
+| Phone with only `capabilities: ['voice']`           | Returns `null`                                                          |
+| `send()` with valid creds                           | `{ providerMessageId: 'SM…' }`                                          |
+| Twilio API error (no `sid`)                         | Throws with `error_message`                                             |
+| `mapTwilioStatus('undelivered')`                    | `'failed'`                                                              |
 
 **Verification**
 
@@ -941,10 +965,10 @@ instance), plan 002 (`messages.insert`, `messages.patchDeliveryStatus`).
 
 **Files**
 
-| Path | Action |
-|---|---|
-| `convex/channels/adapters/email.ts` | Create |
-| `convex/resend.ts` | Modify — patch delivery status inside `handleEmailEvent` |
+| Path                                | Action                                                   |
+| ----------------------------------- | -------------------------------------------------------- |
+| `convex/channels/adapters/email.ts` | Create                                                   |
+| `convex/resend.ts`                  | Modify — patch delivery status inside `handleEmailEvent` |
 
 **Approach**
 
@@ -1033,13 +1057,13 @@ export const handleEmailEvent = internalMutation({
 
 **Test scenarios**
 
-| Input | Outcome |
-|---|---|
-| `channels.send` (email) | Calls `resend.sendEmail`; stores returned `EmailId` as `providerMessageId` |
-| `handleEmailEvent` with `email.delivered` | Patches `deliveryStatus = 'delivered'` |
-| `handleEmailEvent` with `email.bounced` | Patches `deliveryStatus = 'failed'` |
-| `handleEmailEvent` with `email.opened` | No-op (status `undefined`) |
-| `emailAdapter.parse(...)` | Returns `null` (deferred) |
+| Input                                     | Outcome                                                                    |
+| ----------------------------------------- | -------------------------------------------------------------------------- |
+| `channels.send` (email)                   | Calls `resend.sendEmail`; stores returned `EmailId` as `providerMessageId` |
+| `handleEmailEvent` with `email.delivered` | Patches `deliveryStatus = 'delivered'`                                     |
+| `handleEmailEvent` with `email.bounced`   | Patches `deliveryStatus = 'failed'`                                        |
+| `handleEmailEvent` with `email.opened`    | No-op (status `undefined`)                                                 |
+| `emailAdapter.parse(...)`                 | Returns `null` (deferred)                                                  |
 
 **Verification**
 
@@ -1061,8 +1085,8 @@ deliver replies reactively (no provider REST call).
 
 **Files**
 
-| Path | Action |
-|---|---|
+| Path                                 | Action |
+| ------------------------------------ | ------ |
 | `convex/channels/adapters/widget.ts` | Create |
 
 **Approach**
@@ -1123,13 +1147,13 @@ export const widgetAdapter: ChannelAdapter = {
 
 **Test scenarios**
 
-| Input | Outcome |
-|---|---|
-| Valid token, `isActive: true`, `allowText: true` | `InboundMessage { kind: 'widget_text' }` |
-| Token not in `tenant.widgets[]` | Returns `null` |
-| `isActive: false` | Returns `null` |
-| `allowText: false` | Returns `null` |
-| Malformed JSON body | Throws — caught by the Hono route handler |
+| Input                                            | Outcome                                   |
+| ------------------------------------------------ | ----------------------------------------- |
+| Valid token, `isActive: true`, `allowText: true` | `InboundMessage { kind: 'widget_text' }`  |
+| Token not in `tenant.widgets[]`                  | Returns `null`                            |
+| `isActive: false`                                | Returns `null`                            |
+| `allowText: false`                               | Returns `null`                            |
+| Malformed JSON body                              | Throws — caught by the Hono route handler |
 
 **Verification**
 
@@ -1155,8 +1179,8 @@ plan 008 (Vault — stub with env vars).
 
 **Files**
 
-| Path | Action |
-|---|---|
+| Path                       | Action                                                     |
+| -------------------------- | ---------------------------------------------------------- |
 | `convex/channels/index.ts` | Create — `ADAPTER_MAP`, `ingest`, `send`, `deliveryStatus` |
 
 **Approach**
@@ -1217,7 +1241,9 @@ export const ingest = internalAction({
 	},
 	handler: async (ctx, { tenantId, provider, rawBody }) => {
 		if (provider === 'email') return // no inbound email path in this plan
-		const tenant = await ctx.runQuery(internal.tenant.getByTenantId, { tenantId })
+		const tenant = await ctx.runQuery(internal.tenant.getByTenantId, {
+			tenantId,
+		})
 		if (!tenant) return
 
 		const inbound = ADAPTER_MAP[provider].parse(rawBody, tenant)
@@ -1268,7 +1294,9 @@ export const send = internalAction({
 		text: v.string(),
 	},
 	handler: async (ctx, { tenantId, provider, threadId, text }) => {
-		const tenant = await ctx.runQuery(internal.tenant.getByTenantId, { tenantId })
+		const tenant = await ctx.runQuery(internal.tenant.getByTenantId, {
+			tenantId,
+		})
 		const thread = await ctx.runQuery(internal.threads.get, { threadId })
 		if (!tenant || !thread) return
 
@@ -1309,7 +1337,11 @@ export const send = internalAction({
 })
 
 export const deliveryStatus = internalAction({
-	args: { tenantId: v.string(), provider: providerValidator, rawBody: v.string() },
+	args: {
+		tenantId: v.string(),
+		provider: providerValidator,
+		rawBody: v.string(),
+	},
 	handler: async (ctx, { provider, rawBody }) => {
 		if (provider === 'sms') {
 			const p = new URLSearchParams(rawBody)
@@ -1350,41 +1382,55 @@ function resolveCredsStub(_provider: string, _tenantId: string): ChannelCreds {
 // Read the contact doc by thread.contactId rather than a denormalised thread field
 // unless 002 denormalises it.
 async function resolveRecipient(ctx: any, thread: any): Promise<string> {
-	const contact = await ctx.runQuery(internal.contacts.get, { contactId: thread.contactId })
+	const contact = await ctx.runQuery(internal.contacts.get, {
+		contactId: thread.contactId,
+	})
 	return contact?.phone ?? contact?.email ?? ''
 }
 
 // Maps a thread back to its endpoint for outbound, using thread.channelExternalId.
 function resolveEndpointForThread(tenant: any, thread: any) {
 	if (thread.channel === 'whatsapp')
-		return tenant.whatsapps?.find((w: any) => w.accountId === thread.channelExternalId) ?? null
+		return (
+			tenant.whatsapps?.find(
+				(w: any) => w.accountId === thread.channelExternalId,
+			) ?? null
+		)
 	if (thread.channel === 'sms')
-		return tenant.phones?.find((p: any) => p.phoneNumber === thread.channelExternalId) ?? null
+		return (
+			tenant.phones?.find(
+				(p: any) => p.phoneNumber === thread.channelExternalId,
+			) ?? null
+		)
 	if (thread.channel === 'widget')
-		return tenant.widgets?.find((w: any) => w.token === thread.channelExternalId) ?? null
+		return (
+			tenant.widgets?.find((w: any) => w.token === thread.channelExternalId) ??
+			null
+		)
 	return null
 }
 ```
 
 **Patterns to follow**: `internalAction`/`internalMutation` imported from
 `./_generated/server` (verified — `utils.ts` exports only `authQuery`/`authMutation`
-+ `query`/`mutation`); design-doc §4b "ack fast; the orchestrated turn runs async";
-plan 002 internal API. `messages` polymorphic insert (`parentType`/`parentId`) per
-`threads-model.md §2`.
+
+- `query`/`mutation`); design-doc §4b "ack fast; the orchestrated turn runs async";
+  plan 002 internal API. `messages` polymorphic insert (`parentType`/`parentId`) per
+  `threads-model.md §2`.
 
 **Test scenarios**
 
-| Input | Outcome |
-|---|---|
+| Input                                                                 | Outcome                                                                                       |
+| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | `ingest` valid WhatsApp payload, tenant found, parse → InboundMessage | contact upserted, thread upserted, message inserted (`parentType:'thread'`), agent turn fired |
-| `ingest` unknown tenantId | Returns early, no writes |
-| `ingest` parse → `null` | Returns early, no writes |
-| `ingest` provider `email` | Returns early (no inbound path) |
-| `send` (sms) | Calls `smsAdapter.send`; outbound message row with `deliveryStatus:'sent'` |
-| `send` (email) | Calls `resend.sendEmail`; stores `EmailId` as `providerMessageId` |
-| `ingest` twice same `providerMessageId` | Second insert no-ops (guarded read in 002) — no duplicate row (R8) |
-| `deliveryStatus` Twilio `MessageStatus:'delivered'` | Patches `deliveryStatus = 'delivered'` |
-| `deliveryStatus` WhatsApp `statuses[0].status:'read'` | Patches `deliveryStatus = 'read'` |
+| `ingest` unknown tenantId                                             | Returns early, no writes                                                                      |
+| `ingest` parse → `null`                                               | Returns early, no writes                                                                      |
+| `ingest` provider `email`                                             | Returns early (no inbound path)                                                               |
+| `send` (sms)                                                          | Calls `smsAdapter.send`; outbound message row with `deliveryStatus:'sent'`                    |
+| `send` (email)                                                        | Calls `resend.sendEmail`; stores `EmailId` as `providerMessageId`                             |
+| `ingest` twice same `providerMessageId`                               | Second insert no-ops (guarded read in 002) — no duplicate row (R8)                            |
+| `deliveryStatus` Twilio `MessageStatus:'delivered'`                   | Patches `deliveryStatus = 'delivered'`                                                        |
+| `deliveryStatus` WhatsApp `statuses[0].status:'read'`                 | Patches `deliveryStatus = 'read'`                                                             |
 
 **Verification**
 
@@ -1409,12 +1455,12 @@ exports).
 
 **Files**
 
-| Path | Action |
-|---|---|
-| `src/server/rpc/contracts/channels.contract.ts` | Create |
-| `src/server/rpc/routes/channels.router.ts` | Create |
-| `src/server/rpc/contracts/index.ts` | Modify — add `channels: channelsContract` to `contract` |
-| `src/server/rpc/routes/index.ts` | Create or modify — assemble routers [VERIFY below] |
+| Path                                            | Action                                                  |
+| ----------------------------------------------- | ------------------------------------------------------- |
+| `src/server/rpc/contracts/channels.contract.ts` | Create                                                  |
+| `src/server/rpc/routes/channels.router.ts`      | Create                                                  |
+| `src/server/rpc/contracts/index.ts`             | Modify — add `channels: channelsContract` to `contract` |
+| `src/server/rpc/routes/index.ts`                | Create or modify — assemble routers [VERIFY below]      |
 
 > **VERIFY**: `src/server/rpc/routes/index.ts` does not currently exist (the
 > routes dir holds only `health.router.ts` + `work-os.router.ts`). Find where the
@@ -1481,7 +1527,9 @@ export const channelsContract = {
 		add: base
 			.input(phoneEntrySchema.omit({ phoneNumberId: true }))
 			.output(phoneEntrySchema),
-		remove: base.input(z.object({ phoneNumberId: z.string() })).output(z.void()),
+		remove: base
+			.input(z.object({ phoneNumberId: z.string() }))
+			.output(z.void()),
 	},
 	whatsapps: {
 		list: base.output(z.array(whatsappEntrySchema)),
@@ -1523,9 +1571,11 @@ export const channelsRouter = os.channels.router({
 		add: adminOrg.channels.phones.add.handler(async ({ context, input }) => {
 			return addPhone(context.organizationId, input)
 		}),
-		remove: adminOrg.channels.phones.remove.handler(async ({ context, input }) => {
-			return removePhone(context.organizationId, input.phoneNumberId)
-		}),
+		remove: adminOrg.channels.phones.remove.handler(
+			async ({ context, input }) => {
+				return removePhone(context.organizationId, input.phoneNumberId)
+			},
+		),
 	},
 	whatsapps: {
 		/* same shape: list via org, add/remove via adminOrg */
@@ -1534,12 +1584,19 @@ export const channelsRouter = os.channels.router({
 		list: org.channels.widgets.list.handler(async ({ context }) => {
 			return listWidgets(context.organizationId)
 		}),
-		create: adminOrg.channels.widgets.create.handler(async ({ context, input }) => {
-			const token = `${context.organizationId}.${crypto.randomUUID()}`
-			return createWidget(context.organizationId, { ...input, token, isActive: true })
-		}),
+		create: adminOrg.channels.widgets.create.handler(
+			async ({ context, input }) => {
+				const token = `${context.organizationId}.${crypto.randomUUID()}`
+				return createWidget(context.organizationId, {
+					...input,
+					token,
+					isActive: true,
+				})
+			},
+		),
 		deactivate: adminOrg.channels.widgets.deactivate.handler(
-			async ({ context, input }) => deactivateWidget(context.organizationId, input.token),
+			async ({ context, input }) =>
+				deactivateWidget(context.organizationId, input.token),
 		),
 	},
 })
@@ -1567,13 +1624,13 @@ shape, middleware imported from `@server/rpc/init`); `contracts/index.ts`
 
 **Test scenarios**
 
-| Input | Outcome |
-|---|---|
-| `channels.phones.list` with org session | Returns `tenant.phones[]` for that org |
-| `channels.phones.add` as admin | Appends entry; returns it with server-generated `phoneNumberId` |
-| `channels.phones.add` as non-admin | Throws `NO_ADMIN_ROLE` |
-| `channels.widgets.create` | Returns `{ token: '${orgId}.${uuid}' }`, `isActive: true` |
-| `channels.phones.remove` unknown `phoneNumberId` | No-op (or typed `NOT_FOUND`) |
+| Input                                            | Outcome                                                         |
+| ------------------------------------------------ | --------------------------------------------------------------- |
+| `channels.phones.list` with org session          | Returns `tenant.phones[]` for that org                          |
+| `channels.phones.add` as admin                   | Appends entry; returns it with server-generated `phoneNumberId` |
+| `channels.phones.add` as non-admin               | Throws `NO_ADMIN_ROLE`                                          |
+| `channels.widgets.create`                        | Returns `{ token: '${orgId}.${uuid}' }`, `isActive: true`       |
+| `channels.phones.remove` unknown `phoneNumberId` | No-op (or typed `NOT_FOUND`)                                    |
 
 **Verification**
 
@@ -1608,17 +1665,17 @@ shape, middleware imported from `@server/rpc/init`); `contracts/index.ts`
 
 ## Risks & Dependencies
 
-| Risk / Dependency | Likelihood | Impact | Mitigation |
-|---|---|---|---|
-| **Plan 001 not landed** — `tenant` schema / `internal.tenant.*` not available | High (sequence) | Blocker | Complete 001 before Units 3–8 |
-| **Plan 002 not landed** — `threads.upsert`, `messages.insert`/`patchDeliveryStatus`, `contacts.upsertByPhone`/`get`, `agentRuntime.runAgentTurn`, `threads.get` not available | High (sequence) | Blocker for Unit 7 | Coordinate with 002; stub internals during dev |
-| **Plan 008 (Vault) not landed** — Twilio/Meta creds not in Vault | High (sequence) | Outbound send broken | `resolveCredsStub` reads `process.env.*`; `// TODO(008)` markers |
-| **Convex V8 HMAC** | Low (resolved) | — | `crypto.subtle` HMAC-SHA256/SHA1 verified available in V8; no Node action |
-| **`by_provider_message` not unique** — Convex has no unique indexes | Medium | Duplicate rows if dedup is omitted | Idempotency is a guarded read **inside** 002's `messages.insert`; this plan must not assume a DB constraint |
-| **Meta per-WABA secret vs App Secret** | Medium | WhatsApp HMAC verify fails | Default to `META_APP_SECRET` over raw body; VERIFY at impl |
-| **Twilio `StatusCallback` reachability** | Low | Delivery status never patches | Set per-message to `https://<deployment>.convex.site/webhooks/twilio/{tenantId}/status`; confirm reachable |
-| **Email `providerMessageId` linkage** | Medium | Delivery patch can't find the row | Store the component `EmailId` (returned by `sendEmail`) as `providerMessageId`; patch by `args.id` in `handleEmailEvent` |
-| **Widget no-auth** POST to `/widget/{token}` | Low (by design) | DoS vector | Rate-limit via `@convex-dev/rate-limiter` (added in a later plan); validate token shape early |
+| Risk / Dependency                                                                                                                                                             | Likelihood      | Impact                             | Mitigation                                                                                                               |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Plan 001 not landed** — `tenant` schema / `internal.tenant.*` not available                                                                                                 | High (sequence) | Blocker                            | Complete 001 before Units 3–8                                                                                            |
+| **Plan 002 not landed** — `threads.upsert`, `messages.insert`/`patchDeliveryStatus`, `contacts.upsertByPhone`/`get`, `agentRuntime.runAgentTurn`, `threads.get` not available | High (sequence) | Blocker for Unit 7                 | Coordinate with 002; stub internals during dev                                                                           |
+| **Plan 008 (Vault) not landed** — Twilio/Meta creds not in Vault                                                                                                              | High (sequence) | Outbound send broken               | `resolveCredsStub` reads `process.env.*`; `// TODO(008)` markers                                                         |
+| **Convex V8 HMAC**                                                                                                                                                            | Low (resolved)  | —                                  | `crypto.subtle` HMAC-SHA256/SHA1 verified available in V8; no Node action                                                |
+| **`by_provider_message` not unique** — Convex has no unique indexes                                                                                                           | Medium          | Duplicate rows if dedup is omitted | Idempotency is a guarded read **inside** 002's `messages.insert`; this plan must not assume a DB constraint              |
+| **Meta per-WABA secret vs App Secret**                                                                                                                                        | Medium          | WhatsApp HMAC verify fails         | Default to `META_APP_SECRET` over raw body; VERIFY at impl                                                               |
+| **Twilio `StatusCallback` reachability**                                                                                                                                      | Low             | Delivery status never patches      | Set per-message to `https://<deployment>.convex.site/webhooks/twilio/{tenantId}/status`; confirm reachable               |
+| **Email `providerMessageId` linkage**                                                                                                                                         | Medium          | Delivery patch can't find the row  | Store the component `EmailId` (returned by `sendEmail`) as `providerMessageId`; patch by `args.id` in `handleEmailEvent` |
+| **Widget no-auth** POST to `/widget/{token}`                                                                                                                                  | Low (by design) | DoS vector                         | Rate-limit via `@convex-dev/rate-limiter` (added in a later plan); validate token shape early                            |
 
 ---
 
@@ -1626,16 +1683,16 @@ shape, middleware imported from `@server/rpc/init`); `contracts/index.ts`
 
 ### External dependencies introduced/used by this plan
 
-| Dependency | Status | Install / config | Canonical docs |
-|---|---|---|---|
-| `@convex-dev/resend` | **Installed v0.2.4** (`convex/convex.config.ts` `app.use(resend)`; `convex/resend.ts`) | already present; env `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET` | https://www.convex.dev/components/resend · https://github.com/get-convex/resend · `sendEmail`/`handleResendEventWebhook`/`vOnEmailEventArgs` verified in `node_modules/@convex-dev/resend/dist/client/index.d.ts` |
-| `convex-helpers` (Hono) | **Installed v0.1.119** (`HttpRouterWithHono`, `HonoWithConvex` in `convex/http.ts`) | already present | https://github.com/get-convex/convex-helpers · https://www.npmjs.com/package/convex-helpers |
-| `hono` | **Installed** (`hono/tiny`, `hono/cors`, `hono/request-id`) | already present | https://hono.dev/docs |
-| `convex` | **Installed v1.41** | `ctx.scheduler.runAfter`, `internalAction`, `crypto.subtle` | https://docs.convex.dev/functions/http-actions · https://docs.convex.dev/scheduling/scheduled-functions · V8 `crypto.subtle` availability: https://github.com/get-convex/convex-backend/issues/399 |
-| Twilio Messaging (no SDK — raw REST + `crypto.subtle`) | external API | env `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` (→ Vault, plan 008); optional `bun add twilio` only if `validateRequest` is preferred over the inline HMAC | Inbound webhook params: https://www.twilio.com/docs/messaging/guides/webhook-request · Send + StatusCallback: https://www.twilio.com/docs/messaging/api/message-resource · Signature (HMAC-SHA1, `X-Twilio-Signature`): https://www.twilio.com/docs/usage/security |
-| WhatsApp Cloud API (Meta Graph, no SDK) | external API | env `META_APP_SECRET`, `META_VERIFY_TOKEN`, `META_SYSTEM_USER_TOKEN` (→ Vault, plan 008) | Send (v22.0): https://developers.facebook.com/docs/whatsapp/cloud-api/messages · Webhooks setup + `X-Hub-Signature-256`: https://developers.facebook.com/docs/whatsapp/cloud-api/guides/set-up-webhooks · Payload examples: https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks/payload-examples |
-| `@orpc/contract`, `@orpc/server` | **Installed** (`src/server/rpc/*`) | already present | https://orpc.unnoq.com |
-| `zod` | **Installed v4** (contracts) | already present | https://zod.dev |
+| Dependency                                             | Status                                                                                 | Install / config                                                                                                                                         | Canonical docs                                                                                                                                                                                                                                                                                                |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@convex-dev/resend`                                   | **Installed v0.2.4** (`convex/convex.config.ts` `app.use(resend)`; `convex/resend.ts`) | already present; env `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`                                                                                           | https://www.convex.dev/components/resend · https://github.com/get-convex/resend · `sendEmail`/`handleResendEventWebhook`/`vOnEmailEventArgs` verified in `node_modules/@convex-dev/resend/dist/client/index.d.ts`                                                                                             |
+| `convex-helpers` (Hono)                                | **Installed v0.1.119** (`HttpRouterWithHono`, `HonoWithConvex` in `convex/http.ts`)    | already present                                                                                                                                          | https://github.com/get-convex/convex-helpers · https://www.npmjs.com/package/convex-helpers                                                                                                                                                                                                                   |
+| `hono`                                                 | **Installed** (`hono/tiny`, `hono/cors`, `hono/request-id`)                            | already present                                                                                                                                          | https://hono.dev/docs                                                                                                                                                                                                                                                                                         |
+| `convex`                                               | **Installed v1.41**                                                                    | `ctx.scheduler.runAfter`, `internalAction`, `crypto.subtle`                                                                                              | https://docs.convex.dev/functions/http-actions · https://docs.convex.dev/scheduling/scheduled-functions · V8 `crypto.subtle` availability: https://github.com/get-convex/convex-backend/issues/399                                                                                                            |
+| Twilio Messaging (no SDK — raw REST + `crypto.subtle`) | external API                                                                           | env `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` (→ Vault, plan 008); optional `bun add twilio` only if `validateRequest` is preferred over the inline HMAC | Inbound webhook params: https://www.twilio.com/docs/messaging/guides/webhook-request · Send + StatusCallback: https://www.twilio.com/docs/messaging/api/message-resource · Signature (HMAC-SHA1, `X-Twilio-Signature`): https://www.twilio.com/docs/usage/security                                            |
+| WhatsApp Cloud API (Meta Graph, no SDK)                | external API                                                                           | env `META_APP_SECRET`, `META_VERIFY_TOKEN`, `META_SYSTEM_USER_TOKEN` (→ Vault, plan 008)                                                                 | Send (v22.0): https://developers.facebook.com/docs/whatsapp/cloud-api/messages · Webhooks setup + `X-Hub-Signature-256`: https://developers.facebook.com/docs/whatsapp/cloud-api/guides/set-up-webhooks · Payload examples: https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks/payload-examples |
+| `@orpc/contract`, `@orpc/server`                       | **Installed** (`src/server/rpc/*`)                                                     | already present                                                                                                                                          | https://orpc.unnoq.com                                                                                                                                                                                                                                                                                        |
+| `zod`                                                  | **Installed v4** (contracts)                                                           | already present                                                                                                                                          | https://zod.dev                                                                                                                                                                                                                                                                                               |
 
 ### Deprecation / sunset check (mandatory)
 
