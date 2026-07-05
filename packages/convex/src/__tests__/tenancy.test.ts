@@ -3,7 +3,7 @@ import { convexTest } from 'convex-test'
 import { describe, expect, test } from 'vite-plus/test'
 
 import schema from '../schema'
-import { modules } from '../testModules'
+import { modules } from '../testModules.test'
 
 const ORG_A = 'org_aaaa'
 const ORG_B = 'org_bbbb'

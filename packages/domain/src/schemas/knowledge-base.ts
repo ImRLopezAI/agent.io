@@ -1,11 +1,13 @@
 import { z } from 'zod'
 
 import { tenantTable } from './helper.ts'
+import { KB_USAGE_MODES } from './shared.ts'
 
 /**
- * Knowledge Base (ERD §1c): native RAG on Convex vector search, following the
- * separate-vector-table pattern — metadata reads never load embeddings, and
- * `tenant` is a filterField INSIDE the vector index (isolation in the index).
+ * Knowledge Base (ERD §1c): native RAG on Convex vector search. Indexes are
+ * declared where they belong — at the schema definition site
+ * (packages/convex/src/schema.ts): vector index on kbEmbeddings with
+ * `tenant` + `documentId` filterFields, search indexes on chunks/documents.
  */
 
 /** One embedding model per deployment; changing it means a reindex migration. */
@@ -14,32 +16,28 @@ export const EMBEDDING = {
 	dimensions: 1536,
 } as const
 
-export const KbDocuments = tenantTable(
-	'kbDocuments',
-	() => ({
-		name: z.string().min(1).max(200),
-		type: z.enum(['text', 'url', 'file']),
-		sourceUrl: z.string().optional(),
-		/** Convex storage id of the original upload (file type). */
-		storageId: z.string().optional(),
-		/** text type / extracted text (may spill to storage if large). */
-		content: z.string().optional(),
-		/** auto = RAG retrieval; prompt = always injected verbatim at expand. */
-		usageMode: z.enum(['auto', 'prompt']).default('auto'),
-		status: z.enum(['processing', 'indexed', 'failed']).default('processing'),
-		failureReason: z.string().optional(),
-		sizeBytes: z.number().int().nonnegative().default(0),
-		chunkCount: z.number().int().nonnegative().default(0),
-	}),
-	{
-		searchIndexes: {
-			search_name: { searchField: 'name', filterFields: ['tenant'] },
-		},
-	},
-)
+export const KB_DOCUMENT_TYPES = ['text', 'url', 'file'] as const
+export type KbDocumentType = (typeof KB_DOCUMENT_TYPES)[number]
+export const KB_DOCUMENT_STATUSES = ['processing', 'indexed', 'failed'] as const
+
+export const kbDocuments = tenantTable('kbDocuments', () => ({
+	name: z.string().min(1).max(200),
+	type: z.enum(KB_DOCUMENT_TYPES),
+	sourceUrl: z.string().optional(),
+	/** Convex storage id of the original upload (file type). */
+	storageId: z.string().optional(),
+	/** text type / extracted text (may spill to storage if large). */
+	content: z.string().optional(),
+	/** auto = RAG retrieval; prompt = always injected verbatim at expand. */
+	usageMode: z.enum(KB_USAGE_MODES).default('auto'),
+	status: z.enum(KB_DOCUMENT_STATUSES).default('processing'),
+	failureReason: z.string().optional(),
+	sizeBytes: z.number().int().nonnegative().default(0),
+	chunkCount: z.number().int().nonnegative().default(0),
+}))
 
 export const validateKbDocument = (d: {
-	type: 'text' | 'url' | 'file'
+	type: KbDocumentType
 	sourceUrl?: string
 	storageId?: string
 	content?: string
@@ -51,42 +49,15 @@ export const validateKbDocument = (d: {
 	return null
 }
 
-export const KbChunks = tenantTable(
-	'kbChunks',
-	(id) => ({
-		documentId: id('kbDocuments'),
-		order: z.number().int().nonnegative(),
-		/** The chunk content returned to the session. */
-		text: z.string(),
-		embeddingId: id('kbEmbeddings').optional(),
-	}),
-	{
-		indexes: {
-			by_document: ['documentId', 'order'],
-			by_embedding: ['embeddingId'],
-		},
-		searchIndexes: {
-			search_text: {
-				searchField: 'text',
-				filterFields: ['tenant', 'documentId'],
-			},
-		},
-	},
-)
+export const kbChunks = tenantTable('kbChunks', (id) => ({
+	documentId: id('kbDocuments'),
+	order: z.number().int().nonnegative(),
+	/** The chunk content returned to the session. */
+	text: z.string(),
+	embeddingId: id('kbEmbeddings').optional(),
+}))
 
-export const KbEmbeddings = tenantTable(
-	'kbEmbeddings',
-	(id) => ({
-		embedding: z.array(z.number()),
-		documentId: id('kbDocuments'),
-	}),
-	{
-		vectorIndexes: {
-			by_embedding: {
-				vectorField: 'embedding',
-				dimensions: EMBEDDING.dimensions,
-				filterFields: ['tenant', 'documentId'],
-			},
-		},
-	},
-)
+export const kbEmbeddings = tenantTable('kbEmbeddings', (id) => ({
+	embedding: z.array(z.number()),
+	documentId: id('kbDocuments'),
+}))

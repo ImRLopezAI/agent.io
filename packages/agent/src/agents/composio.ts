@@ -2,27 +2,26 @@ import type { McpScope } from '@agent.io/domain/schemas'
 
 import type { HostedMcpTool } from '../types'
 
-/** The subset of the Composio SDK the resolver needs (mock-friendly). */
+export interface ComposioSessionHandle {
+	sessionId: string
+	mcp: { url: string; headers: Record<string, string> }
+}
+
+/**
+ * The subset of the Composio SDK the resolver needs — implemented for real by
+ * createComposioClient (composio-client.ts, @composio/core), mock-friendly in
+ * tests. DIRECT_TOOLS preset + mcp:true are applied inside the adapter.
+ */
 export interface ComposioClient {
 	create(
 		userId: string,
 		options: {
-			toolkits?: { enable: string[] } | { disable: string[] } | string[]
+			toolkits?: { enable: string[] } | { disable: string[] }
 			tools?: Record<string, { enable: string[] } | { disable: string[] }>
-			sessionPreset?: string
 			mcp: true
 		},
-	): Promise<{
-		id: string
-		mcp: { url: string; headers: Record<string, string> }
-	}>
-	use(
-		sessionId: string,
-		options: { mcp: true },
-	): Promise<{
-		id: string
-		mcp: { url: string; headers: Record<string, string> }
-	}>
+	): Promise<ComposioSessionHandle>
+	use(sessionId: string): Promise<ComposioSessionHandle>
 }
 
 export interface McpConnectionRow {
@@ -73,6 +72,21 @@ export const configHash = (
 	return `h${(hash >>> 0).toString(36)}`
 }
 
+/** Domain enableDisable ({mode, values}) → Composio's {enable}/{disable}. */
+export const toComposioTools = (
+	tools?: Record<string, McpScope['toolkits'] & object>,
+): Record<string, { enable: string[] } | { disable: string[] }> | undefined => {
+	if (!tools) return undefined
+	return Object.fromEntries(
+		Object.entries(tools).map(([toolkit, filter]) => [
+			toolkit,
+			filter.mode === 'enable'
+				? { enable: filter.values }
+				: { disable: filter.values },
+		]),
+	)
+}
+
 /** Intersect the agent's subset with connection governance (governance wins). */
 export const effectiveToolkits = (
 	scope: McpScope,
@@ -80,14 +94,13 @@ export const effectiveToolkits = (
 ): { toolkits: string[]; dropped: string[] } => {
 	const connectionToolkits = new Set(connection.toolkitSlugs ?? [])
 	const requested =
-		scope.toolkits && 'enable' in scope.toolkits
-			? scope.toolkits.enable
+		scope.toolkits?.mode === 'enable'
+			? scope.toolkits.values
 			: [...connectionToolkits].filter(
 					(slug) =>
 						!(
-							scope.toolkits &&
-							'disable' in scope.toolkits &&
-							scope.toolkits.disable.includes(slug)
+							scope.toolkits?.mode === 'disable' &&
+							scope.toolkits.values.includes(slug)
 						),
 				)
 	const toolkits = requested.filter((slug) => connectionToolkits.has(slug))
@@ -143,11 +156,10 @@ export const resolveComposioEntry = async (opts: {
 			configHash: hash,
 		})
 		const session = cachedSessionId
-			? await client.use(cachedSessionId, { mcp: true })
+			? await client.use(cachedSessionId)
 			: await client.create(tenant, {
 					toolkits: { enable: toolkits },
-					tools: scope.tools,
-					sessionPreset: 'DIRECT_TOOLS',
+					tools: toComposioTools(scope.tools),
 					mcp: true,
 				})
 		if (!cachedSessionId) {
@@ -155,7 +167,7 @@ export const resolveComposioEntry = async (opts: {
 				tenant,
 				connectionId: connection._id,
 				configHash: hash,
-				sessionId: session.id,
+				sessionId: session.sessionId,
 			})
 		}
 		return {

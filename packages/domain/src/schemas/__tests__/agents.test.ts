@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vite-plus/test'
 
-import { Agents, AgentVersions, versionConfig } from '../agents.ts'
+import { agents, agentVersions, versionConfig } from '../agents.ts'
 import { enableDisable, vadConfig } from '../shared.ts'
 
 const draft = {
@@ -18,7 +18,7 @@ const draft = {
 
 describe('Agents (draft)', () => {
 	test('a full draft parses', () => {
-		expect(Agents.insertSchema.safeParse(draft).success).toBe(true)
+		expect(agents.insertSchema.safeParse(draft).success).toBe(true)
 	})
 
 	test('unknown system-tool slug rejects', () => {
@@ -26,7 +26,7 @@ describe('Agents (draft)', () => {
 			...draft,
 			systemTools: { not_a_tool: { enabled: true } },
 		}
-		const res = Agents.insertSchema.safeParse(bad)
+		const res = agents.insertSchema.safeParse(bad)
 		expect(res.success).toBe(false)
 	})
 
@@ -41,11 +41,17 @@ describe('Agents (draft)', () => {
 })
 
 describe('mcp scoping (R6)', () => {
-	test('enable XOR disable — both at once rejected', () => {
-		expect(enableDisable.safeParse({ enable: ['gmail'] }).success).toBe(true)
-		expect(enableDisable.safeParse({ disable: ['exa'] }).success).toBe(true)
+	test('discriminated on mode — malformed shapes rejected', () => {
 		expect(
-			enableDisable.safeParse({ enable: ['gmail'], disable: ['exa'] }).success,
+			enableDisable.safeParse({ mode: 'enable', values: ['gmail'] }).success,
+		).toBe(true)
+		expect(
+			enableDisable.safeParse({ mode: 'disable', values: ['exa'] }).success,
+		).toBe(true)
+		expect(enableDisable.safeParse({ enable: ['gmail'] }).success).toBe(false)
+		expect(
+			enableDisable.safeParse({ mode: 'enable', values: ['a'], extra: 1 })
+				.success,
 		).toBe(false)
 	})
 })
@@ -75,7 +81,7 @@ describe('AgentVersions (immutable)', () => {
 				],
 			},
 		}
-		const res = AgentVersions.insertSchema.safeParse({
+		const res = agentVersions.insertSchema.safeParse({
 			tenant: 'org_1',
 			agentId: 'agents_x',
 			version: 1,
@@ -101,8 +107,8 @@ describe('AgentVersions (immutable)', () => {
 	})
 
 	test('module exposes no update surface', () => {
-		expect('update' in AgentVersions).toBe(false)
-		expect('updateSchema' in AgentVersions).toBe(false)
-		expect('update' in AgentVersions.tools).toBe(false)
+		expect('update' in agentVersions).toBe(false)
+		expect('updateSchema' in agentVersions).toBe(false)
+		expect('update' in agentVersions.tools).toBe(false)
 	})
 })

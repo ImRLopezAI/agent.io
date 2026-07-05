@@ -1,11 +1,11 @@
-import { McpConnections, validateMcpConnection } from '@agent.io/domain/schemas'
+import { mcpConnections, validateMcpConnection } from '@agent.io/domain/schemas'
 import { z } from 'zod'
 
 import { now } from '../lib'
 import { tenantMutation, tenantQuery } from '../utils'
 
 export const create = tenantMutation({
-	args: McpConnections.insert({ tenant: true }).shape,
+	args: mcpConnections.insert({ tenant: true }).shape,
 	handler: async (ctx, args) => {
 		const violation = validateMcpConnection(args)
 		if (violation) throw new Error(violation)
@@ -20,7 +20,7 @@ export const create = tenantMutation({
 export const update = tenantMutation({
 	args: {
 		id: z.string(),
-		patch: McpConnections.update({ tenant: true, kind: true }),
+		patch: mcpConnections.update({ tenant: true, kind: true }),
 	},
 	handler: async (ctx, { id, patch }) => {
 		const connectionId = ctx.db.normalizeId('mcpConnections', id)

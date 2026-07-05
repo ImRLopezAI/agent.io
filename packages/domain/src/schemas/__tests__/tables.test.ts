@@ -1,20 +1,17 @@
 import { describe, expect, test } from 'vite-plus/test'
 
 import {
-	BatchCallRecipients,
-	ComposioSessions,
-	ConversationMessages,
-	Conversations,
-	KbChunks,
-	KbDocuments,
-	KbEmbeddings,
-	McpConnections,
-	PhoneNumbers,
+	batchCallRecipients,
+	conversationMessages,
+	conversations,
+	kbChunks,
+	mcpConnections,
+	phoneNumbers,
 	validateKbDocument,
 	validateMcpConnection,
 } from '../index.ts'
 
-describe('McpConnections', () => {
+describe('mcpConnections', () => {
 	const base = {
 		tenant: 'org_1',
 		name: 'Composio',
@@ -28,7 +25,7 @@ describe('McpConnections', () => {
 
 	test('composio and byo variants parse; cross-field validator enforces kind', () => {
 		expect(
-			McpConnections.insertSchema.safeParse({
+			mcpConnections.insertSchema.safeParse({
 				...base,
 				kind: 'composio',
 				composioAccountId: 'ca_1',
@@ -36,7 +33,7 @@ describe('McpConnections', () => {
 			}).success,
 		).toBe(true)
 		expect(
-			McpConnections.insertSchema.safeParse({
+			mcpConnections.insertSchema.safeParse({
 				...base,
 				kind: 'byo',
 				url: 'https://mcp.example.com',
@@ -50,7 +47,7 @@ describe('McpConnections', () => {
 
 	test('responseTimeoutSecs bounds: 5/300 pass, 4/301 reject', () => {
 		const mk = (secs: number) =>
-			McpConnections.insertSchema.safeParse({
+			mcpConnections.insertSchema.safeParse({
 				...base,
 				kind: 'byo',
 				url: 'https://x',
@@ -64,7 +61,7 @@ describe('McpConnections', () => {
 
 	test('secret headers accept literal or secretRef pointer only', () => {
 		const mk = (headers: unknown) =>
-			McpConnections.insertSchema.safeParse({
+			mcpConnections.insertSchema.safeParse({
 				...base,
 				kind: 'byo',
 				url: 'https://x',
@@ -86,7 +83,7 @@ describe('Knowledge Base', () => {
 
 	test('chunk without embeddingId is valid (pre-embedding state)', () => {
 		expect(
-			KbChunks.insertSchema.safeParse({
+			kbChunks.insertSchema.safeParse({
 				tenant: 'org_1',
 				documentId: 'kbDocuments_1',
 				order: 0,
@@ -94,41 +91,9 @@ describe('Knowledge Base', () => {
 			}).success,
 		).toBe(true)
 	})
-
-	test('vector index carries tenant + documentId filterFields at 1536 dims', () => {
-		const exported = (
-			KbEmbeddings.table() as unknown as {
-				export: () => {
-					vectorIndexes: {
-						indexDescriptor: string
-						dimensions: number
-						filterFields: string[]
-					}[]
-				}
-			}
-		).export()
-		const idx = exported.vectorIndexes[0]
-		expect(idx?.dimensions).toBe(1536)
-		expect(idx?.filterFields).toEqual(
-			expect.arrayContaining(['tenant', 'documentId']),
-		)
-	})
-
-	test('kbDocuments + kbChunks search indexes present', () => {
-		const exp = (t: { table: () => unknown }) =>
-			(
-				t.table() as {
-					export: () => { searchIndexes: { indexDescriptor: string }[] }
-				}
-			).export()
-		expect(exp(KbDocuments).searchIndexes[0]?.indexDescriptor).toBe(
-			'search_name',
-		)
-		expect(exp(KbChunks).searchIndexes[0]?.indexDescriptor).toBe('search_text')
-	})
 })
 
-describe('Conversations substrate', () => {
+describe('conversations substrate', () => {
 	const conversation = {
 		tenant: 'org_1',
 		agentId: 'agents_1',
@@ -143,11 +108,11 @@ describe('Conversations substrate', () => {
 	}
 
 	test('full conversation parses; unknown channel rejects', () => {
-		expect(Conversations.insertSchema.safeParse(conversation).success).toBe(
+		expect(conversations.insertSchema.safeParse(conversation).success).toBe(
 			true,
 		)
 		expect(
-			Conversations.insertSchema.safeParse({
+			conversations.insertSchema.safeParse({
 				...conversation,
 				channel: 'carrier_pigeon',
 			}).success,
@@ -156,7 +121,7 @@ describe('Conversations substrate', () => {
 
 	test('tool-only turn (no text) is valid', () => {
 		expect(
-			ConversationMessages.insertSchema.safeParse({
+			conversationMessages.insertSchema.safeParse({
 				tenant: 'org_1',
 				conversationId: 'conversations_1',
 				agentId: 'agents_1',
@@ -172,7 +137,7 @@ describe('Conversations substrate', () => {
 describe('Telephony + batch + operational', () => {
 	test('phone number must be E.164', () => {
 		const mk = (number: string) =>
-			PhoneNumbers.insertSchema.safeParse({
+			phoneNumbers.insertSchema.safeParse({
 				tenant: 'org_1',
 				number,
 				provider: 'twilio',
@@ -195,7 +160,7 @@ describe('Telephony + batch + operational', () => {
 			'voicemail',
 		]) {
 			expect(
-				BatchCallRecipients.insertSchema.safeParse({
+				batchCallRecipients.insertSchema.safeParse({
 					tenant: 'org_1',
 					batchId: 'batchCallJobs_1',
 					phoneNumber: '+15550001111',
@@ -203,19 +168,5 @@ describe('Telephony + batch + operational', () => {
 				}).success,
 			).toBe(true)
 		}
-	})
-
-	test('composioSessions keyed by connection + configHash', () => {
-		const exported = (
-			ComposioSessions.table() as unknown as {
-				export: () => {
-					indexes: { indexDescriptor: string; fields: string[] }[]
-				}
-			}
-		).export()
-		const idx = exported.indexes.find(
-			(i) => i.indexDescriptor === 'by_connection_hash',
-		)
-		expect(idx?.fields).toEqual(['connectionId', 'configHash'])
 	})
 })

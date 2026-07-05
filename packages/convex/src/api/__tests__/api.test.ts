@@ -4,7 +4,7 @@ import { describe, expect, test } from 'vite-plus/test'
 
 import { internal } from '../../_generated/api'
 import schema from '../../schema'
-import { modules } from '../../testModules'
+import { modules } from '../../testModules.test'
 import { buildVersionSnapshot } from '../publishCore'
 
 const ORG_A = 'org_aaaa'

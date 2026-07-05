@@ -10,6 +10,19 @@ import { tenantTable } from './helper.ts'
 
 export const PROCEDURE_CONTENT_MAX_CHARS = 50_000
 
+export const PROCEDURE_TYPES = ['free_form', 'structured'] as const
+export type ProcedureType = (typeof PROCEDURE_TYPES)[number]
+export const PROCEDURE_SOURCES = ['manual', 'sop_import', 'generated'] as const
+export const PROCEDURE_STATUSES = ['draft', 'active', 'archived'] as const
+export const REFERENCE_LOCATIONS = ['trigger', 'content'] as const
+export const REFERENCE_TARGET_TYPES = [
+	'system_tool',
+	'mcp_tool',
+	'knowledge_base',
+	'procedure',
+] as const
+export const REFERENCE_HEALTH = ['valid', 'invalid', 'unavailable'] as const
+
 // ---------------------------------------------------------------------------
 // Steps (structured procedures)
 // ---------------------------------------------------------------------------
@@ -79,16 +92,11 @@ export type ProcedureStep = z.infer<typeof procedureStep>
 // ---------------------------------------------------------------------------
 
 export const procedureReference = z.object({
-	location: z.enum(['trigger', 'content']),
-	targetType: z.enum([
-		'system_tool',
-		'mcp_tool',
-		'knowledge_base',
-		'procedure',
-	]),
+	location: z.enum(REFERENCE_LOCATIONS),
+	targetType: z.enum(REFERENCE_TARGET_TYPES),
 	targetId: z.string().min(1),
 	/** Broken-ref detection: deleted (invalid) vs inaccessible (unavailable). */
-	health: z.enum(['valid', 'invalid', 'unavailable']).default('valid'),
+	health: z.enum(REFERENCE_HEALTH).default('valid'),
 })
 export type ProcedureReference = z.infer<typeof procedureReference>
 
@@ -96,26 +104,22 @@ export type ProcedureReference = z.infer<typeof procedureReference>
 // Table
 // ---------------------------------------------------------------------------
 
-export const Procedures = tenantTable(
-	'procedures',
-	(id) => ({
-		agentId: id('agents'),
-		/** Dashboard label — never sent to the LLM. */
-		name: z.string().min(1).max(120),
-		/** NOT convertible after creation (vendor rule). */
-		type: z.enum(['free_form', 'structured']),
-		/** When the agent should run this — user-intent phrasing. */
-		trigger: z.string().min(1),
-		/** free_form body (markdown). Empty for structured procedures. */
-		content: z.string().max(PROCEDURE_CONTENT_MAX_CHARS).optional(),
-		/** structured body. Empty for free_form procedures. */
-		steps: z.array(procedureStep).optional(),
-		references: z.array(procedureReference).default([]),
-		source: z.enum(['manual', 'sop_import', 'generated']).default('manual'),
-		status: z.enum(['draft', 'active', 'archived']).default('draft'),
-	}),
-	{ indexes: { by_agent: ['agentId'] } },
-)
+export const procedures = tenantTable('procedures', (id) => ({
+	agentId: id('agents'),
+	/** Dashboard label — never sent to the LLM. */
+	name: z.string().min(1).max(120),
+	/** NOT convertible after creation (vendor rule). */
+	type: z.enum(PROCEDURE_TYPES),
+	/** When the agent should run this — user-intent phrasing. */
+	trigger: z.string().min(1),
+	/** free_form body (markdown). Empty for structured procedures. */
+	content: z.string().max(PROCEDURE_CONTENT_MAX_CHARS).optional(),
+	/** structured body. Empty for free_form procedures. */
+	steps: z.array(procedureStep).optional(),
+	references: z.array(procedureReference).default([]),
+	source: z.enum(PROCEDURE_SOURCES).default('manual'),
+	status: z.enum(PROCEDURE_STATUSES).default('draft'),
+}))
 
 // ---------------------------------------------------------------------------
 // Validators (run at the mutation boundary — refinements don't survive
@@ -123,7 +127,7 @@ export const Procedures = tenantTable(
 // ---------------------------------------------------------------------------
 
 export interface ProcedureBody {
-	type: 'free_form' | 'structured'
+	type: ProcedureType
 	content?: string
 	steps?: ProcedureStep[]
 	references?: ProcedureReference[]
@@ -157,7 +161,7 @@ export const validateProcedureBody = (p: ProcedureBody): string | null => {
 export const procedureSnapshot = z.object({
 	sourceProcedureId: z.string(),
 	name: z.string(),
-	type: z.enum(['free_form', 'structured']),
+	type: z.enum(PROCEDURE_TYPES),
 	trigger: z.string(),
 	content: z.string().optional(),
 	steps: z.array(procedureStep).optional(),

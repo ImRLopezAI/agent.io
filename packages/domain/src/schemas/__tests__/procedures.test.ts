@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vite-plus/test'
 
 import {
 	PROCEDURE_CONTENT_MAX_CHARS,
-	Procedures,
+	procedures,
 	procedureStep,
 	validateProcedureBody,
 } from '../procedures.ts'
@@ -94,7 +94,7 @@ describe('validateProcedureBody', () => {
 	})
 })
 
-describe('Procedures table', () => {
+describe('procedures table', () => {
 	test('content length boundary: 50_000 passes, 50_001 fails', () => {
 		const base = {
 			tenant: 'org_1',
@@ -106,11 +106,11 @@ describe('Procedures table', () => {
 			source: 'manual',
 			status: 'draft',
 		}
-		const at = Procedures.insertSchema.safeParse({
+		const at = procedures.insertSchema.safeParse({
 			...base,
 			content: 'x'.repeat(PROCEDURE_CONTENT_MAX_CHARS),
 		})
-		const over = Procedures.insertSchema.safeParse({
+		const over = procedures.insertSchema.safeParse({
 			...base,
 			content: 'x'.repeat(PROCEDURE_CONTENT_MAX_CHARS + 1),
 		})

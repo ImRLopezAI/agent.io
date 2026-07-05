@@ -31,20 +31,20 @@ const agentConfigShape = {
 	dynamicVariableDefaults: dynamicVariables.optional(),
 }
 
-export const Agents = tenantTable('agents', (id) => ({
+export const agents = tenantTable('agents', (id) => ({
 	...agentConfigShape,
 	publishedVersionId: id('agentVersions').optional(),
 	archived: z.boolean().default(false),
 }))
 
 /**
- * The fully expanded config embedded in a version. `procedures` is a union:
- * inline snapshots (normal) or references (reserved overflow variant for the
- * publish size budget — unused initially).
+ * The fully expanded config embedded in a version. `procedures` discriminates
+ * on `kind`: inline snapshots (normal) or references (reserved overflow
+ * variant for the publish size budget — unused initially).
  */
 export const versionConfig = z.object({
 	...agentConfigShape,
-	procedures: z.union([
+	procedures: z.discriminatedUnion('kind', [
 		z.object({ kind: z.literal('inline'), items: z.array(procedureSnapshot) }),
 		z.object({
 			kind: z.literal('refs'),
@@ -54,22 +54,18 @@ export const versionConfig = z.object({
 })
 export type VersionConfig = z.infer<typeof versionConfig>
 
-const agentVersionsTable = tenantTable(
-	'agentVersions',
-	(id) => ({
-		agentId: id('agents'),
-		version: z.number().int().positive(),
-		publishedBy: z.string(),
-		config: versionConfig,
-	}),
-	{ indexes: { by_agent: ['agentId'] } },
-)
+const agentVersionsTable = tenantTable('agentVersions', (id) => ({
+	agentId: id('agents'),
+	version: z.number().int().positive(),
+	publishedBy: z.string(),
+	config: versionConfig,
+}))
 
 /**
  * Immutable: the narrowed re-export drops the update surface entirely
  * (sanctioned pattern — zodTable's own return contract stays unchanged).
  */
-export const AgentVersions = {
+export const agentVersions = {
 	tableName: agentVersionsTable.tableName,
 	schema: agentVersionsTable.schema,
 	insertSchema: agentVersionsTable.insertSchema,

@@ -1,4 +1,4 @@
-import { TenantSettings } from '@agent.io/domain/schemas'
+import { tenantSettings } from '@agent.io/domain/schemas'
 
 import { now } from '../lib'
 import { tenantMutation, tenantQuery } from '../utils'
@@ -14,7 +14,7 @@ export const get = tenantQuery({
 })
 
 export const patch = tenantMutation({
-	args: TenantSettings.update({ tenant: true }).shape,
+	args: tenantSettings.update({ tenant: true }).shape,
 	handler: async (ctx, patch) => {
 		const existing = await ctx.db
 			.query('tenantSettings')

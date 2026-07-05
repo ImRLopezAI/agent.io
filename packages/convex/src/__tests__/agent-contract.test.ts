@@ -20,7 +20,7 @@ import { describe, expect, test } from 'vite-plus/test'
 import { internal } from '../_generated/api'
 import type { Id } from '../_generated/dataModel'
 import schema from '../schema'
-import { modules } from '../testModules'
+import { modules } from '../testModules.test'
 
 const ORG_A = 'org_aaaa'
 const T0 = '2026-07-05T00:00:00Z'

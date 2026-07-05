@@ -1,11 +1,11 @@
-import { Procedures, validateProcedureBody } from '@agent.io/domain/schemas'
+import { procedures, validateProcedureBody } from '@agent.io/domain/schemas'
 import { z } from 'zod'
 
 import { now } from '../lib'
 import { tenantMutation, tenantQuery } from '../utils'
 
 export const create = tenantMutation({
-	args: Procedures.insert({ tenant: true }).shape,
+	args: procedures.insert({ tenant: true }).shape,
 	handler: async (ctx, args) => {
 		const violation = validateProcedureBody(args)
 		if (violation) throw new Error(violation)
@@ -20,7 +20,7 @@ export const create = tenantMutation({
 export const update = tenantMutation({
 	args: {
 		id: z.string(),
-		patch: Procedures.update({ tenant: true, type: true, agentId: true }),
+		patch: procedures.update({ tenant: true, type: true, agentId: true }),
 	},
 	handler: async (ctx, { id, patch }) => {
 		const procedureId = ctx.db.normalizeId('procedures', id)

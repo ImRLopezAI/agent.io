@@ -76,14 +76,14 @@ const mkComposio = () => {
 		create: async (userId: string, options: unknown) => {
 			creates.push({ userId, options })
 			return {
-				id: `sess_${creates.length}`,
+				sessionId: `sess_${creates.length}`,
 				mcp: { url: 'https://mcp.composio.dev/s/abc', headers: { 'x-k': 'v' } },
 			}
 		},
 		use: async (sessionId: string) => {
 			uses.push(sessionId)
 			return {
-				id: sessionId,
+				sessionId,
 				mcp: { url: 'https://mcp.composio.dev/s/abc', headers: { 'x-k': 'v' } },
 			}
 		},
@@ -229,7 +229,10 @@ describe('composio scoping', () => {
 		const { toolkits, dropped } = effectiveToolkits(
 			{
 				connectionId: 'conn_1',
-				toolkits: { enable: ['gmail', 'hubspot', 'jira'] },
+				toolkits: {
+					mode: 'enable' as const,
+					values: ['gmail', 'hubspot', 'jira'],
+				},
 			},
 			connection(),
 		)
@@ -244,7 +247,7 @@ describe('composio scoping', () => {
 			tenant: 'org_1',
 			scope: {
 				connectionId: 'conn_1',
-				toolkits: { enable: ['gmail', 'hubspot'] },
+				toolkits: { mode: 'enable' as const, values: ['gmail', 'hubspot'] },
 			},
 			connection: connection(),
 			client,
@@ -253,7 +256,10 @@ describe('composio scoping', () => {
 		})
 		const b = await resolveComposioEntry({
 			tenant: 'org_1',
-			scope: { connectionId: 'conn_1', toolkits: { enable: ['slack'] } },
+			scope: {
+				connectionId: 'conn_1',
+				toolkits: { mode: 'enable' as const, values: ['slack'] },
+			},
 			connection: connection(),
 			client,
 			cache: sessionCache,
@@ -268,7 +274,10 @@ describe('composio scoping', () => {
 
 	test('identical config resumes the cached session instead of creating', async () => {
 		const { client, sessionCache, creates, uses } = mkComposio()
-		const scope = { connectionId: 'conn_1', toolkits: { enable: ['gmail'] } }
+		const scope = {
+			connectionId: 'conn_1',
+			toolkits: { mode: 'enable' as const, values: ['gmail'] },
+		}
 		const warnings: string[] = []
 		await resolveComposioEntry({
 			tenant: 'org_1',
@@ -291,7 +300,10 @@ describe('composio scoping', () => {
 	})
 
 	test('governance change rolls the hash (allowedTools in configHash)', () => {
-		const scope = { connectionId: 'conn_1', toolkits: { enable: ['gmail'] } }
+		const scope = {
+			connectionId: 'conn_1',
+			toolkits: { mode: 'enable' as const, values: ['gmail'] },
+		}
 		const before = configHash(scope, connection())
 		const after = configHash(
 			scope,
@@ -313,7 +325,10 @@ describe('composio scoping', () => {
 		const warnings: string[] = []
 		const result = await resolveComposioEntry({
 			tenant: 'org_1',
-			scope: { connectionId: 'conn_1', toolkits: { enable: ['gmail'] } },
+			scope: {
+				connectionId: 'conn_1',
+				toolkits: { mode: 'enable' as const, values: ['gmail'] },
+			},
 			connection: connection(),
 			client: failing,
 			cache: sessionCache,
@@ -354,7 +369,12 @@ const version: ResolvedAgentVersion = {
 		voice: 'marin',
 		vad: { mode: 'server_vad' },
 		systemTools: { end_call: { enabled: true } },
-		mcp: [{ connectionId: 'conn_1', toolkits: { enable: ['gmail'] } }],
+		mcp: [
+			{
+				connectionId: 'conn_1',
+				toolkits: { mode: 'enable' as const, values: ['gmail'] },
+			},
+		],
 		knowledgeBase: [
 			{ documentId: 'doc_auto', usageMode: 'auto' },
 			{ documentId: 'doc_prompt', usageMode: 'prompt' },

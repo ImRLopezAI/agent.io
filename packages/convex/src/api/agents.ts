@@ -1,4 +1,4 @@
-import { Agents } from '@agent.io/domain/schemas'
+import { agents } from '@agent.io/domain/schemas'
 import { getManyFrom } from 'convex-helpers/server/relationships'
 import { z } from 'zod'
 
@@ -7,7 +7,7 @@ import { tenantMutation, tenantQuery } from '../utils'
 import { buildVersionSnapshot } from './publishCore'
 
 export const create = tenantMutation({
-	args: Agents.insert({ tenant: true }).shape,
+	args: agents.insert({ tenant: true }).shape,
 	handler: async (ctx, args) => {
 		return ctx.db.insert('agents', {
 			...args,
@@ -20,7 +20,7 @@ export const create = tenantMutation({
 export const update = tenantMutation({
 	args: {
 		id: z.string(),
-		patch: Agents.update({ tenant: true }),
+		patch: agents.update({ tenant: true }),
 	},
 	handler: async (ctx, { id, patch }) => {
 		const agentId = ctx.db.normalizeId('agents', id)

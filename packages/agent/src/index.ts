@@ -7,6 +7,7 @@ export {
 	resolveByoEntry,
 	resolveComposioEntry,
 	type SessionCache,
+	type ComposioSessionHandle,
 } from './agents/composio'
 export {
 	compileProcedures,
@@ -15,6 +16,7 @@ export {
 	ProcedureEngine,
 } from './agents/procedure-engine'
 export { expand, renderTemplate, type ResolverDeps } from './agents/resolver'
+export { createComposioClient } from './agents/composio-client'
 export { buildSystemTools } from './agents/system-tools'
 export { ENDPOINTS, OPENAI, XAI } from './providers/endpoints'
 export { OpenAIDialectProvider } from './providers/openai-dialect'

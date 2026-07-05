@@ -11,3 +11,11 @@ process.env.WORKOS_API_KEY ??= 'sk_test'
 process.env.WORKOS_WEBHOOK_SECRET ??= 'whsec_test'
 
 export const modules = import.meta.glob('./**/*.ts')
+
+// A .test.ts name keeps this file OUT of the Convex bundle (import.meta.glob
+// breaks the push); vitest needs at least one test to collect it.
+import { expect, test } from 'vite-plus/test'
+
+test('module map is populated', () => {
+	expect(Object.keys(modules).length).toBeGreaterThan(0)
+})
