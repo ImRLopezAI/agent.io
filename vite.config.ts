@@ -7,6 +7,8 @@ const generatedIgnore = [
 	'**/.turbo/**',
 	'**/.output/**',
 	'**/dist/**',
+	'**/.tanstack/**',
+	'**/**/**.gen.ts',
 ]
 
 /** Oxfmt settings migrated from the former root biome.json. */
