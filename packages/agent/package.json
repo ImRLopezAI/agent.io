@@ -1,19 +1,28 @@
 {
-  "name": "@agent.io/agent",
-  "module": "index.ts",
-  "type": "module",
-  "private": true,
-  "dependencies": {
-    "@agent.io/domain": "workspace:*",
-    "@composio/core": "^0.13.1",
-    "@composio/openai": "^0.10.0",
-    "@openai/agents-realtime": "^0.12.0",
-    "openai": "^6.45.0"
-  },
-  "devDependencies": {
-    "@agent.io/ts": "workspace:*"
-  },
-  "peerDependencies": {
-    "typescript": "catalog:"
-  }
+	"name": "@agent.io/agent",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit",
+		"test": "vp test run",
+		"clean": "rm -rf node_modules .turbo *.tsbuildinfo"
+	},
+	"dependencies": {
+		"@agent.io/domain": "workspace:*",
+		"@composio/core": "^0.13.1",
+		"@composio/openai": "^0.10.0",
+		"@openai/agents-realtime": "^0.12.0",
+		"openai": "^6.45.0",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@agent.io/ts": "workspace:*",
+		"vitest": "catalog:"
+	},
+	"peerDependencies": {
+		"typescript": "catalog:"
+	}
 }

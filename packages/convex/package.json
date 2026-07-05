@@ -22,6 +22,7 @@
 		"zod": "catalog:"
 	},
 	"devDependencies": {
+		"@agent.io/agent": "workspace:*",
 		"@agent.io/ts": "workspace:*",
 		"@edge-runtime/vm": "^5.0.0",
 		"@types/node": "26.1.0",
