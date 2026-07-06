@@ -136,7 +136,7 @@ describe('crud tier + triggers (Units 8-9)', () => {
 				createdAt: T0,
 			})
 		})
-		await t.mutation(internal.api.crud.agents.destroy, { id: agentId })
+		await t.mutation(internal.api.internals.agents.destroy, { id: agentId })
 		const leftovers = await t.run(async (ctx) => ({
 			procedures: await ctx.db.query('procedures').collect(),
 			versions: await ctx.db.query('agentVersions').collect(),
@@ -185,7 +185,9 @@ describe('crud tier + triggers (Units 8-9)', () => {
 		expect(rewritten.chunks).toHaveLength(1)
 		expect(rewritten.embeddings).toHaveLength(1)
 
-		await t.mutation(internal.api.crud.kbDocuments.destroy, { id: documentId })
+		await t.mutation(internal.api.internals.kbDocuments.destroy, {
+			id: documentId,
+		})
 		const afterDelete = await t.run(async (ctx) => ({
 			chunks: await ctx.db.query('kbChunks').collect(),
 			embeddings: await ctx.db.query('kbEmbeddings').collect(),
@@ -231,7 +233,9 @@ describe('crud tier + triggers (Units 8-9)', () => {
 			})
 			return { targetId, referrerId }
 		})
-		await t.mutation(internal.api.crud.procedures.destroy, { id: targetId })
+		await t.mutation(internal.api.internals.procedures.destroy, {
+			id: targetId,
+		})
 		const referrer = await t.run(async (ctx) => ctx.db.get(referrerId))
 		expect(referrer?.references[0]?.health).toBe('invalid')
 	})

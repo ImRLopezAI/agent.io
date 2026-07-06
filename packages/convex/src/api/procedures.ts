@@ -11,7 +11,7 @@ export const create = tenantMutation({
 		const violation = validateProcedureBody(args)
 		if (violation) throw new Error(violation)
 		return ctx.runMutation(
-			internal.api.crud.procedures.create,
+			internal.api.internals.procedures.create,
 			stampCreate(ctx.tenant, args),
 		)
 	},
@@ -31,7 +31,7 @@ export const update = tenantMutation({
 		const merged = { ...existing, ...patch }
 		const violation = validateProcedureBody(merged)
 		if (violation) throw new Error(violation)
-		await ctx.runMutation(internal.api.crud.procedures.update, {
+		await ctx.runMutation(internal.api.internals.procedures.update, {
 			id: procedureId,
 			patch: stampUpdate(patch),
 		})
@@ -45,7 +45,7 @@ export const remove = tenantMutation({
 		if (!procedureId) throw new Error('invalid procedure id')
 		const existing = await ctx.db.get(procedureId)
 		if (!existing) throw new Error('procedure not found')
-		await ctx.runMutation(internal.api.crud.procedures.destroy, {
+		await ctx.runMutation(internal.api.internals.procedures.destroy, {
 			id: procedureId,
 		})
 	},

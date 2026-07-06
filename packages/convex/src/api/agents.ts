@@ -18,7 +18,7 @@ export const create = tenantMutation({
 	handler: async (ctx, args) => {
 		// drafts are born unpublished — publishedVersionId only moves via publish()
 		const created: z.infer<typeof agents.schema> = await ctx.runMutation(
-			internal.api.crud.agents.create,
+			internal.api.internals.agents.create,
 			stampCreate(ctx.tenant, args),
 		)
 		return created
@@ -39,7 +39,7 @@ export const update = tenantMutation({
 		if (existing.archived && patch.archived !== false) {
 			throw new Error('agent is archived — unarchive it before editing')
 		}
-		await ctx.runMutation(internal.api.crud.agents.update, {
+		await ctx.runMutation(internal.api.internals.agents.update, {
 			id: agentId,
 			patch: stampUpdate(patch),
 		})
@@ -54,7 +54,9 @@ export const remove = tenantMutation({
 		// tenant check through the RLS-wrapped read before the internal destroy
 		const existing = await ctx.db.get(agentId)
 		if (!existing) throw new Error('agent not found')
-		await ctx.runMutation(internal.api.crud.agents.destroy, { id: agentId })
+		await ctx.runMutation(internal.api.internals.agents.destroy, {
+			id: agentId,
+		})
 	},
 })
 
@@ -107,7 +109,7 @@ export const publish = tenantMutation({
 		const version = versions.reduce((max, v) => Math.max(max, v.version), 0) + 1
 
 		const created = await ctx.runMutation(
-			internal.api.crud.agentVersions.create,
+			internal.api.internals.agentVersions.create,
 			stampCreate(ctx.tenant, {
 				agentId,
 				version,
@@ -115,7 +117,7 @@ export const publish = tenantMutation({
 				config,
 			}),
 		)
-		await ctx.runMutation(internal.api.crud.agents.update, {
+		await ctx.runMutation(internal.api.internals.agents.update, {
 			id: agentId,
 			patch: stampUpdate({ publishedVersionId: created._id }),
 		})

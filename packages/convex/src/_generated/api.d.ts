@@ -457,7 +457,7 @@ export declare const internal: {
         any
       >;
     };
-    crud: {
+    internals: {
       agents: {
         create: FunctionReference<
           "mutation",

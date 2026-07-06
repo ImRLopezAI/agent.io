@@ -22,14 +22,14 @@ export const patch = tenantMutation({
 			.withIndex('by_tenant', (q) => q.eq('tenant', ctx.tenant))
 			.unique()
 		if (existing) {
-			await ctx.runMutation(internal.api.crud.tenantSettings.update, {
+			await ctx.runMutation(internal.api.internals.tenantSettings.update, {
 				id: existing._id,
 				patch: stampUpdate(patch),
 			})
 			return existing._id
 		}
 		const created = await ctx.runMutation(
-			internal.api.crud.tenantSettings.create,
+			internal.api.internals.tenantSettings.create,
 			stampCreate(ctx.tenant, { recordingEnabled: false, ...patch }),
 		)
 		return created._id

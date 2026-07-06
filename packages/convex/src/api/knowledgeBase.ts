@@ -98,7 +98,7 @@ export const removeDocument = tenantMutation({
 export const ingest = internalAction({
 	args: { documentId: v.id('kbDocuments') },
 	handler: async (ctx, { documentId }) => {
-		const doc = await ctx.runQuery(internal.api.crud.kbDocuments.read, {
+		const doc = await ctx.runQuery(internal.api.internals.kbDocuments.read, {
 			id: documentId,
 		})
 		if (!doc) return
@@ -118,7 +118,7 @@ export const ingest = internalAction({
 				})),
 			})
 		} catch (error) {
-			await ctx.runMutation(internal.api.crud.kbDocuments.update, {
+			await ctx.runMutation(internal.api.internals.kbDocuments.update, {
 				id: documentId,
 				patch: { status: 'failed', failureReason: String(error) },
 			})

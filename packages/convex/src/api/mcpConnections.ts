@@ -11,7 +11,7 @@ export const create = tenantMutation({
 		const violation = validateMcpConnection(args)
 		if (violation) throw new Error(violation)
 		return ctx.runMutation(
-			internal.api.crud.mcpConnections.create,
+			internal.api.internals.mcpConnections.create,
 			stampCreate(ctx.tenant, args),
 		)
 	},
@@ -25,7 +25,7 @@ export const update = tenantMutation({
 	handler: async (ctx, { id, patch }) => {
 		const connectionId = ctx.db.normalizeId('mcpConnections', id)
 		if (!connectionId) throw new Error('invalid connection id')
-		await ctx.runMutation(internal.api.crud.mcpConnections.update, {
+		await ctx.runMutation(internal.api.internals.mcpConnections.update, {
 			id: connectionId,
 			patch: stampUpdate(patch),
 		})
@@ -39,7 +39,7 @@ export const remove = tenantMutation({
 		if (!connectionId) throw new Error('invalid connection id')
 		const existing = await ctx.db.get(connectionId)
 		if (!existing) throw new Error('connection not found')
-		await ctx.runMutation(internal.api.crud.mcpConnections.destroy, {
+		await ctx.runMutation(internal.api.internals.mcpConnections.destroy, {
 			id: connectionId,
 		})
 	},
