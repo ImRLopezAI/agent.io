@@ -1,7 +1,7 @@
 'use client'
 
-import { cn } from '@lib/utils'
 import { Navigate, useRouteContext } from '@tanstack/react-router'
+import { cn } from 'cnfast'
 import { Settings as SettingsIcon, User2 as UserIcon } from 'lucide-react'
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'

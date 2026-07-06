@@ -1,9 +1,9 @@
 'use client'
 
-import { cn } from '@lib/utils'
 import type { MemberRow } from '@server/rpc/contracts/work-os.contract'
 import { useQuery } from '@tanstack/react-query'
 import { useRouteContext } from '@tanstack/react-router'
+import { cn } from 'cnfast'
 import { ChevronUp, Filter, Search, X } from 'lucide-react'
 import { type ComponentProps, type ReactNode, useMemo, useState } from 'react'
 

@@ -1,10 +1,10 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { cn } from '@lib/utils'
 import { updateOrgInput } from '@server/rpc/contracts/work-os.contract'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useRouteContext } from '@tanstack/react-router'
+import { cn } from 'cnfast'
 import type { z } from 'zod'
 
 import { mapOrpcError } from '@/app/_shell/modules/utils/map-orpc-error'

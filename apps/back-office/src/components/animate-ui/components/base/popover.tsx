@@ -1,4 +1,4 @@
-import { cn } from '@lib/utils'
+import { cn } from 'cnfast'
 
 import {
 	PopoverBackdrop as PopoverBackdropPrimitive,

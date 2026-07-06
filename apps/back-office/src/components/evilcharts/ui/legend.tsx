@@ -1,4 +1,4 @@
-import { cn } from '@lib/utils'
+import { cn } from 'cnfast'
 import type * as React from 'react'
 import * as RechartsPrimitive from 'recharts'
 

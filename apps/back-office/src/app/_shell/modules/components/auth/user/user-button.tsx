@@ -1,8 +1,8 @@
 'use client'
 
-import { cn } from '@lib/utils'
 import { Link } from '@tanstack/react-router'
 import { useAuth } from '@workos/authkit-tanstack-react-start/client'
+import { cn } from 'cnfast'
 import { useSetAtom } from 'jotai'
 import {
 	ChevronsUpDown,

@@ -1,7 +1,7 @@
 'use client'
 
-import { cn } from '@lib/utils'
 import { BorderBeam } from 'border-beam'
+import { cn } from 'cnfast'
 import {
 	FileImage,
 	FileSpreadsheet,

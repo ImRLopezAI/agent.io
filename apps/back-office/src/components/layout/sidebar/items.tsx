@@ -13,13 +13,21 @@ import {
 
 type StaticNavGroup = {
 	type?: 'static'
-	title: string
+	title?: string
 	items: NavItem[]
 }
 
-type DynamicNavGroup = {
+export type DynamicNavGroup = {
 	type: 'dynamic'
 	title: string
+	icon?: LucideIcon
+	navType?: NavItemNavType
+	maxItems?: number
+	moreLabel?: string
+	searchPlaceholder?: string
+	viewAllHref?: React.ComponentProps<'a'>['href']
+	viewAllLabel?: string
+	wrappedHeader?: (context: WrappedHeaderContext) => React.ReactNode
 	actions?: React.ReactNode | (() => React.ReactNode)
 	dynamicItems: () => NavItem[]
 }
@@ -28,7 +36,17 @@ export type NavGroup = StaticNavGroup | DynamicNavGroup
 
 export type BadgeTypes = 'NEW' | 'COMING' | 'WIP' | 'UPDATED' | (string & {})
 
-export type NavItemNavType = 'link' | 'dropdown' | 'wrapped'
+export type NavItemNavType = 'link' | 'dropdown' | 'wrapped' | 'group'
+
+export type WrappedHeaderContext = {
+	id: string
+	title: string
+	pathname: string
+	href?: React.ComponentProps<'a'>['href']
+	item: NavItem
+	navigate: (to: string) => void
+	goBack: (to?: React.ComponentProps<'a'>['href']) => void
+}
 
 export type NavItem = {
 	id?: string
@@ -38,6 +56,9 @@ export type NavItem = {
 	badge?: BadgeTypes
 	newTab?: boolean
 	navType?: NavItemNavType
+	showWrappedIndicator?: boolean
+	directNavigation?: boolean
+	wrappedHeader?: (context: WrappedHeaderContext) => React.ReactNode
 	items?: NavItem[]
 	dynamicItems?: () => NavItem[]
 }

@@ -1,12 +1,12 @@
 'use client'
 
-import { AiChatDrawer } from '@components/ui/ai/drawer'
 // import { UserButton } from '@components/auth/user-button'
 import { PromptInputProvider } from '@ui/ai-elements/prompt-input'
 import { AnimatedThemeToggler } from '@ui/animated-theme-toggler'
 import { ShimmerButton } from '@ui/shimmer-button'
 import { PanelLeftIcon, Sparkles } from 'lucide-react'
 
+import { AiChatSheet } from '#/components/ui/ai/sheet'
 import Search from '@/components/layout/header/search'
 import { useAgent } from '@/components/ui/ai/use-agent'
 import { Button } from '@/components/ui/button'
@@ -26,7 +26,7 @@ function HeaderAiAssistant() {
 	})
 
 	return (
-		<AiChatDrawer
+		<AiChatSheet
 			handler={handler}
 			render={
 				<ShimmerButton>

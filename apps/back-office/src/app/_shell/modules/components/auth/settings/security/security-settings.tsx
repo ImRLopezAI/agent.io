@@ -1,8 +1,8 @@
 'use client'
 
-import { cn } from '@lib/utils'
 import { useRouteContext } from '@tanstack/react-router'
 import { UserSecurity, UserSessions, WorkOsWidgets } from '@workos-inc/widgets'
+import { cn } from 'cnfast'
 
 import '@radix-ui/themes/styles.css'
 import '@workos-inc/widgets/styles.css'

@@ -114,7 +114,9 @@ function AppSidebarRoot({
 				</SidebarContent>
 				{footer}
 			</Sidebar>
-			{content}
+			{content.map((child, index) => (
+				<React.Fragment key={`sidebar-content-${index}`}>{child}</React.Fragment>
+			))}
 		</AppSidebarContext>
 	)
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { cn } from '@lib/utils'
+import { cn } from 'cnfast'
 import * as React from 'react'
 
 const INLINE_THUMBNAIL_SIDEBAR_MIN_WIDTH = 768

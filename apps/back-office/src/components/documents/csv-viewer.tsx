@@ -8,7 +8,7 @@ import type {
 	Item,
 	Theme,
 } from '@glideapps/glide-data-grid'
-import { cn } from '@lib/utils'
+import { cn } from 'cnfast'
 
 import '@glideapps/glide-data-grid/dist/index.css'
 

@@ -1,10 +1,10 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { cn } from '@lib/utils'
 import { updateProfileInput } from '@server/rpc/contracts/work-os.contract'
 import { useMutation } from '@tanstack/react-query'
 import { useRouteContext } from '@tanstack/react-router'
+import { cn } from 'cnfast'
 import { toast } from 'sonner'
 import type { z } from 'zod'
 

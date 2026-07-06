@@ -2,7 +2,7 @@ import { ErrorComponent } from '@components/layout/errors/error'
 import { NotFoundComponent } from '@components/layout/errors/not-found'
 import { createFileRoute, Outlet } from '@tanstack/react-router'
 
-import BaseLayout from '@/app/_shell/modules/layout'
+import BaseLayout from '@/app/_shell/modules/components/sidebar/base'
 export const Route = createFileRoute('/_shell/_base')({
 	component: () => (
 		<BaseLayout>

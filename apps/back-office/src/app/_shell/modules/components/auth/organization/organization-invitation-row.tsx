@@ -1,9 +1,9 @@
 'use client'
 
-import { cn } from '@lib/utils'
 import type { InvitationRow } from '@server/rpc/contracts/work-os.contract'
 import { useMutation } from '@tanstack/react-query'
 import { useRouteContext } from '@tanstack/react-router'
+import { cn } from 'cnfast'
 import { RotateCw, X } from 'lucide-react'
 import { toast } from 'sonner'
 

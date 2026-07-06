@@ -20,6 +20,7 @@ import {
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
+	SidebarGroupLabel,
 	SidebarMenu,
 	SidebarMenuBadge,
 	SidebarMenuButton,
@@ -35,7 +36,9 @@ import {
 	getNavItemChildren,
 	getNavItemId,
 	hasActiveItem,
+	openWrappedItem,
 	resolveNavType,
+	shouldShowWrappedIndicator,
 } from './nav-utils'
 import { useSidebarNavActions } from './sidebar-nav-store'
 
@@ -99,6 +102,19 @@ export function NavItemNode({
 	const children = getNavItemChildren(item)
 	const hasChildren = children.length > 0
 
+	if (mode === 'stack' && navType === 'group' && hasChildren) {
+		return (
+			<NavGroupSection
+				isMobile={isMobile}
+				item={item}
+				maxDepth={maxDepth}
+				mode={mode}
+				navigate={navigate}
+				pathname={pathname}
+			/>
+		)
+	}
+
 	return (
 		<SidebarMenuItem>
 			{navType === 'link' || !hasChildren ? (
@@ -129,6 +145,36 @@ export function NavItemNode({
 				/>
 			)}
 		</SidebarMenuItem>
+	)
+}
+
+function NavGroupSection({
+	item,
+	pathname,
+	navigate,
+	isMobile,
+	maxDepth,
+	mode,
+}: NavItemNodeProps) {
+	const children = getNavItemChildren(item)
+
+	return (
+		<>
+			<SidebarGroupLabel className='mt-1 h-7 px-2 text-sidebar-foreground/60 first:mt-0'>
+				{item.title}
+			</SidebarGroupLabel>
+			{children.map((child) => (
+				<NavItemNode
+					isMobile={isMobile}
+					item={child}
+					key={getNavItemId(child)}
+					maxDepth={maxDepth}
+					mode={mode}
+					navigate={navigate}
+					pathname={pathname}
+				/>
+			))}
+		</>
 	)
 }
 
@@ -175,14 +221,9 @@ function NavWrappedItem({
 	const children = getNavItemChildren(item)
 	const isActive = hasActiveItem(item, pathname, maxDepth)
 
-	const openWrapped = () => {
-		pushStack({
-			id: getNavItemId(item),
-			title: item.title,
-			items: children,
-			dynamicSource: item.dynamicItems ? item : undefined,
-		})
-	}
+		const openWrapped = () => {
+			openWrappedItem(item, { navigate, pushStack })
+		}
 
 	if (mode === 'root') {
 		return (
@@ -200,7 +241,9 @@ function NavWrappedItem({
 								>
 									{item.icon && <NavItemIcon icon={item.icon} />}
 									<span>{item.title}</span>
-									<WrappedRouteIndicator />
+									{shouldShowWrappedIndicator(item) && (
+										<WrappedRouteIndicator />
+									)}
 								</SidebarMenuButton>
 							}
 						/>
@@ -231,7 +274,7 @@ function NavWrappedItem({
 				>
 					{item.icon && <NavItemIcon icon={item.icon} />}
 					<span>{item.title}</span>
-					<WrappedRouteIndicator />
+					{shouldShowWrappedIndicator(item) && <WrappedRouteIndicator />}
 				</SidebarMenuButton>
 			</>
 		)
@@ -246,7 +289,7 @@ function NavWrappedItem({
 		>
 			{item.icon && <NavItemIcon icon={item.icon} />}
 			<span>{item.title}</span>
-			<WrappedRouteIndicator />
+			{shouldShowWrappedIndicator(item) && <WrappedRouteIndicator />}
 		</SidebarMenuButton>
 	)
 }
@@ -394,6 +437,26 @@ function NavSubItemNode({
 	const isActive = hasActiveItem(item, pathname, maxDepth, depth)
 	const { push: pushStack } = useSidebarNavActions()
 
+	if (navType === 'group' && hasChildren) {
+		return (
+			<>
+				<SidebarGroupLabel className='mt-1 h-7 px-2 text-sidebar-foreground/60 first:mt-0'>
+					{item.title}
+				</SidebarGroupLabel>
+				{children.map((child) => (
+					<NavSubItemNode
+						depth={depth}
+						item={child}
+						key={getNavItemId(child)}
+						maxDepth={maxDepth}
+						navigate={navigate}
+						pathname={pathname}
+					/>
+				))}
+			</>
+		)
+	}
+
 	if (navType === 'wrapped' && hasChildren) {
 		return (
 			<SidebarMenuSubItem>
@@ -401,18 +464,15 @@ function NavSubItemNode({
 					className={subMenuButtonClassName}
 					isActive={isActive}
 					title={item.title}
-					onClick={() => {
-						pushStack({
-							id: getNavItemId(item),
-							title: item.title,
-							items: children,
-							dynamicSource: item.dynamicItems ? item : undefined,
-						})
-					}}
+						onClick={() => {
+							openWrappedItem(item, { navigate, pushStack })
+						}}
 				>
 					{item.icon && <NavSubItemIcon icon={item.icon} />}
 					<span>{item.title}</span>
-					<WrappedRouteIndicator primary />
+					{shouldShowWrappedIndicator(item) && (
+						<WrappedRouteIndicator primary />
+					)}
 				</SidebarMenuSubButton>
 			</SidebarMenuSubItem>
 		)
@@ -593,12 +653,14 @@ export function NavGroupMenu({
 	navigate,
 	isMobile,
 	maxDepth,
+	more,
 }: {
 	items: NavItem[]
 	pathname: string
 	navigate: (to: string) => void
 	isMobile: boolean
 	maxDepth: number
+	more?: React.ReactNode
 }) {
 	return (
 		<SidebarMenu>
@@ -613,6 +675,7 @@ export function NavGroupMenu({
 					pathname={pathname}
 				/>
 			))}
+			{more}
 		</SidebarMenu>
 	)
 }

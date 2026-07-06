@@ -97,7 +97,7 @@ const mentionComponents = {
 				<Badge
 					variant='secondary'
 					className={cn(
-						'relative -top-[1px] mx-0.5 inline-flex h-[1.4em] items-center gap-1 rounded-[4px] px-1 py-[4px] align-middle font-bold text-xs leading-none',
+						'relative -top-px mx-0.5 inline-flex h-[1.4em] items-center gap-1 rounded-[4px] px-1 py-[4px] align-middle font-bold text-xs leading-none',
 						config?.className,
 					)}
 				>
@@ -173,8 +173,8 @@ export function ChatMessages() {
 						<MessageItem
 							key={message.id}
 							id={message.id}
-							role={message.role as MessageRole}
-							parts={message.parts as MessagePart[]}
+							role={message.role}
+							parts={message.parts}
 							isStreaming={message.id === streamingId}
 						/>
 					))}

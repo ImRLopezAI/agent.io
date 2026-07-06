@@ -27,7 +27,6 @@ import {
 	verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { cn } from '@lib/utils'
 import { Virtualizer as DiffsVirtualizer } from '@pierre/diffs'
 import {
 	File,
@@ -37,6 +36,7 @@ import {
 	WorkerPoolContextProvider,
 	type WorkerPoolOptions,
 } from '@pierre/diffs/react'
+import { cn } from 'cnfast'
 import {
 	Brackets,
 	ChevronDown,

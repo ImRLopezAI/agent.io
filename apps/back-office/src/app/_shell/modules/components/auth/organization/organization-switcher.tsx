@@ -1,9 +1,9 @@
 'use client'
 
-import { cn } from '@lib/utils'
 import { useQuery } from '@tanstack/react-query'
 import { useRouteContext } from '@tanstack/react-router'
 import { useAuth } from '@workos/authkit-tanstack-react-start/client'
+import { cn } from 'cnfast'
 import { ChevronsUpDown, PlusCircle } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { toast } from 'sonner'

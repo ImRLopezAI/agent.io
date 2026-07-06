@@ -1,29 +1,3 @@
-export function SundayMark(props: React.SVGProps<SVGSVGElement>) {
-	return (
-		<svg
-			aria-hidden
-			className='size-4'
-			fill='none'
-			viewBox='0 0 24 24'
-			{...props}
-		>
-			<path
-				d='M12 4c3.2 2.1 5 5.2 5 8.4 0 3.7-2.1 6.9-5 8.1-2.9-1.2-5-4.4-5-8.1C7 9.2 8.8 6.1 12 4Z'
-				stroke='currentColor'
-				strokeLinecap='round'
-				strokeLinejoin='round'
-				strokeWidth='1.8'
-			/>
-			<path
-				d='M12 8.2v7.6M12 8.8c-1.6 1-2.6 2.6-2.8 4.5M12 10c1.2.9 2 2.2 2.3 3.8'
-				stroke='currentColor'
-				strokeLinecap='round'
-				strokeLinejoin='round'
-				strokeWidth='1.8'
-			/>
-		</svg>
-	)
-}
 
 export function AiRobotixLogo(props: React.SVGProps<SVGSVGElement>) {
 	return (

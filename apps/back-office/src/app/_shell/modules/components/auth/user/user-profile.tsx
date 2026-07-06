@@ -1,6 +1,5 @@
 'use client'
 
-import { cn } from '@lib/utils'
 import { useRouteContext } from '@tanstack/react-router'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/tabs'
 import {
@@ -12,6 +11,7 @@ import {
 	WorkOsWidgets,
 	type WorkOsWidgetsProps,
 } from '@workos-inc/widgets'
+import { cn } from 'cnfast'
 import { atom, useAtom } from 'jotai'
 import {
 	CreditCard,

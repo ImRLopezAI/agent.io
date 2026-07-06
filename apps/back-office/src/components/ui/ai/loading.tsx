@@ -1,10 +1,12 @@
+import { cn } from 'cnfast'
 import { LoaderIcon } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState } from 'react'
 
+import { ShimmeringText } from '@/components/ui/ai/shimmering-text'
+import { AiRobotixLogo } from '@/components/ui/logo'
+
 import { SPINNER_VERBS } from '../ai-elements/spinners'
-import { AiRobotixLogo } from '../logo'
-import { ShimmeringText } from '../unlumen-ui/shimmering-text'
 
 /**
  * Returns a verb from `SPINNER_VERBS` that rotates every `duration` ms.
@@ -25,14 +27,16 @@ export function useCyclingVerb(duration = 3000) {
 
 interface SpinnerVerbsShimmerProps {
 	duration?: number
+	className?: string
 }
 export function SpinnerVerbsShimmer({
 	duration = 3000,
+	className,
 }: SpinnerVerbsShimmerProps) {
 	const { index, verb } = useCyclingVerb(duration)
 
 	return (
-		<div className='flex items-center'>
+		<div className={cn('flex items-center', className)}>
 			<AiRobotixLogo className='size-10' />
 			<AnimatePresence mode='wait'>
 				<motion.div
@@ -42,7 +46,7 @@ export function SpinnerVerbsShimmer({
 					exit={{ opacity: 0, y: -10 }}
 					transition={{ duration: 0.3 }}
 				>
-					<ShimmeringText text={verb} />
+					<ShimmeringText text={verb} className='text-foreground' />
 				</motion.div>
 			</AnimatePresence>
 		</div>

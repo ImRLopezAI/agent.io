@@ -1,91 +1,30 @@
 'use client'
 
 import { cn } from 'cnfast'
-import {
-	OTPInput,
-	OTPInputContext,
-	type OTPInputProps as OTPInputPrimitiveProps,
-} from 'input-otp'
+import { OTPInput, OTPInputContext } from 'input-otp'
 import { MinusIcon } from 'lucide-react'
 import * as React from 'react'
 
-type InputOTPSharedProps = Omit<
-	OTPInputPrimitiveProps,
-	'children' | 'defaultValue' | 'onChange' | 'render' | 'value'
-> & {
+function InputOTP({
+	className,
+	containerClassName,
+	...props
+}: React.ComponentProps<typeof OTPInput> & {
 	containerClassName?: string
-	defaultValue?: string
-	onChange?: (value: string) => void
-	value?: string
-}
-
-type InputOTPRenderProps = {
-	children?: never
-	render: Exclude<OTPInputPrimitiveProps['render'], undefined>
-}
-
-type InputOTPChildrenProps = {
-	children: React.ReactNode
-	render?: never
-}
-
-type InputOTPProps = InputOTPSharedProps &
-	(InputOTPChildrenProps | InputOTPRenderProps)
-
-const InputOTP = React.forwardRef<
-	React.ElementRef<typeof OTPInput>,
-	InputOTPProps
->(
-	(
-		{
-			children,
-			className,
-			containerClassName,
-			defaultValue,
-			onChange: onValueChange,
-			render,
-			value: controlledValue,
-			...props
-		},
-		ref,
-	) => {
-		const [uncontrolledValue, setUncontrolledValue] = React.useState(
-			typeof defaultValue === 'string' ? defaultValue : '',
-		)
-		const value = controlledValue ?? uncontrolledValue
-		const handleChange = React.useCallback(
-			(nextValue: string) => {
-				if (controlledValue === undefined) {
-					setUncontrolledValue(nextValue)
-				}
-
-				onValueChange?.(nextValue)
-			},
-			[controlledValue, onValueChange],
-		)
-		const sharedProps = {
-			ref,
-			'data-slot': 'input-otp',
-			containerClassName: cn(
+}) {
+	return (
+		<OTPInput
+			data-slot='input-otp'
+			containerClassName={cn(
 				'cn-input-otp flex items-center has-disabled:opacity-50',
 				containerClassName,
-			),
-			spellCheck: false,
-			className: cn('disabled:cursor-not-allowed', className),
-			value,
-			onChange: handleChange,
-			...props,
-		}
-
-		if (render) {
-			return <OTPInput {...sharedProps} render={render} />
-		}
-
-		return <OTPInput {...sharedProps}>{children}</OTPInput>
-	},
-)
-
-InputOTP.displayName = 'InputOTP'
+			)}
+			spellCheck={false}
+			className={cn('disabled:cursor-not-allowed', className)}
+			{...props}
+		/>
+	)
+}
 
 function InputOTPGroup({ className, ...props }: React.ComponentProps<'div'>) {
 	return (
@@ -115,7 +54,7 @@ function InputOTPSlot({
 			data-slot='input-otp-slot'
 			data-active={isActive}
 			className={cn(
-				'relative flex size-8 items-center justify-center border-input border-y border-r text-sm outline-none transition-all first:rounded-l-lg first:border-l last:rounded-r-lg aria-invalid:border-destructive data-[active=true]:z-10 data-[active=true]:border-ring data-[active=true]:ring-3 data-[active=true]:ring-ring/50 data-[active=true]:aria-invalid:border-destructive data-[active=true]:aria-invalid:ring-destructive/20 dark:bg-input/30 dark:data-[active=true]:aria-invalid:ring-destructive/40',
+				'relative flex size-8 items-center justify-center border-y border-r border-input text-sm transition-all outline-none first:rounded-l-lg first:border-l last:rounded-r-lg aria-invalid:border-destructive data-[active=true]:z-10 data-[active=true]:border-ring data-[active=true]:ring-3 data-[active=true]:ring-ring/50 data-[active=true]:aria-invalid:border-destructive data-[active=true]:aria-invalid:ring-destructive/20 dark:bg-input/30 dark:data-[active=true]:aria-invalid:ring-destructive/40',
 				className,
 			)}
 			{...props}
@@ -130,24 +69,17 @@ function InputOTPSlot({
 	)
 }
 
-function InputOTPSeparator({
-	className,
-	...props
-}: React.ComponentProps<'span'>) {
+function InputOTPSeparator({ ...props }: React.ComponentProps<'div'>) {
 	return (
-		<span
+		<div
 			data-slot='input-otp-separator'
-			aria-hidden
-			className={cn(
-				"flex items-center [&_svg:not([class*='size-'])]:size-4",
-				className,
-			)}
+			className="flex items-center [&_svg:not([class*='size-'])]:size-4"
+			role='separator'
 			{...props}
 		>
-			<hr className='sr-only' />
 			<MinusIcon />
-		</span>
+		</div>
 	)
 }
 
-export { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot }
+export { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator }

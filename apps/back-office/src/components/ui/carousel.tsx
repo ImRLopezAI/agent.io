@@ -1,12 +1,13 @@
 'use client'
 
-import { Button } from '@ui/button'
 import { cn } from 'cnfast'
 import useEmblaCarousel, {
 	type UseEmblaCarouselType,
 } from 'embla-carousel-react'
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 import * as React from 'react'
+
+import { Button } from '@/components/ui/button'
 
 type CarouselApi = UseEmblaCarouselType[1]
 type UseCarouselParameters = Parameters<typeof useEmblaCarousel>
@@ -120,6 +121,7 @@ function Carousel({
 			<section
 				onKeyDownCapture={handleKeyDown}
 				className={cn('relative', className)}
+				role='region'
 				aria-roledescription='carousel'
 				data-slot='carousel'
 				{...props}
@@ -151,7 +153,7 @@ function CarouselContent({ className, ...props }: React.ComponentProps<'div'>) {
 	)
 }
 
-function CarouselItem({ className, ...props }: React.ComponentProps<'div'>) {
+function CarouselItem({ className, ...props }: React.ComponentProps<'fieldset'>) {
 	const { orientation } = useCarousel()
 
 	return (
@@ -159,7 +161,6 @@ function CarouselItem({ className, ...props }: React.ComponentProps<'div'>) {
 			aria-roledescription='slide'
 			data-slot='carousel-item'
 			className={cn(
-				'm-0 min-w-0 border-0 p-0',
 				'min-w-0 shrink-0 grow-0 basis-full',
 				orientation === 'horizontal' ? 'pl-4' : 'pt-4',
 				className,
@@ -185,7 +186,7 @@ function CarouselPrevious({
 			className={cn(
 				'absolute touch-manipulation rounded-full',
 				orientation === 'horizontal'
-					? 'top-1/2 -left-12 -translate-y-1/2'
+					? 'inset-y-0 -left-12 my-auto'
 					: '-top-12 left-1/2 -translate-x-1/2 rotate-90',
 				className,
 			)}
@@ -215,7 +216,7 @@ function CarouselNext({
 			className={cn(
 				'absolute touch-manipulation rounded-full',
 				orientation === 'horizontal'
-					? 'top-1/2 -right-12 -translate-y-1/2'
+					? 'inset-y-0 -right-12 my-auto'
 					: '-bottom-12 left-1/2 -translate-x-1/2 rotate-90',
 				className,
 			)}
@@ -230,11 +231,11 @@ function CarouselNext({
 }
 
 export {
-	Carousel,
 	type CarouselApi,
+	Carousel,
 	CarouselContent,
 	CarouselItem,
-	CarouselNext,
 	CarouselPrevious,
+	CarouselNext,
 	useCarousel,
 }

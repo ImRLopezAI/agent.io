@@ -1,8 +1,8 @@
 'use client'
 
-import { cn } from '@lib/utils'
 import type { User } from '@workos/authkit-tanstack-react-start'
 import { useAuth } from '@workos/authkit-tanstack-react-start/client'
+import { cn } from 'cnfast'
 
 import { Skeleton } from '@/components/ui/skeleton'
 

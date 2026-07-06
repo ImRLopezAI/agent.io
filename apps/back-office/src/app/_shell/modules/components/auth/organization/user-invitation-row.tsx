@@ -1,11 +1,11 @@
 'use client'
 
-import { cn } from '@lib/utils'
 import type { MyInvitationRow } from '@server/rpc/contracts/work-os.contract'
+import { cn } from 'cnfast'
 import { Check, Clock } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
-import { buttonVariants } from '@/components/ui/button-variants'
+import { buttonVariants } from '@/components/ui/button'
 
 export type UserInvitationRowProps = {
 	invitation: MyInvitationRow

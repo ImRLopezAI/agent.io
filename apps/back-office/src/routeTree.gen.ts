@@ -20,6 +20,13 @@ import { Route as ShellBaseRouteImport } from './app/_shell/_base'
 import { Route as ShellAdminRouteImport } from './app/_shell/_admin'
 import { Route as ShellBaseIndexRouteImport } from './app/_shell/_base/index'
 import { Route as ShellAdminSettingsRouteImport } from './app/_shell/_admin/settings'
+import { Route as ShellBaseSettingsVoicesIndexRouteImport } from './app/_shell/_base/settings/voices/index'
+import { Route as ShellBaseSettingsToolsIndexRouteImport } from './app/_shell/_base/settings/tools/index'
+import { Route as ShellBaseSettingsKbIndexRouteImport } from './app/_shell/_base/settings/kb/index'
+import { Route as ShellBaseSettingsIntegrationsIndexRouteImport } from './app/_shell/_base/settings/integrations/index'
+import { Route as ShellBaseDeployPhoneNumberIndexRouteImport } from './app/_shell/_base/deploy/phone-number/index'
+import { Route as ShellBaseDeployBatchCallIndexRouteImport } from './app/_shell/_base/deploy/batch-call/index'
+import { Route as ShellBaseAgentsAgentIndexRouteImport } from './app/_shell/_base/agents/$agent/index'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -73,6 +80,48 @@ const ShellAdminSettingsRoute = ShellAdminSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => ShellAdminRoute,
 } as any)
+const ShellBaseSettingsVoicesIndexRoute =
+  ShellBaseSettingsVoicesIndexRouteImport.update({
+    id: '/settings/voices/',
+    path: '/settings/voices/',
+    getParentRoute: () => ShellBaseRoute,
+  } as any)
+const ShellBaseSettingsToolsIndexRoute =
+  ShellBaseSettingsToolsIndexRouteImport.update({
+    id: '/settings/tools/',
+    path: '/settings/tools/',
+    getParentRoute: () => ShellBaseRoute,
+  } as any)
+const ShellBaseSettingsKbIndexRoute =
+  ShellBaseSettingsKbIndexRouteImport.update({
+    id: '/settings/kb/',
+    path: '/settings/kb/',
+    getParentRoute: () => ShellBaseRoute,
+  } as any)
+const ShellBaseSettingsIntegrationsIndexRoute =
+  ShellBaseSettingsIntegrationsIndexRouteImport.update({
+    id: '/settings/integrations/',
+    path: '/settings/integrations/',
+    getParentRoute: () => ShellBaseRoute,
+  } as any)
+const ShellBaseDeployPhoneNumberIndexRoute =
+  ShellBaseDeployPhoneNumberIndexRouteImport.update({
+    id: '/deploy/phone-number/',
+    path: '/deploy/phone-number/',
+    getParentRoute: () => ShellBaseRoute,
+  } as any)
+const ShellBaseDeployBatchCallIndexRoute =
+  ShellBaseDeployBatchCallIndexRouteImport.update({
+    id: '/deploy/batch-call/',
+    path: '/deploy/batch-call/',
+    getParentRoute: () => ShellBaseRoute,
+  } as any)
+const ShellBaseAgentsAgentIndexRoute =
+  ShellBaseAgentsAgentIndexRouteImport.update({
+    id: '/agents/$agent/',
+    path: '/agents/$agent/',
+    getParentRoute: () => ShellBaseRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof ShellBaseIndexRoute
@@ -83,6 +132,13 @@ export interface FileRoutesByFullPath {
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/settings': typeof ShellAdminSettingsRoute
+  '/agents/$agent/': typeof ShellBaseAgentsAgentIndexRoute
+  '/deploy/batch-call/': typeof ShellBaseDeployBatchCallIndexRoute
+  '/deploy/phone-number/': typeof ShellBaseDeployPhoneNumberIndexRoute
+  '/settings/integrations/': typeof ShellBaseSettingsIntegrationsIndexRoute
+  '/settings/kb/': typeof ShellBaseSettingsKbIndexRoute
+  '/settings/tools/': typeof ShellBaseSettingsToolsIndexRoute
+  '/settings/voices/': typeof ShellBaseSettingsVoicesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof ShellBaseIndexRoute
@@ -93,6 +149,13 @@ export interface FileRoutesByTo {
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/settings': typeof ShellAdminSettingsRoute
+  '/agents/$agent': typeof ShellBaseAgentsAgentIndexRoute
+  '/deploy/batch-call': typeof ShellBaseDeployBatchCallIndexRoute
+  '/deploy/phone-number': typeof ShellBaseDeployPhoneNumberIndexRoute
+  '/settings/integrations': typeof ShellBaseSettingsIntegrationsIndexRoute
+  '/settings/kb': typeof ShellBaseSettingsKbIndexRoute
+  '/settings/tools': typeof ShellBaseSettingsToolsIndexRoute
+  '/settings/voices': typeof ShellBaseSettingsVoicesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -107,6 +170,13 @@ export interface FileRoutesById {
   '/auth/sign-up': typeof AuthSignUpRoute
   '/_shell/_admin/settings': typeof ShellAdminSettingsRoute
   '/_shell/_base/': typeof ShellBaseIndexRoute
+  '/_shell/_base/agents/$agent/': typeof ShellBaseAgentsAgentIndexRoute
+  '/_shell/_base/deploy/batch-call/': typeof ShellBaseDeployBatchCallIndexRoute
+  '/_shell/_base/deploy/phone-number/': typeof ShellBaseDeployPhoneNumberIndexRoute
+  '/_shell/_base/settings/integrations/': typeof ShellBaseSettingsIntegrationsIndexRoute
+  '/_shell/_base/settings/kb/': typeof ShellBaseSettingsKbIndexRoute
+  '/_shell/_base/settings/tools/': typeof ShellBaseSettingsToolsIndexRoute
+  '/_shell/_base/settings/voices/': typeof ShellBaseSettingsVoicesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -119,6 +189,13 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/settings'
+    | '/agents/$agent/'
+    | '/deploy/batch-call/'
+    | '/deploy/phone-number/'
+    | '/settings/integrations/'
+    | '/settings/kb/'
+    | '/settings/tools/'
+    | '/settings/voices/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -129,6 +206,13 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/settings'
+    | '/agents/$agent'
+    | '/deploy/batch-call'
+    | '/deploy/phone-number'
+    | '/settings/integrations'
+    | '/settings/kb'
+    | '/settings/tools'
+    | '/settings/voices'
   id:
     | '__root__'
     | '/_shell'
@@ -142,6 +226,13 @@ export interface FileRouteTypes {
     | '/auth/sign-up'
     | '/_shell/_admin/settings'
     | '/_shell/_base/'
+    | '/_shell/_base/agents/$agent/'
+    | '/_shell/_base/deploy/batch-call/'
+    | '/_shell/_base/deploy/phone-number/'
+    | '/_shell/_base/settings/integrations/'
+    | '/_shell/_base/settings/kb/'
+    | '/_shell/_base/settings/tools/'
+    | '/_shell/_base/settings/voices/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -229,6 +320,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellAdminSettingsRouteImport
       parentRoute: typeof ShellAdminRoute
     }
+    '/_shell/_base/settings/voices/': {
+      id: '/_shell/_base/settings/voices/'
+      path: '/settings/voices'
+      fullPath: '/settings/voices/'
+      preLoaderRoute: typeof ShellBaseSettingsVoicesIndexRouteImport
+      parentRoute: typeof ShellBaseRoute
+    }
+    '/_shell/_base/settings/tools/': {
+      id: '/_shell/_base/settings/tools/'
+      path: '/settings/tools'
+      fullPath: '/settings/tools/'
+      preLoaderRoute: typeof ShellBaseSettingsToolsIndexRouteImport
+      parentRoute: typeof ShellBaseRoute
+    }
+    '/_shell/_base/settings/kb/': {
+      id: '/_shell/_base/settings/kb/'
+      path: '/settings/kb'
+      fullPath: '/settings/kb/'
+      preLoaderRoute: typeof ShellBaseSettingsKbIndexRouteImport
+      parentRoute: typeof ShellBaseRoute
+    }
+    '/_shell/_base/settings/integrations/': {
+      id: '/_shell/_base/settings/integrations/'
+      path: '/settings/integrations'
+      fullPath: '/settings/integrations/'
+      preLoaderRoute: typeof ShellBaseSettingsIntegrationsIndexRouteImport
+      parentRoute: typeof ShellBaseRoute
+    }
+    '/_shell/_base/deploy/phone-number/': {
+      id: '/_shell/_base/deploy/phone-number/'
+      path: '/deploy/phone-number'
+      fullPath: '/deploy/phone-number/'
+      preLoaderRoute: typeof ShellBaseDeployPhoneNumberIndexRouteImport
+      parentRoute: typeof ShellBaseRoute
+    }
+    '/_shell/_base/deploy/batch-call/': {
+      id: '/_shell/_base/deploy/batch-call/'
+      path: '/deploy/batch-call'
+      fullPath: '/deploy/batch-call/'
+      preLoaderRoute: typeof ShellBaseDeployBatchCallIndexRouteImport
+      parentRoute: typeof ShellBaseRoute
+    }
+    '/_shell/_base/agents/$agent/': {
+      id: '/_shell/_base/agents/$agent/'
+      path: '/agents/$agent'
+      fullPath: '/agents/$agent/'
+      preLoaderRoute: typeof ShellBaseAgentsAgentIndexRouteImport
+      parentRoute: typeof ShellBaseRoute
+    }
   }
 }
 
@@ -246,10 +386,25 @@ const ShellAdminRouteWithChildren = ShellAdminRoute._addFileChildren(
 
 interface ShellBaseRouteChildren {
   ShellBaseIndexRoute: typeof ShellBaseIndexRoute
+  ShellBaseAgentsAgentIndexRoute: typeof ShellBaseAgentsAgentIndexRoute
+  ShellBaseDeployBatchCallIndexRoute: typeof ShellBaseDeployBatchCallIndexRoute
+  ShellBaseDeployPhoneNumberIndexRoute: typeof ShellBaseDeployPhoneNumberIndexRoute
+  ShellBaseSettingsIntegrationsIndexRoute: typeof ShellBaseSettingsIntegrationsIndexRoute
+  ShellBaseSettingsKbIndexRoute: typeof ShellBaseSettingsKbIndexRoute
+  ShellBaseSettingsToolsIndexRoute: typeof ShellBaseSettingsToolsIndexRoute
+  ShellBaseSettingsVoicesIndexRoute: typeof ShellBaseSettingsVoicesIndexRoute
 }
 
 const ShellBaseRouteChildren: ShellBaseRouteChildren = {
   ShellBaseIndexRoute: ShellBaseIndexRoute,
+  ShellBaseAgentsAgentIndexRoute: ShellBaseAgentsAgentIndexRoute,
+  ShellBaseDeployBatchCallIndexRoute: ShellBaseDeployBatchCallIndexRoute,
+  ShellBaseDeployPhoneNumberIndexRoute: ShellBaseDeployPhoneNumberIndexRoute,
+  ShellBaseSettingsIntegrationsIndexRoute:
+    ShellBaseSettingsIntegrationsIndexRoute,
+  ShellBaseSettingsKbIndexRoute: ShellBaseSettingsKbIndexRoute,
+  ShellBaseSettingsToolsIndexRoute: ShellBaseSettingsToolsIndexRoute,
+  ShellBaseSettingsVoicesIndexRoute: ShellBaseSettingsVoicesIndexRoute,
 }
 
 const ShellBaseRouteWithChildren = ShellBaseRoute._addFileChildren(

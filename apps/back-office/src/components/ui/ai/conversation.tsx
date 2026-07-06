@@ -19,7 +19,7 @@ import {
 	ReasoningContent,
 	ReasoningTrigger,
 } from '../ai-elements/reasoning'
-import { Spinner } from '../spinner'
+import { SpinnerVerbsShimmer } from '@ui/ai/loading'
 
 interface ChatConversationProps {
 	messages: UIMessage[]
@@ -94,7 +94,7 @@ export function ChatConversation({
 				{isLoading && visibleMessages.at(-1)?.role !== 'assistant' && (
 					<Message from='assistant'>
 						<MessageContent variant='flat' className='items-start'>
-							<Spinner />
+							<SpinnerVerbsShimmer  />
 						</MessageContent>
 					</Message>
 				)}

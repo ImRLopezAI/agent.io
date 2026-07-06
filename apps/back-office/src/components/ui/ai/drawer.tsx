@@ -13,18 +13,18 @@ import type { useAi } from './use-ai'
 
 interface ChatDrawerProps extends React.ComponentProps<typeof DrawerTrigger> {
 	handler: ReturnType<typeof useAi>
-	direction?: React.ComponentProps<typeof Drawer>['direction']
+	direction?: React.ComponentProps<typeof Drawer>['swipeDirection']
 	label?: string
 }
 
 export function AiChatDrawer({
-	direction = 'top',
+	direction = 'up',
 	handler,
 	label = 'AI Robotix',
 	...props
 }: ChatDrawerProps) {
 	return (
-		<Drawer direction={direction}>
+		<Drawer swipeDirection={direction}>
 			<DrawerTrigger {...props} />
 			<DrawerContent className='flex size-full max-h-[90vh]'>
 				<DrawerHeader className='flex flex-row items-center space-x-4 border-b px-4 py-2'>

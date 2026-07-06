@@ -15,11 +15,11 @@ interface ProvidersProps extends React.PropsWithChildren {
 }
 export function Providers(props: ProvidersProps) {
 	return (
-						<BaseProviders>
-		<AuthKitProvider>
-			<QueryClientProvider client={props.rpcClient}>
-				<NuqsAdapter>
-					<ConvexProviderWithAuthKit {...props}>
+		<BaseProviders>
+			<AuthKitProvider>
+				<QueryClientProvider client={props.rpcClient}>
+					<NuqsAdapter>
+						<ConvexProviderWithAuthKit {...props}>
 							{import.meta.env.PROD ? (
 								<PostHogProvider
 									apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_KEY || ''}
@@ -29,10 +29,10 @@ export function Providers(props: ProvidersProps) {
 							) : (
 								props.children
 							)}
-					</ConvexProviderWithAuthKit>
-				</NuqsAdapter>
-			</QueryClientProvider>
-		</AuthKitProvider>
-						</BaseProviders>
+						</ConvexProviderWithAuthKit>
+					</NuqsAdapter>
+				</QueryClientProvider>
+			</AuthKitProvider>
+		</BaseProviders>
 	)
 }

@@ -1,7 +1,7 @@
 'use client'
 
-import { cn } from '@lib/utils'
 import { useRouteContext } from '@tanstack/react-router'
+import { cn } from 'cnfast'
 import type { ComponentProps } from 'react'
 
 import { Card, CardContent } from '@/components/ui/card'

@@ -1,6 +1,6 @@
 'use client'
 
-import { cn } from '@lib/utils'
+import { cn } from 'cnfast'
 import type { ComponentProps } from 'react'
 
 import { OrganizationInvitations } from './organization-invitations'
