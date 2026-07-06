@@ -605,3 +605,92 @@ describe('TranscriptRecorder', () => {
 		expect(calls).toEqual(['turn-1', 'turn-2', 'turn-3', 'finish'])
 	})
 })
+
+// ---------------------------------------------------------------------------
+// openai SDK integration: client secrets + telephony (injected client)
+// ---------------------------------------------------------------------------
+
+const mkOpenAiClient = () => {
+	const calls: { method: string; args: unknown[] }[] = []
+	const client = {
+		realtime: {
+			clientSecrets: {
+				create: async (...args: unknown[]) => {
+					calls.push({ method: 'clientSecrets.create', args })
+					return { value: 'ek_test', expires_at: 1234 }
+				},
+			},
+			calls: {
+				accept: async (...args: unknown[]) => {
+					calls.push({ method: 'calls.accept', args })
+				},
+				reject: async (...args: unknown[]) => {
+					calls.push({ method: 'calls.reject', args })
+				},
+				refer: async (...args: unknown[]) => {
+					calls.push({ method: 'calls.refer', args })
+				},
+				hangup: async (...args: unknown[]) => {
+					calls.push({ method: 'calls.hangup', args })
+				},
+			},
+		},
+	}
+	return { client: client as never, calls }
+}
+
+const sessionCfg = {
+	model: { provider: 'openai' as const, model: 'gpt-realtime' },
+	instructions: 'hi',
+	voice: 'marin',
+	vad: { mode: 'server_vad' as const, silenceMs: 500 },
+	tools: [],
+	mcpTools: [],
+	audio: {
+		input: { format: 'g711_ulaw' as const, transcription: true },
+		output: { format: 'g711_ulaw' as const },
+	},
+	warnings: [],
+}
+
+describe('openai SDK paths', () => {
+	test('mintClientSecret goes through client.realtime.clientSecrets.create with wire shape', async () => {
+		const { client, calls } = mkOpenAiClient()
+		const provider = new OpenAIDialectProvider(OPENAI, 'sk', client)
+		const secret = await provider.mintClientSecret(sessionCfg, 300)
+		expect(secret.value).toBe('ek_test')
+		expect(secret.expiresAt).toBe(1234)
+		const [params] = calls[0]?.args as [
+			{ expires_after: { seconds: number }; session: Record<string, unknown> },
+		]
+		expect(params.expires_after.seconds).toBe(300)
+		// wire shape is snake_case REST, not agents-SDK camelCase
+		expect(params.session.output_modalities).toEqual(['audio'])
+		const audio = params.session.audio as {
+			input: { turn_detection: { silence_duration_ms: number } }
+			output: { voice: string }
+		}
+		expect(audio.input.turn_detection.silence_duration_ms).toBe(500)
+		expect(audio.output.voice).toBe('marin')
+	})
+
+	test('telephony: refer + hangup shared; reject is openai-only', async () => {
+		const { client, calls } = mkOpenAiClient()
+		const openai = new OpenAIDialectProvider(OPENAI, 'sk', client)
+		await openai.telephony.transfer('call_1', 'tel:+15550001111')
+		await openai.telephony.hangup('call_1')
+		await openai.telephony.rejectCall('call_2', 486)
+		expect(calls.map((c) => c.method)).toEqual([
+			'calls.refer',
+			'calls.hangup',
+			'calls.reject',
+		])
+		expect(calls[0]?.args[1]).toEqual({ target_uri: 'tel:+15550001111' })
+		expect(calls[2]?.args[1]).toEqual({ status_code: 486 })
+
+		const xai = new OpenAIDialectProvider(XAI, 'xk', mkOpenAiClient().client)
+		await expect(xai.telephony.rejectCall('call_3')).rejects.toThrow(
+			/does not support rejecting/,
+		)
+	})
+})

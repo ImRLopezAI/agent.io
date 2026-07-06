@@ -1,10 +1,11 @@
 import {
 	OpenAIRealtimeWebSocket,
-	RealtimeAgent,
 	RealtimeSession,
 	type RealtimeSessionConfig,
 } from '@openai/agents-realtime'
+import OpenAI from 'openai'
 
+import { buildRealtimeAgent } from '../agents/resolver'
 import { EventNormalizer } from '../session/event-normalizer'
 import { RealtimeVoiceSession } from '../session/realtime-voice-session'
 import type {
@@ -13,6 +14,7 @@ import type {
 	ProviderCapabilities,
 	SessionConfig,
 } from '../types'
+import { RealtimeTelephony } from './telephony'
 
 const WIRE_FORMATS = {
 	pcm16: { type: 'audio/pcm' as const, rate: 24000 as const },
@@ -22,10 +24,25 @@ const WIRE_FORMATS = {
 
 /** One driver serves both endpoints (xAI is an OpenAI-Realtime dialect). */
 export class OpenAIDialectProvider {
+	/** Official `openai` SDK client — baseURL swap makes it serve xAI too. */
+	readonly client: OpenAI
+	/** SIP call control: accept / reject / refer / hangup. */
+	readonly telephony: RealtimeTelephony
+
 	constructor(
 		readonly endpoint: DialectEndpoint,
 		private readonly apiKey: string,
-	) {}
+		client?: OpenAI,
+	) {
+		this.client =
+			client ?? new OpenAI({ apiKey, baseURL: endpoint.restBaseUrl })
+		this.telephony = new RealtimeTelephony(
+			endpoint,
+			this.client,
+			(cfg, attach) => this.connect(cfg, attach),
+			(cfg) => this.toWireSession(cfg),
+		)
+	}
 
 	get id() {
 		return this.endpoint.id
@@ -79,39 +96,59 @@ export class OpenAIDialectProvider {
 		} as Partial<RealtimeSessionConfig>
 	}
 
-	/** Browser/widget path — plain REST, no SDK server-side. */
+	/**
+	 * REST wire shape (snake_case) for client_secrets / calls.accept — distinct
+	 * from the agents-SDK camelCase RealtimeSessionConfig used on the WS path.
+	 */
+	toWireSession(cfg: SessionConfig): Record<string, unknown> {
+		const requested = cfg.vad
+		const turnDetection =
+			requested.mode === 'semantic_vad' && !this.endpoint.quirks.semanticVad
+				? { type: 'server_vad' }
+				: requested.mode === 'semantic_vad'
+					? { type: 'semantic_vad', eagerness: requested.eagerness }
+					: requested.mode === 'server_vad'
+						? {
+								type: 'server_vad',
+								silence_duration_ms: requested.silenceMs,
+								idle_timeout_ms: requested.idleTimeoutMs,
+							}
+						: null
+		return {
+			type: 'realtime',
+			model: cfg.model.model,
+			instructions: cfg.instructions,
+			output_modalities: ['audio'],
+			audio: {
+				input: {
+					format: WIRE_FORMATS[cfg.audio.input.format],
+					transcription: cfg.audio.input.transcription
+						? { model: 'whisper-1' }
+						: undefined,
+					turn_detection: turnDetection,
+				},
+				output: {
+					format: WIRE_FORMATS[cfg.audio.output.format],
+					voice: cfg.voice,
+					speed: cfg.audio.output.speed,
+				},
+			},
+			tools: cfg.mcpTools,
+		}
+	}
+
+	/** Browser/widget path — official SDK, no hand-rolled fetch. */
 	async mintClientSecret(
 		cfg: SessionConfig,
 		ttlSecs = 600,
 	): Promise<ClientSecret> {
-		const res = await fetch(
-			`${this.endpoint.restBaseUrl}/realtime/client_secrets`,
-			{
-				method: 'POST',
-				headers: {
-					authorization: `Bearer ${this.apiKey}`,
-					'content-type': 'application/json',
-				},
-				body: JSON.stringify({
-					expires_after: { anchor: 'created_at', seconds: ttlSecs },
-					session: {
-						type: 'realtime',
-						model: cfg.model.model,
-						instructions: cfg.instructions,
-						...this.toSessionConfig(cfg),
-					},
-				}),
-			},
-		)
-		if (!res.ok) {
-			throw new Error(
-				`client_secrets failed: ${res.status} ${await res.text()}`,
-			)
-		}
-		const body = (await res.json()) as { value: string; expires_at: number }
+		const secret = await this.client.realtime.clientSecrets.create({
+			expires_after: { anchor: 'created_at', seconds: ttlSecs },
+			session: this.toWireSession(cfg) as never,
+		})
 		return {
-			value: body.value,
-			expiresAt: body.expires_at,
+			value: secret.value,
+			expiresAt: secret.expires_at,
 			connectHint: {
 				transport: this.endpoint.quirks.webrtc ? 'webrtc' : 'websocket',
 				url: this.endpoint.wsUrl,
@@ -131,10 +168,8 @@ export class OpenAIDialectProvider {
 			url,
 			useInsecureApiKey: true, // raw API key, server-side only
 		})
-		const agent = new RealtimeAgent({
-			name: cfg.agentRef?.agentId ?? 'agent',
-			instructions: cfg.instructions,
-			voice: cfg.voice,
+		const agent = buildRealtimeAgent({
+			...cfg,
 			tools: [...cfg.tools, ...(cfg.mcpTools as never[])],
 		})
 		const inner = new RealtimeSession(agent, {

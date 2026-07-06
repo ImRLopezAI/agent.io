@@ -1,4 +1,4 @@
-import { tool } from '@openai/agents-realtime'
+import { RealtimeAgent, tool } from '@openai/agents-realtime'
 import { z } from 'zod'
 
 import type {
@@ -145,3 +145,15 @@ export const expand = async (opts: {
 		warnings,
 	}
 }
+
+/**
+ * The expanded SessionConfig materialized as an SDK RealtimeAgent — the
+ * object RealtimeSession actually runs. Providers consume this directly.
+ */
+export const buildRealtimeAgent = (cfg: SessionConfig): RealtimeAgent =>
+	new RealtimeAgent({
+		name: cfg.agentRef?.agentId ?? 'agent',
+		instructions: cfg.instructions,
+		voice: cfg.voice,
+		tools: cfg.tools,
+	})
