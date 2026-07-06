@@ -6,7 +6,11 @@ import {
 import OpenAI from 'openai'
 import type { RealtimeSessionCreateRequest } from 'openai/resources/realtime/realtime.mjs'
 
-import { buildRealtimeAgent } from '../agents/resolver'
+import {
+	buildMcpServers,
+	buildRealtimeAgent,
+	connectMcpServers,
+} from '../agents/resolver'
 import { EventNormalizer } from '../session/event-normalizer'
 import { RealtimeVoiceSession } from '../session/realtime-voice-session'
 import type {
@@ -134,7 +138,16 @@ export class OpenAIDialectProvider implements VoiceProvider {
 					speed: cfg.audio.output.speed,
 				},
 			},
-			tools: cfg.mcpTools as never,
+			// REST/browser path: hosted MCP is part of the session wire schema
+			// (the API connects to the servers server-side — no local lifecycle)
+			tools: cfg.mcpServers.map((ref) => ({
+				type: 'mcp',
+				server_label: ref.serverLabel,
+				server_url: ref.serverUrl,
+				headers: ref.headers,
+				allowed_tools: ref.allowedTools,
+				require_approval: ref.requireApproval,
+			})) as never,
 		} as RealtimeSessionCreateRequest
 	}
 
@@ -162,9 +175,10 @@ export class OpenAIDialectProvider implements VoiceProvider {
 	}
 
 	/**
-	 * Server-side path (v-inbound / v-outbound own the socket). The
-	 * RealtimeAgent comes from the resolver's buildRealtimeAgent — function
-	 * tools + Composio/BYO MCP (hostedMcpTool) already attached.
+	 * Server-side path (v-inbound / v-outbound own the socket). Function tools
+	 * ride RealtimeAgent.tools; MCP servers are a SEPARATE channel —
+	 * MCPServerStreamableHttp instances connected before the session and
+	 * closed with it.
 	 */
 	async connect(
 		cfg: SessionConfig,
@@ -177,7 +191,14 @@ export class OpenAIDialectProvider implements VoiceProvider {
 			url,
 			useInsecureApiKey: true, // raw API key, server-side only
 		})
-		const inner = new RealtimeSession(buildRealtimeAgent(cfg), {
+		// MCP servers are their own channel with a real lifecycle: instantiate,
+		// connect (per-server degradation), attach via mcpServers, close with
+		// the session.
+		const mcpServers = await connectMcpServers(
+			buildMcpServers(cfg.mcpServers),
+			cfg.warnings,
+		)
+		const inner = new RealtimeSession(buildRealtimeAgent(cfg, mcpServers), {
 			transport,
 			model: cfg.model.model,
 			config: this.toSessionConfig(cfg),
@@ -186,6 +207,9 @@ export class OpenAIDialectProvider implements VoiceProvider {
 		return new RealtimeVoiceSession(
 			inner,
 			new EventNormalizer(this.endpoint.quirks),
+			async () => {
+				await Promise.allSettled(mcpServers.map((server) => server.close()))
+			},
 		)
 	}
 

@@ -1,6 +1,6 @@
 import type { McpScope } from '@agent.io/domain/schemas'
 
-import type { HostedMcpTool } from '../types'
+import type { McpServerRef } from '../types'
 
 export interface ComposioSessionHandle {
 	sessionId: string
@@ -128,7 +128,7 @@ export const resolveComposioEntry = async (opts: {
 	client: ComposioClient
 	cache: SessionCache
 	warnings: string[]
-}): Promise<HostedMcpTool | null> => {
+}): Promise<McpServerRef | null> => {
 	const { tenant, scope, connection, client, cache, warnings } = opts
 	if (connection.status !== 'active') {
 		warnings.push(
@@ -171,12 +171,11 @@ export const resolveComposioEntry = async (opts: {
 			})
 		}
 		return {
-			type: 'mcp',
-			server_label: connection.name,
-			server_url: session.mcp.url,
+			serverLabel: connection.name,
+			serverUrl: session.mcp.url,
 			headers: session.mcp.headers, // ephemeral — never persisted or logged
-			allowed_tools: connection.allowedTools,
-			require_approval: requireApprovalFor(scope, connection),
+			allowedTools: connection.allowedTools,
+			requireApproval: requireApprovalFor(scope, connection),
 		}
 	} catch (error) {
 		warnings.push(
@@ -191,7 +190,7 @@ export const resolveByoEntry = (opts: {
 	scope: McpScope
 	connection: McpConnectionRow
 	warnings: string[]
-}): HostedMcpTool | null => {
+}): McpServerRef | null => {
 	const { scope, connection, warnings } = opts
 	if (connection.status !== 'active' || !connection.url) {
 		warnings.push(`byo connection ${connection.name} unavailable — skipped`)
@@ -206,11 +205,10 @@ export const resolveByoEntry = (opts: {
 			)
 	}
 	return {
-		type: 'mcp',
-		server_label: connection.name,
-		server_url: connection.url,
+		serverLabel: connection.name,
+		serverUrl: connection.url,
 		headers,
-		allowed_tools: connection.allowedTools,
-		require_approval: requireApprovalFor(scope, connection),
+		allowedTools: connection.allowedTools,
+		requireApproval: requireApprovalFor(scope, connection),
 	}
 }

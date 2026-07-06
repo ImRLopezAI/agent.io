@@ -38,13 +38,18 @@ export interface ProviderCapabilities {
 	maxClientSecretTtlSecs: number
 }
 
-export interface HostedMcpTool {
-	type: 'mcp'
-	server_label: string
-	server_url: string
+/**
+ * Reference to an external MCP SERVER (Composio session endpoint or BYO).
+ * This is NOT a tool — servers attach to the RealtimeAgent via `mcpServers`
+ * (SDK MCPServerStreamableHttp instances with a connect/close lifecycle);
+ * their tools are discovered by the MCP client after connect.
+ */
+export interface McpServerRef {
+	serverLabel: string
+	serverUrl: string
 	headers?: Record<string, string>
-	allowed_tools?: string[]
-	require_approval?: 'never' | 'always'
+	allowedTools?: string[]
+	requireApproval?: 'never' | 'always'
 }
 
 /** Provider-agnostic session request (expanded from an Agent Version). */
@@ -55,7 +60,7 @@ export interface SessionConfig {
 	voice: string
 	vad: VadConfig
 	tools: FunctionTool[]
-	mcpTools: HostedMcpTool[]
+	mcpServers: McpServerRef[]
 	audio: {
 		input: {
 			format: 'pcm16' | 'g711_ulaw' | 'g711_alaw'

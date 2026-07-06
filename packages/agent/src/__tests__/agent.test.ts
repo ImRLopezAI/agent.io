@@ -184,7 +184,7 @@ describe('OpenAIDialectProvider', () => {
 		voice: 'ara',
 		vad: { mode: 'semantic_vad' as const, eagerness: 'high' as const },
 		tools: [],
-		mcpTools: [],
+		mcpServers: [],
 		audio: {
 			input: { format: 'g711_ulaw' as const, transcription: true },
 			output: { format: 'g711_ulaw' as const },
@@ -265,8 +265,8 @@ describe('composio scoping', () => {
 			cache: sessionCache,
 			warnings,
 		})
-		expect(a?.type).toBe('mcp')
-		expect(b?.type).toBe('mcp')
+		expect(a?.serverUrl).toContain('mcp.composio.dev')
+		expect(b?.serverLabel).toBe('Composio')
 		expect(creates).toHaveLength(2)
 		const first = creates[0] as { options: { toolkits: { enable: string[] } } }
 		expect(first.options.toolkits.enable).toEqual(['gmail', 'hubspot'])
@@ -426,7 +426,7 @@ describe('resolver expand', () => {
 		expect(toolNames).toContain('end_call')
 		expect(toolNames).toContain('search_knowledge_base')
 		expect(toolNames).toContain('start_procedure')
-		expect(cfg.mcpTools).toHaveLength(1)
+		expect(cfg.mcpServers).toHaveLength(1)
 		expect(cfg.warnings).toHaveLength(0)
 	})
 
@@ -445,7 +445,7 @@ describe('resolver expand', () => {
 				loadKbPromptDocs: async () => [],
 			},
 		})
-		expect(cfg.mcpTools).toHaveLength(0)
+		expect(cfg.mcpServers).toHaveLength(0)
 		expect(cfg.warnings.join(' ')).toMatch(/not found/)
 	})
 })
@@ -645,7 +645,7 @@ const sessionCfg = {
 	voice: 'marin',
 	vad: { mode: 'server_vad' as const, silenceMs: 500 },
 	tools: [],
-	mcpTools: [],
+	mcpServers: [],
 	audio: {
 		input: { format: 'g711_ulaw' as const, transcription: true },
 		output: { format: 'g711_ulaw' as const },
@@ -702,26 +702,36 @@ describe('VoiceProvider contract + MCP attachment', () => {
 		expect(provider.id).toBe('openai')
 	})
 
-	test('buildRealtimeAgent attaches Composio MCP as SDK hosted tools', async () => {
-		const { buildRealtimeAgent } = await import('../agents/resolver')
-		const agent = buildRealtimeAgent({
-			...sessionCfg,
-			mcpTools: [
-				{
-					type: 'mcp',
-					server_label: 'composio',
-					server_url: 'https://mcp.composio.dev/s/abc',
-					headers: { 'x-k': 'v' },
-					allowed_tools: ['GMAIL_SEND_EMAIL'],
-					require_approval: 'always',
-				},
-			],
-		})
-		const hosted = agent.tools.find((t) => t.type === 'hosted_tool') as {
-			type: string
-			providerData?: { server_label?: string; allowed_tools?: unknown }
+	test('MCP servers ride the mcpServers channel — never the tools array', async () => {
+		const { buildMcpServers, buildRealtimeAgent } =
+			await import('../agents/resolver')
+		const servers = buildMcpServers([
+			{
+				serverLabel: 'composio',
+				serverUrl: 'https://mcp.composio.dev/s/abc',
+				headers: { 'x-k': 'v' },
+				allowedTools: ['GMAIL_SEND_EMAIL'],
+				requireApproval: 'always',
+			},
+		])
+		expect(servers).toHaveLength(1)
+		expect(servers[0]?.name).toBe('composio')
+		const agent = buildRealtimeAgent(sessionCfg, servers)
+		expect(agent.mcpServers).toHaveLength(1)
+		expect(agent.tools.some((t) => t.type === 'hosted_tool')).toBe(false)
+	})
+
+	test('connectMcpServers degrades per-server on failure', async () => {
+		const { connectMcpServers } = await import('../agents/resolver')
+		const fake = {
+			name: 'broken',
+			connect: async () => {
+				throw new Error('unreachable')
+			},
 		}
-		expect(hosted).toBeDefined()
-		expect(hosted.providerData?.server_label).toBe('composio')
+		const warnings: string[] = []
+		const connected = await connectMcpServers([fake as never], warnings)
+		expect(connected).toHaveLength(0)
+		expect(warnings.join(' ')).toMatch(/failed to connect/)
 	})
 })

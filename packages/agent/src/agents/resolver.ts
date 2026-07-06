@@ -1,11 +1,11 @@
-import { hostedMcpTool } from '@openai/agents'
+import { MCPServerStreamableHttp } from '@openai/agents'
 import { RealtimeAgent, tool } from '@openai/agents-realtime'
 import { z } from 'zod'
 
 import type {
 	CallControl,
 	ConvexIngest,
-	HostedMcpTool,
+	McpServerRef,
 	ResolvedAgentVersion,
 	SessionConfig,
 } from '../types'
@@ -108,8 +108,8 @@ export const expand = async (opts: {
 		)
 	}
 
-	// MCP: per-agent conditional exposure (R6)
-	const mcpTools: HostedMcpTool[] = []
+	// MCP: per-agent conditional exposure (R6) — server REFERENCES, not tools
+	const mcpServers: McpServerRef[] = []
 	for (const scope of config.mcp) {
 		const connection = await deps.loadConnection(scope.connectionId)
 		if (!connection) {
@@ -127,7 +127,7 @@ export const expand = async (opts: {
 						warnings,
 					})
 				: resolveByoEntry({ scope, connection, warnings })
-		if (resolved) mcpTools.push(resolved)
+		if (resolved) mcpServers.push(resolved)
 	}
 
 	return {
@@ -137,7 +137,7 @@ export const expand = async (opts: {
 		voice: config.voice,
 		vad: config.vad,
 		tools,
-		mcpTools,
+		mcpServers,
 		audio: config.audio ?? {
 			input: { format: 'pcm16', transcription: true },
 			output: { format: 'pcm16' },
@@ -148,35 +148,58 @@ export const expand = async (opts: {
 }
 
 /**
- * The expanded SessionConfig materialized as an SDK RealtimeAgent — the
- * object RealtimeSession actually runs. Function tools AND the Composio/BYO
- * MCP servers ride the same tools array: hostedMcpTool() produces the SDK's
- * HostedMCPTool (a first-class RealtimeTool the model provider connects to —
- * no local connect lifecycle to manage for hosted servers).
+ * Instantiate SDK MCP clients from the resolved server references. Servers
+ * have a lifecycle: the SESSION owner must connect() them before use and
+ * close() them when the call ends. Connection failures degrade per-server
+ * (warning) — a tool vendor outage never blocks answering a call.
  */
-export const buildRealtimeAgent = (cfg: SessionConfig): RealtimeAgent =>
+export const buildMcpServers = (
+	refs: McpServerRef[],
+): MCPServerStreamableHttp[] =>
+	refs.map(
+		(ref) =>
+			new MCPServerStreamableHttp({
+				name: ref.serverLabel,
+				url: ref.serverUrl,
+				requestInit: ref.headers ? { headers: ref.headers } : undefined,
+				toolFilter: ref.allowedTools
+					? { allowedToolNames: ref.allowedTools }
+					: undefined,
+				cacheToolsList: true,
+			}),
+	)
+
+export const connectMcpServers = async (
+	servers: MCPServerStreamableHttp[],
+	warnings: string[],
+): Promise<MCPServerStreamableHttp[]> => {
+	const connected: MCPServerStreamableHttp[] = []
+	for (const server of servers) {
+		try {
+			await server.connect()
+			connected.push(server)
+		} catch (error) {
+			warnings.push(
+				`mcp server ${server.name} failed to connect: ${String(error)} — call continues without its tools`,
+			)
+		}
+	}
+	return connected
+}
+
+/**
+ * The expanded SessionConfig materialized as an SDK RealtimeAgent. Function
+ * tools go in `tools`; CONNECTED MCP servers go in `mcpServers` — two
+ * different SDK channels, never mixed.
+ */
+export const buildRealtimeAgent = (
+	cfg: SessionConfig,
+	mcpServers: MCPServerStreamableHttp[] = [],
+): RealtimeAgent =>
 	new RealtimeAgent({
 		name: cfg.agentRef?.agentId ?? 'agent',
 		instructions: cfg.instructions,
 		voice: cfg.voice,
-		tools: [
-			...cfg.tools,
-			...cfg.mcpTools.map((mcp) =>
-				mcp.require_approval === 'never'
-					? hostedMcpTool({
-							serverLabel: mcp.server_label,
-							serverUrl: mcp.server_url,
-							headers: mcp.headers,
-							allowedTools: mcp.allowed_tools,
-							requireApproval: 'never',
-						})
-					: hostedMcpTool({
-							serverLabel: mcp.server_label,
-							serverUrl: mcp.server_url,
-							headers: mcp.headers,
-							allowedTools: mcp.allowed_tools,
-							requireApproval: 'always',
-						}),
-			),
-		],
+		tools: cfg.tools,
+		mcpServers,
 	})

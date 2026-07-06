@@ -15,7 +15,14 @@ export {
 	initialEngineState,
 	ProcedureEngine,
 } from './agents/procedure-engine'
-export { expand, renderTemplate, type ResolverDeps } from './agents/resolver'
+export {
+	buildMcpServers,
+	buildRealtimeAgent,
+	connectMcpServers,
+	expand,
+	renderTemplate,
+	type ResolverDeps,
+} from './agents/resolver'
 export { createComposioClient } from './agents/composio-client'
 export { buildSystemTools } from './agents/system-tools'
 export { ENDPOINTS, OPENAI, XAI } from './providers/endpoints'
@@ -28,7 +35,7 @@ export type {
 	ClientSecret,
 	ConvexIngest,
 	DialectEndpoint,
-	HostedMcpTool,
+	McpServerRef,
 	NormalizedEvent,
 	ProviderCapabilities,
 	ProviderId,

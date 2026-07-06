@@ -17,6 +17,7 @@ export class RealtimeVoiceSession {
 	constructor(
 		private readonly inner: RealtimeSession,
 		private readonly normalizer: EventNormalizer,
+		private readonly cleanup?: () => Promise<void>,
 	) {
 		const transport = inner.transport as unknown as {
 			on: (event: string, cb: (raw: unknown) => void) => void
@@ -68,6 +69,7 @@ export class RealtimeVoiceSession {
 
 	close() {
 		this.inner.close()
+		void this.cleanup?.()
 		this.emit({ type: 'closed', reason: 'local' })
 	}
 }
