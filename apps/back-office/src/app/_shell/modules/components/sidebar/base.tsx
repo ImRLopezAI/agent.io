@@ -28,6 +28,7 @@ import {
 	Drone,
 	Radar,
 	PhoneIncoming,
+	Bubbles
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -154,9 +155,9 @@ const navItems: NavGroup[] = [
 				wrappedHeader: AgentWrappedHeader,
 				items: [
 					{
-						title: 'Spotlight',
+						title: 'Agent',
 						href: `/agents/${agent.id}`,
-						icon: Spotlight,
+						icon: Bubbles,
 					},
 					{
 						title: 'Configuration',
