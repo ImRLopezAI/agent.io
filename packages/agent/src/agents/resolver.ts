@@ -10,18 +10,19 @@ import type {
 	SessionConfig,
 } from '../types'
 import {
-	type ComposioClient,
 	type McpConnectionRow,
 	resolveByoEntry,
 	resolveComposioEntry,
 	type SessionCache,
+	type TenantComposioClient,
 } from './composio'
 import { compileProcedures } from './procedure-engine'
 import { buildSystemTools } from './system-tools'
 
 export interface ResolverDeps {
 	ingest: ConvexIngest
-	composio: ComposioClient
+	/** Tenant-binding factory: composioClient(tenant) → bound operations. */
+	composio: (tenant: string) => TenantComposioClient
 	sessionCache: SessionCache
 	loadConnection(connectionId: string): Promise<McpConnectionRow | null>
 	loadKbPromptDocs(
@@ -122,7 +123,7 @@ export const expand = async (opts: {
 						tenant: version.tenant,
 						scope,
 						connection,
-						client: deps.composio,
+						client: deps.composio(version.tenant),
 						cache: deps.sessionCache,
 						warnings,
 					})

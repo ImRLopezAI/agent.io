@@ -73,14 +73,14 @@ const mkComposio = () => {
 	const creates: unknown[] = []
 	const uses: string[] = []
 	const client = {
-		create: async (userId: string, options: unknown) => {
-			creates.push({ userId, options })
+		createSession: async (options: unknown) => {
+			creates.push({ options })
 			return {
 				sessionId: `sess_${creates.length}`,
 				mcp: { url: 'https://mcp.composio.dev/s/abc', headers: { 'x-k': 'v' } },
 			}
 		},
-		use: async (sessionId: string) => {
+		useSession: async (sessionId: string) => {
 			uses.push(sessionId)
 			return {
 				sessionId,
@@ -314,10 +314,10 @@ describe('composio scoping', () => {
 
 	test('composio failure degrades: null + warning, no throw', async () => {
 		const failing = {
-			create: async () => {
+			createSession: async () => {
 				throw new Error('composio down')
 			},
-			use: async () => {
+			useSession: async () => {
 				throw new Error('composio down')
 			},
 		}
@@ -407,7 +407,7 @@ describe('resolver expand', () => {
 			dynamicVariables: { user_name: 'Angel' },
 			deps: {
 				ingest,
-				composio: client,
+				composio: () => client,
 				sessionCache,
 				loadConnection: async () => connection(),
 				loadKbPromptDocs: async () => [
@@ -439,7 +439,7 @@ describe('resolver expand', () => {
 			control: noopControl,
 			deps: {
 				ingest,
-				composio: client,
+				composio: () => client,
 				sessionCache,
 				loadConnection: async () => null,
 				loadKbPromptDocs: async () => [],

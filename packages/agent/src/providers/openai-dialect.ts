@@ -147,8 +147,8 @@ export class OpenAIDialectProvider implements VoiceProvider {
 				headers: ref.headers,
 				allowed_tools: ref.allowedTools,
 				require_approval: ref.requireApproval,
-			})) as never,
-		} as RealtimeSessionCreateRequest
+			})),
+		}
 	}
 
 	// -------------------------------------------------------------------
@@ -191,9 +191,7 @@ export class OpenAIDialectProvider implements VoiceProvider {
 			url,
 			useInsecureApiKey: true, // raw API key, server-side only
 		})
-		// MCP servers are their own channel with a real lifecycle: instantiate,
-		// connect (per-server degradation), attach via mcpServers, close with
-		// the session.
+
 		const mcpServers = await connectMcpServers(
 			buildMcpServers(cfg.mcpServers),
 			cfg.warnings,

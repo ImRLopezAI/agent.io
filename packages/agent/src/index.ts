@@ -1,5 +1,4 @@
 export {
-	type ComposioClient,
 	configHash,
 	effectiveToolkits,
 	type McpConnectionRow,
@@ -23,7 +22,7 @@ export {
 	renderTemplate,
 	type ResolverDeps,
 } from './agents/resolver'
-export { createComposioClient } from './agents/composio-client'
+export { composioClient } from './agents/composio-client'
 export { buildSystemTools } from './agents/system-tools'
 export { ENDPOINTS, OPENAI, XAI } from './providers/endpoints'
 export { OpenAIDialectProvider } from './providers/openai-dialect'

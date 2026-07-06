@@ -8,20 +8,18 @@ export interface ComposioSessionHandle {
 }
 
 /**
- * The subset of the Composio SDK the resolver needs — implemented for real by
- * createComposioClient (composio-client.ts, @composio/core), mock-friendly in
- * tests. DIRECT_TOOLS preset + mcp:true are applied inside the adapter.
+ * A Composio client already BOUND to a tenant — produced by
+ * `composioClient(tenant)` (composio-client.ts). Callers never pass a
+ * userId: tenant identity lives in the binding, credentials live in the
+ * tenant's Composio connected accounts. DIRECT_TOOLS + mcp:true are applied
+ * inside the adapter.
  */
-export interface ComposioClient {
-	create(
-		userId: string,
-		options: {
-			toolkits?: { enable: string[] } | { disable: string[] }
-			tools?: Record<string, { enable: string[] } | { disable: string[] }>
-			mcp: true
-		},
-	): Promise<ComposioSessionHandle>
-	use(sessionId: string): Promise<ComposioSessionHandle>
+export interface TenantComposioClient {
+	createSession(options: {
+		toolkits?: { enable: string[] } | { disable: string[] }
+		tools?: Record<string, { enable: string[] } | { disable: string[] }>
+	}): Promise<ComposioSessionHandle>
+	useSession(sessionId: string): Promise<ComposioSessionHandle>
 }
 
 export interface McpConnectionRow {
@@ -125,7 +123,7 @@ export const resolveComposioEntry = async (opts: {
 	tenant: string
 	scope: McpScope
 	connection: McpConnectionRow
-	client: ComposioClient
+	client: TenantComposioClient
 	cache: SessionCache
 	warnings: string[]
 }): Promise<McpServerRef | null> => {
@@ -156,11 +154,10 @@ export const resolveComposioEntry = async (opts: {
 			configHash: hash,
 		})
 		const session = cachedSessionId
-			? await client.use(cachedSessionId)
-			: await client.create(tenant, {
+			? await client.useSession(cachedSessionId)
+			: await client.createSession({
 					toolkits: { enable: toolkits },
 					tools: toComposioTools(scope.tools),
-					mcp: true,
 				})
 		if (!cachedSessionId) {
 			await cache.put({
