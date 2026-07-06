@@ -4,6 +4,7 @@ import {
 	type RealtimeSessionConfig,
 } from '@openai/agents-realtime'
 import OpenAI from 'openai'
+import type { RealtimeSessionCreateRequest } from 'openai/resources/realtime/realtime.mjs'
 
 import { buildRealtimeAgent } from '../agents/resolver'
 import { EventNormalizer } from '../session/event-normalizer'
@@ -13,8 +14,9 @@ import type {
 	DialectEndpoint,
 	ProviderCapabilities,
 	SessionConfig,
+	VoiceProvider,
+	VoiceSession,
 } from '../types'
-import { RealtimeTelephony } from './telephony'
 
 const WIRE_FORMATS = {
 	pcm16: { type: 'audio/pcm' as const, rate: 24000 as const },
@@ -22,12 +24,15 @@ const WIRE_FORMATS = {
 	g711_alaw: { type: 'audio/pcma' as const },
 }
 
-/** One driver serves both endpoints (xAI is an OpenAI-Realtime dialect). */
-export class OpenAIDialectProvider {
-	/** Official `openai` SDK client — baseURL swap makes it serve xAI too. */
+/**
+ * One driver serves both endpoints (xAI is an OpenAI-Realtime dialect).
+ * Implements the full VoiceProvider contract — sessions, client secrets, AND
+ * SIP telephony (accept/reject/refer/hangup via `client.realtime.calls`,
+ * docs/.references/openai-realtime-ts-calls.md). The official `openai`
+ * client serves xAI too via baseURL swap.
+ */
+export class OpenAIDialectProvider implements VoiceProvider {
 	readonly client: OpenAI
-	/** SIP call control: accept / reject / refer / hangup. */
-	readonly telephony: RealtimeTelephony
 
 	constructor(
 		readonly endpoint: DialectEndpoint,
@@ -36,12 +41,6 @@ export class OpenAIDialectProvider {
 	) {
 		this.client =
 			client ?? new OpenAI({ apiKey, baseURL: endpoint.restBaseUrl })
-		this.telephony = new RealtimeTelephony(
-			endpoint,
-			this.client,
-			(cfg, attach) => this.connect(cfg, attach),
-			(cfg) => this.toWireSession(cfg),
-		)
 	}
 
 	get id() {
@@ -61,6 +60,12 @@ export class OpenAIDialectProvider {
 			maxClientSecretTtlSecs: this.endpoint.id === 'openai' ? 7200 : 3600,
 		}
 	}
+
+	// -------------------------------------------------------------------
+	// Config mapping — TWO dialects of the same session config:
+	// toSessionConfig = agents-SDK camelCase (WS path)
+	// toWireSession   = REST snake_case (client_secrets, calls.accept)
+	// -------------------------------------------------------------------
 
 	/** Map our SessionConfig → SDK GA config shape; downgrade, don't fail. */
 	toSessionConfig(cfg: SessionConfig): Partial<RealtimeSessionConfig> {
@@ -96,20 +101,16 @@ export class OpenAIDialectProvider {
 		} as Partial<RealtimeSessionConfig>
 	}
 
-	/**
-	 * REST wire shape (snake_case) for client_secrets / calls.accept — distinct
-	 * from the agents-SDK camelCase RealtimeSessionConfig used on the WS path.
-	 */
-	toWireSession(cfg: SessionConfig): Record<string, unknown> {
+	toWireSession(cfg: SessionConfig): RealtimeSessionCreateRequest {
 		const requested = cfg.vad
 		const turnDetection =
 			requested.mode === 'semantic_vad' && !this.endpoint.quirks.semanticVad
-				? { type: 'server_vad' }
+				? { type: 'server_vad' as const }
 				: requested.mode === 'semantic_vad'
-					? { type: 'semantic_vad', eagerness: requested.eagerness }
+					? { type: 'semantic_vad' as const, eagerness: requested.eagerness }
 					: requested.mode === 'server_vad'
 						? {
-								type: 'server_vad',
+								type: 'server_vad' as const,
 								silence_duration_ms: requested.silenceMs,
 								idle_timeout_ms: requested.idleTimeoutMs,
 							}
@@ -133,9 +134,13 @@ export class OpenAIDialectProvider {
 					speed: cfg.audio.output.speed,
 				},
 			},
-			tools: cfg.mcpTools,
-		}
+			tools: cfg.mcpTools as never,
+		} as RealtimeSessionCreateRequest
 	}
+
+	// -------------------------------------------------------------------
+	// Sessions
+	// -------------------------------------------------------------------
 
 	/** Browser/widget path — official SDK, no hand-rolled fetch. */
 	async mintClientSecret(
@@ -144,7 +149,7 @@ export class OpenAIDialectProvider {
 	): Promise<ClientSecret> {
 		const secret = await this.client.realtime.clientSecrets.create({
 			expires_after: { anchor: 'created_at', seconds: ttlSecs },
-			session: this.toWireSession(cfg) as never,
+			session: this.toWireSession(cfg),
 		})
 		return {
 			value: secret.value,
@@ -156,11 +161,15 @@ export class OpenAIDialectProvider {
 		}
 	}
 
-	/** Server-side path (v-inbound / v-outbound own the socket). */
+	/**
+	 * Server-side path (v-inbound / v-outbound own the socket). The
+	 * RealtimeAgent comes from the resolver's buildRealtimeAgent — function
+	 * tools + Composio/BYO MCP (hostedMcpTool) already attached.
+	 */
 	async connect(
 		cfg: SessionConfig,
 		attach?: { callId?: string },
-	): Promise<RealtimeVoiceSession> {
+	): Promise<VoiceSession> {
 		const url = attach?.callId
 			? `${this.endpoint.wsUrl}?call_id=${attach.callId}`
 			: this.endpoint.wsUrl
@@ -168,11 +177,7 @@ export class OpenAIDialectProvider {
 			url,
 			useInsecureApiKey: true, // raw API key, server-side only
 		})
-		const agent = buildRealtimeAgent({
-			...cfg,
-			tools: [...cfg.tools, ...(cfg.mcpTools as never[])],
-		})
-		const inner = new RealtimeSession(agent, {
+		const inner = new RealtimeSession(buildRealtimeAgent(cfg), {
 			transport,
 			model: cfg.model.model,
 			config: this.toSessionConfig(cfg),
@@ -182,5 +187,42 @@ export class OpenAIDialectProvider {
 			inner,
 			new EventNormalizer(this.endpoint.quirks),
 		)
+	}
+
+	// -------------------------------------------------------------------
+	// SIP telephony (part of the contract, not a side object)
+	// -------------------------------------------------------------------
+
+	/** Answer an incoming call and attach the realtime session to it. */
+	async acceptCall(callId: string, cfg: SessionConfig): Promise<VoiceSession> {
+		if (this.endpoint.id === 'openai') {
+			// OpenAI: REST accept with the wire session, then attach the WS
+			await this.client.realtime.calls.accept(callId, this.toWireSession(cfg))
+		}
+		// xAI: connecting the WS with ?call_id IS the accept (no REST endpoint)
+		return this.connect(cfg, { callId })
+	}
+
+	/** Decline an incoming call (SIP status code, default 603 Decline). */
+	async rejectCall(callId: string, sipCode?: number): Promise<void> {
+		if (this.endpoint.id !== 'openai') {
+			throw new Error(
+				`${this.endpoint.id} does not support rejecting calls — let it ring out or accept+hangup`,
+			)
+		}
+		await this.client.realtime.calls.reject(
+			callId,
+			sipCode ? { status_code: sipCode } : undefined,
+		)
+	}
+
+	/** Transfer the active call (SIP REFER) to tel:+E.164 or sip:uri. */
+	async transferCall(callId: string, target: string): Promise<void> {
+		await this.client.realtime.calls.refer(callId, { target_uri: target })
+	}
+
+	/** End the active call. */
+	async hangupCall(callId: string): Promise<void> {
+		await this.client.realtime.calls.hangup(callId)
 	}
 }

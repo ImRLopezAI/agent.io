@@ -1,3 +1,4 @@
+import { hostedMcpTool } from '@openai/agents'
 import { RealtimeAgent, tool } from '@openai/agents-realtime'
 import { z } from 'zod'
 
@@ -148,12 +149,34 @@ export const expand = async (opts: {
 
 /**
  * The expanded SessionConfig materialized as an SDK RealtimeAgent — the
- * object RealtimeSession actually runs. Providers consume this directly.
+ * object RealtimeSession actually runs. Function tools AND the Composio/BYO
+ * MCP servers ride the same tools array: hostedMcpTool() produces the SDK's
+ * HostedMCPTool (a first-class RealtimeTool the model provider connects to —
+ * no local connect lifecycle to manage for hosted servers).
  */
 export const buildRealtimeAgent = (cfg: SessionConfig): RealtimeAgent =>
 	new RealtimeAgent({
 		name: cfg.agentRef?.agentId ?? 'agent',
 		instructions: cfg.instructions,
 		voice: cfg.voice,
-		tools: cfg.tools,
+		tools: [
+			...cfg.tools,
+			...cfg.mcpTools.map((mcp) =>
+				mcp.require_approval === 'never'
+					? hostedMcpTool({
+							serverLabel: mcp.server_label,
+							serverUrl: mcp.server_url,
+							headers: mcp.headers,
+							allowedTools: mcp.allowed_tools,
+							requireApproval: 'never',
+						})
+					: hostedMcpTool({
+							serverLabel: mcp.server_label,
+							serverUrl: mcp.server_url,
+							headers: mcp.headers,
+							allowedTools: mcp.allowed_tools,
+							requireApproval: 'always',
+						}),
+			),
+		],
 	})

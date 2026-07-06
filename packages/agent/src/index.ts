@@ -35,4 +35,6 @@ export type {
 	QuirkTable,
 	ResolvedAgentVersion,
 	SessionConfig,
+	VoiceProvider,
+	VoiceSession,
 } from './types'

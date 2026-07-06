@@ -140,6 +140,49 @@ export interface CallControl {
 	transferToAgent(agentId: string): Promise<void>
 }
 
+/**
+ * The session contract every dialect returns — apps code against this, the
+ * SDK session stays an implementation detail.
+ */
+export interface VoiceSession {
+	sendAudio(chunk: Uint8Array): void
+	injectMessage(text: string): void
+	cancelResponse(): void
+	mute(muted: boolean): void
+	on(
+		type: NormalizedEvent['type'] | '*',
+		handler: (event: NormalizedEvent) => void,
+	): void
+	close(): void
+}
+
+/**
+ * The provider contract (one per dialect endpoint). Telephony is part of the
+ * contract — SIP control belongs to the dialect, not a side object.
+ */
+export interface VoiceProvider {
+	readonly id: ProviderId
+	readonly capabilities: ProviderCapabilities
+
+	/** Browser/widget path: short-lived credential, never expose API keys. */
+	mintClientSecret(cfg: SessionConfig, ttlSecs?: number): Promise<ClientSecret>
+	/** Server-side path: open the realtime session (optionally onto a call). */
+	connect(
+		cfg: SessionConfig,
+		attach?: { callId?: string },
+	): Promise<VoiceSession>
+
+	// -- SIP telephony ----------------------------------------------------
+	/** Answer an incoming call and attach the session to it. */
+	acceptCall(callId: string, cfg: SessionConfig): Promise<VoiceSession>
+	/** Decline an incoming call (SIP status code, default 603). */
+	rejectCall(callId: string, sipCode?: number): Promise<void>
+	/** Transfer the active call (SIP REFER) to tel:+E.164 or sip:uri. */
+	transferCall(callId: string, target: string): Promise<void>
+	/** End the active call. */
+	hangupCall(callId: string): Promise<void>
+}
+
 /** Loaded Agent Version, as the resolver consumes it. */
 export interface ResolvedAgentVersion {
 	versionId: string

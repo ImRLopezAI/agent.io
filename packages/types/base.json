@@ -5,6 +5,7 @@
 		"module": "ESNext",
 		"lib": ["ES2024"],
 		"moduleResolution": "bundler",
+		"types": ["bun"],
 		"allowImportingTsExtensions": true,
 		"verbatimModuleSyntax": true,
 		"noEmit": true,

@@ -677,9 +677,9 @@ describe('openai SDK paths', () => {
 	test('telephony: refer + hangup shared; reject is openai-only', async () => {
 		const { client, calls } = mkOpenAiClient()
 		const openai = new OpenAIDialectProvider(OPENAI, 'sk', client)
-		await openai.telephony.transfer('call_1', 'tel:+15550001111')
-		await openai.telephony.hangup('call_1')
-		await openai.telephony.rejectCall('call_2', 486)
+		await openai.transferCall('call_1', 'tel:+15550001111')
+		await openai.hangupCall('call_1')
+		await openai.rejectCall('call_2', 486)
 		expect(calls.map((c) => c.method)).toEqual([
 			'calls.refer',
 			'calls.hangup',
@@ -689,8 +689,39 @@ describe('openai SDK paths', () => {
 		expect(calls[2]?.args[1]).toEqual({ status_code: 486 })
 
 		const xai = new OpenAIDialectProvider(XAI, 'xk', mkOpenAiClient().client)
-		await expect(xai.telephony.rejectCall('call_3')).rejects.toThrow(
+		await expect(xai.rejectCall('call_3')).rejects.toThrow(
 			/does not support rejecting/,
 		)
+	})
+})
+
+describe('VoiceProvider contract + MCP attachment', () => {
+	test('OpenAIDialectProvider satisfies the VoiceProvider contract', () => {
+		const provider: import('../types').VoiceProvider =
+			new OpenAIDialectProvider(OPENAI, 'sk', mkOpenAiClient().client)
+		expect(provider.id).toBe('openai')
+	})
+
+	test('buildRealtimeAgent attaches Composio MCP as SDK hosted tools', async () => {
+		const { buildRealtimeAgent } = await import('../agents/resolver')
+		const agent = buildRealtimeAgent({
+			...sessionCfg,
+			mcpTools: [
+				{
+					type: 'mcp',
+					server_label: 'composio',
+					server_url: 'https://mcp.composio.dev/s/abc',
+					headers: { 'x-k': 'v' },
+					allowed_tools: ['GMAIL_SEND_EMAIL'],
+					require_approval: 'always',
+				},
+			],
+		})
+		const hosted = agent.tools.find((t) => t.type === 'hosted_tool') as {
+			type: string
+			providerData?: { server_label?: string; allowed_tools?: unknown }
+		}
+		expect(hosted).toBeDefined()
+		expect(hosted.providerData?.server_label).toBe('composio')
 	})
 })
