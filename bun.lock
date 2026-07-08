@@ -16,6 +16,7 @@
     "apps/back-office": {
       "name": "@agent.io/back-office",
       "dependencies": {
+        "@agent.io/convex": "workspace:*",
         "@agent.io/domain": "workspace:*",
         "@agent.io/ui": "workspace:*",
         "@ai-sdk/gateway": "catalog:ai",

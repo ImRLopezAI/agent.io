@@ -19,6 +19,7 @@
 	"dependencies": {
 		"@agent.io/domain": "workspace:*",
 		"@agent.io/ui": "workspace:*",
+		"@agent.io/convex": "workspace:*",
 		"@ai-sdk/gateway": "catalog:ai",
 		"@ai-sdk/react": "catalog:ai",
 		"@base-ui/react": "catalog:ui",

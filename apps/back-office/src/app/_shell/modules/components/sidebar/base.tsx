@@ -1,5 +1,6 @@
 'use client'
 
+import { ResponsiveDialog } from '@app/_shell/modules/components/ui/dialog'
 import { Button } from '@ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@ui/card'
 import {
@@ -20,7 +21,6 @@ import {
 	AudioLines,
 	PhoneOutgoing,
 	Smartphone,
-	Spotlight,
 	Workflow,
 	ChartColumn,
 	FileChartColumn,
@@ -28,7 +28,7 @@ import {
 	Drone,
 	Radar,
 	PhoneIncoming,
-	Bubbles
+	Bubbles,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -221,9 +221,20 @@ const navItems: NavGroup[] = [
 			}))
 		},
 		actions: () => (
-			<Button variant='ghost' size='icon'>
-				<PlusIcon className='h-4 w-4' />
-			</Button>
+			<ResponsiveDialog.Root>
+				<ResponsiveDialog.Trigger>
+					<Button variant='ghost' size='icon'>
+						<PlusIcon className='h-4 w-4' />
+					</Button>
+				</ResponsiveDialog.Trigger>
+				<ResponsiveDialog.Content>
+					<ResponsiveDialog.Header>
+						<ResponsiveDialog.Heading>
+							<ResponsiveDialog.Title>Add a new agent</ResponsiveDialog.Title>
+						</ResponsiveDialog.Heading>
+					</ResponsiveDialog.Header>
+				</ResponsiveDialog.Content>
+			</ResponsiveDialog.Root>
 		),
 	},
 	{

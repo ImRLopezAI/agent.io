@@ -221,7 +221,7 @@ function ResponsiveDialogRoot({
 	return (
 		<Provider store={dialogStore}>
 			{runtime.isMobile ? (
-				<Drawer direction='bottom' {...primitiveProps}>
+				<Drawer swipeDirection='down' {...primitiveProps}>
 					{children}
 				</Drawer>
 			) : (
