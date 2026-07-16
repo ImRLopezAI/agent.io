@@ -105,7 +105,7 @@ export type ProcedureReference = z.infer<typeof procedureReference>
 // ---------------------------------------------------------------------------
 
 export const procedures = tenantTable('procedures', (id) => ({
-	agentId: id('agents'),
+	agentVariantId: id('agentVariants'),
 	/** Dashboard label — never sent to the LLM. */
 	name: z.string().min(1).max(120),
 	/** NOT convertible after creation (vendor rule). */

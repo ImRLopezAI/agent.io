@@ -4,11 +4,13 @@ import {
 	batchCallRecipients,
 	conversationMessages,
 	conversations,
-	kbChunks,
+	kbDocuments,
 	mcpConnections,
+	phoneNumberInput,
 	phoneNumbers,
-	validateKbDocument,
+	telephonyConnections,
 	validateMcpConnection,
+	whatsappAccounts,
 } from '../index.ts'
 
 describe('mcpConnections', () => {
@@ -74,20 +76,18 @@ describe('mcpConnections', () => {
 })
 
 describe('Knowledge Base', () => {
-	test('document cross-field validation per type', () => {
-		expect(validateKbDocument({ type: 'url' })).toMatch(/sourceUrl/)
-		expect(validateKbDocument({ type: 'file' })).toMatch(/storageId/)
-		expect(validateKbDocument({ type: 'text' })).toMatch(/content/)
-		expect(validateKbDocument({ type: 'text', content: 'hello' })).toBeNull()
-	})
-
-	test('chunk without embeddingId is valid (pre-embedding state)', () => {
+	test('document is a minimal component-entry registry', () => {
+		expect(Object.keys(kbDocuments.insertSchema.shape).sort()).toEqual([
+			'activeEntryId',
+			'archived',
+			'archivedAt',
+			'lastError',
+			'tenant',
+		])
 		expect(
-			kbChunks.insertSchema.safeParse({
+			kbDocuments.insertSchema.safeParse({
 				tenant: 'org_1',
-				documentId: 'kbDocuments_1',
-				order: 0,
-				text: 'chunk',
+				activeEntryId: 'entry_1',
 			}).success,
 		).toBe(true)
 	})
@@ -96,8 +96,13 @@ describe('Knowledge Base', () => {
 describe('conversations substrate', () => {
 	const conversation = {
 		tenant: 'org_1',
+		conversationKey: 'conversation_1',
+		idempotencyFingerprint: 'fingerprint_1',
 		agentId: 'agents_1',
+		agentVariantId: 'agentVariants_1',
 		agentVersionId: 'agentVersions_1',
+		allocationMode: 'direct',
+		workflow: 'inbound',
 		provider: 'openai',
 		channel: 'voice_inbound',
 		direction: 'inbound',
@@ -125,6 +130,7 @@ describe('conversations substrate', () => {
 				tenant: 'org_1',
 				conversationId: 'conversations_1',
 				agentId: 'agents_1',
+				agentVariantId: 'agentVariants_1',
 				sequence: 1,
 				role: 'agent',
 				toolCalls: [{ callId: 'c1', name: 'end_call', argsJson: '{}' }],
@@ -135,17 +141,144 @@ describe('conversations substrate', () => {
 })
 
 describe('Telephony + batch + operational', () => {
-	test('phone number must be E.164', () => {
-		const mk = (number: string) =>
-			phoneNumbers.insertSchema.safeParse({
+	const connection = {
+		tenant: 'org_1',
+		provider: 'twilio' as const,
+		label: 'Primary Twilio',
+		providerAccountId: 'AC123',
+		credentialSecretRef: 'secret_twilio_1',
+		status: 'active' as const,
+	}
+	const number = {
+		tenant: 'org_1',
+		telephonyConnectionId: 'telephonyConnections_1',
+		providerNumberId: 'PN123',
+		number: '+15551234567',
+		provider: 'twilio' as const,
+		label: 'New York',
+		countryCode: 'US',
+		regionCode: 'NY',
+		locality: 'New York',
+		capabilities: {
+			inboundVoice: true,
+			outboundVoice: true,
+			inboundSms: true,
+			outboundSms: true,
+		},
+		inboundSmsEnabled: true,
+		status: 'active' as const,
+	}
+
+	test('telephony connection stores a secret reference, never raw credentials', () => {
+		expect(
+			telephonyConnections.insertSchema.safeParse(connection).success,
+		).toBe(true)
+		expect(
+			telephonyConnections.insertSchema.safeParse({
+				...connection,
+				credentialSecretRef: '',
+			}).success,
+		).toBe(false)
+		expect(Object.keys(telephonyConnections.insertSchema.shape)).not.toContain(
+			'authToken',
+		)
+	})
+
+	test('phone number validates E.164, ISO country, and SMS capability', () => {
+		const mk = (over: Record<string, unknown>) =>
+			phoneNumberInput.safeParse({ ...number, ...over }).success
+		expect(mk({})).toBe(true)
+		expect(mk({ number: '5551234567' })).toBe(false)
+		expect(mk({ countryCode: 'USA' })).toBe(false)
+		expect(mk({ countryCode: 'us' })).toBe(false)
+		expect(
+			mk({
+				capabilities: { ...number.capabilities, inboundSms: false },
+				inboundSmsEnabled: true,
+			}),
+		).toBe(false)
+	})
+
+	test('connection and number lifecycle values are explicit', () => {
+		for (const status of [
+			'pending_verification',
+			'active',
+			'disabled',
+			'error',
+			'archived',
+		]) {
+			expect(
+				telephonyConnections.insertSchema.safeParse({ ...connection, status })
+					.success,
+			).toBe(true)
+		}
+		for (const status of [
+			'pending',
+			'active',
+			'disabled',
+			'provider_missing',
+			'archived',
+		]) {
+			expect(
+				phoneNumbers.insertSchema.safeParse({ ...number, status }).success,
+			).toBe(true)
+		}
+	})
+
+	test('whatsappAccounts: multiple rows per tenant; secretRef required, no raw token', () => {
+		const base = {
+			tenant: 'org_1',
+			businessAccountId: 'waba_1',
+			phoneNumberName: '',
+			label: '',
+			enableMessaging: true,
+			enableAudioMessageResponse: true,
+			accessTokenSecretRef: 'sec_wa_1',
+			status: 'active' as const,
+		}
+		const a = whatsappAccounts.insertSchema.safeParse({
+			...base,
+			metaPhoneNumberId: 'meta_pn_1',
+			phoneNumber: '+15551234567',
+			assignedAgentId: 'agents_1',
+		})
+		const b = whatsappAccounts.insertSchema.safeParse({
+			...base,
+			metaPhoneNumberId: 'meta_pn_2',
+			phoneNumber: '+15557654321',
+		})
+		expect(a.success).toBe(true)
+		expect(b.success).toBe(true)
+
+		expect(
+			whatsappAccounts.insertSchema.safeParse({
+				...base,
+				metaPhoneNumberId: 'meta_pn_3',
+				accessTokenSecretRef: '',
+			}).success,
+		).toBe(false)
+
+		// conversation can pin the owning WhatsApp account (channel ref)
+		expect(
+			conversations.insertSchema.safeParse({
 				tenant: 'org_1',
-				number,
-				provider: 'twilio',
-				label: '',
-				status: 'active',
-			}).success
-		expect(mk('+15551234567')).toBe(true)
-		expect(mk('5551234567')).toBe(false)
+				conversationKey: 'conversation_2',
+				idempotencyFingerprint: 'fingerprint_2',
+				agentId: 'agents_1',
+				agentVariantId: 'agentVariants_1',
+				agentVersionId: 'agentVersions_1',
+				allocationMode: 'direct',
+				workflow: 'none',
+				provider: 'openai',
+				channel: 'whatsapp',
+				direction: 'inbound',
+				status: 'initiated',
+				startedAt: '2026-07-05T00:00:00Z',
+				hasAudio: false,
+				messageCount: 0,
+				whatsappAccountId: 'whatsappAccounts_1',
+			}).success,
+		).toBe(true)
 	})
 
 	test('recipient status covers the full lifecycle', () => {

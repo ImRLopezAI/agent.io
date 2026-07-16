@@ -24,11 +24,26 @@ export const BATCH_RECIPIENT_STATUSES = [
 	'voicemail',
 ] as const
 
+export const callerIdRule = z.object({
+	id: z.string().min(1).max(120),
+	destinationCountryCode: z
+		.string()
+		.regex(/^[A-Z]{2}$/)
+		.optional(),
+	destinationRegionCode: z.string().min(1).max(120).optional(),
+	phoneNumberId: z.string(),
+})
+
+export const callerIdPolicy = z.object({
+	rules: z.array(callerIdRule),
+	defaultPhoneNumberId: z.string(),
+})
+
 export const batchCallJobs = tenantTable('batchCallJobs', (id) => ({
 	name: z.string().min(1).max(200),
 	agentId: id('agents'),
-	agentVersionId: id('agentVersions').optional(),
-	phoneNumberId: id('phoneNumbers'),
+	agentVariantOverrideId: id('agentVariants').optional(),
+	callerIdPolicy,
 	status: z.enum(BATCH_JOB_STATUSES),
 	scheduledAt: z.string().optional(),
 	timezone: z.string().optional(),
@@ -45,5 +60,7 @@ export const batchCallRecipients = tenantTable('batchCallRecipients', (id) => ({
 	phoneNumber: z.string(),
 	status: z.enum(BATCH_RECIPIENT_STATUSES),
 	conversationId: id('conversations').optional(),
+	selectedPhoneNumberId: id('phoneNumbers').optional(),
+	callerIdSelectionReason: z.string().optional(),
 	dynamicVariables: dynamicVariables.optional(),
 }))

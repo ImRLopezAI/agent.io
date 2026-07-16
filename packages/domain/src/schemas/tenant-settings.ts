@@ -7,6 +7,12 @@ import { tenantTable } from './helper.ts'
  * identity/org record (identity lives in WorkOS), and not agent behavior
  * (voice/model belong to each agent's config). One row per tenant; absence
  * means platform defaults.
+ *
+ * Multi-instance channel resources do **not** live here:
+ * - voice DIDs → `phoneNumbers`
+ * - WhatsApp numbers → `whatsappAccounts` (N per tenant)
+ * Stuffing them as arrays on this singleton would break webhook lookup
+ * indexes and the ADR 0001 derive-tenant-from-owner pattern.
  */
 export const tenantSettings = tenantTable('tenantSettings', () => ({
 	recordingEnabled: z.boolean().default(false),

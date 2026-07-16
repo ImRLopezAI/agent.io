@@ -5,7 +5,8 @@
 	"exports": {
 		".": "./src/index.ts",
 		"./work-os": "./src/work-os/index.ts",
-		"./schemas": "./src/schemas/index.ts"
+		"./schemas": "./src/schemas/index.ts",
+		"./config": "./src/config/index.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit",

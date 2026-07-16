@@ -98,7 +98,7 @@ describe('procedures table', () => {
 	test('content length boundary: 50_000 passes, 50_001 fails', () => {
 		const base = {
 			tenant: 'org_1',
-			agentId: 'agents_x',
+			agentVariantId: 'agentVariants_x',
 			name: 'Refunds',
 			type: 'free_form',
 			trigger: 'user asks for a refund',
