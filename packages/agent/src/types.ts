@@ -10,6 +10,23 @@ import type { FunctionTool } from '@openai/agents-realtime'
 
 export type ProviderId = 'openai' | 'xai'
 
+export interface MachineConversationStart {
+	conversationId: string
+	agentId: string
+	agentVariantId: string
+	agentVersionId: string
+	allocationMode: 'weighted' | 'override' | 'direct'
+	allocationBucket?: number
+	allocationRevision?: number
+	workflow: 'inbound' | 'outbound' | 'none'
+	workflowConfig?:
+		| VersionConfig['inboundWorkflow']
+		| VersionConfig['outboundWorkflow']
+	phone?: { id: string; number: string; provider: 'twilio' | 'sip_trunk' }
+	callerIdSelectionReason?: string
+	versionConfig: VersionConfig
+}
+
 export interface QuirkTable {
 	webrtc: boolean
 	semanticVad: boolean
@@ -54,7 +71,7 @@ export interface McpServerRef {
 
 /** Provider-agnostic session request (expanded from an Agent Version). */
 export interface SessionConfig {
-	agentRef?: { agentId: string; versionId: string }
+	agentRef?: { agentId: string; variantId: string; versionId: string }
 	model: ModelRef
 	instructions: string
 	voice: string
@@ -69,6 +86,7 @@ export interface SessionConfig {
 		output: { format: 'pcm16' | 'g711_ulaw' | 'g711_alaw'; speed?: number }
 	}
 	dynamicVariables?: Record<string, string>
+	workflowConfig?: MachineConversationStart['workflowConfig']
 	/** Non-fatal degradations collected during expansion (Composio outage…). */
 	warnings: string[]
 }
@@ -104,22 +122,59 @@ export type NormalizedEvent =
  * @agent.io/agent MUST NOT import @agent.io/convex — the apps (and the
  * contract suite) bind these to the real machine-path functions.
  */
+export type ConversationStartArgs =
+	| {
+			ownerKind: 'phoneNumber'
+			ownerId: string
+			conversationKey: string
+			provider: ProviderId
+			channel: 'voice_inbound'
+			direction: 'inbound'
+			externalNumber?: string
+	  }
+	| {
+			ownerKind: 'batchCallRecipient'
+			ownerId: string
+			conversationKey: string
+			provider: ProviderId
+			channel: 'voice_outbound'
+			direction: 'outbound'
+			destinationCountryCode?: string
+			destinationRegionCode?: string
+	  }
+	| {
+			ownerKind: 'whatsappAccount'
+			ownerId: string
+			conversationKey: string
+			provider: ProviderId
+			channel: 'whatsapp'
+			direction: 'inbound' | 'outbound'
+			externalNumber?: string
+	  }
+	| {
+			ownerKind: 'agentVersion'
+			ownerId: string
+			conversationKey: string
+			provider: ProviderId
+			channel: 'sms' | 'web'
+			direction: 'inbound' | 'outbound'
+			externalNumber?: string
+	  }
+
 export interface ConvexIngest {
-	start(args: {
-		ownerKind: 'phoneNumber' | 'agentVersion'
-		ownerId: string
-		agentVersionId?: string
-		provider: ProviderId
-		channel: 'voice_inbound' | 'voice_outbound' | 'whatsapp' | 'sms' | 'web'
-		direction: 'inbound' | 'outbound'
-		externalNumber?: string
-	}): Promise<string>
+	start(args: ConversationStartArgs): Promise<MachineConversationStart>
 	append(args: {
 		conversationId: string
+		messageKey: string
 		role: 'user' | 'agent' | 'system'
 		text?: string
 		toolCalls?: { callId: string; name: string; argsJson: string }[]
-		toolResults?: { callId: string; output: string; isError: boolean }[]
+		toolResults?: {
+			callId: string
+			output: string
+			isError: boolean
+			retrievalEntryIds?: string[]
+		}[]
 		interrupted: boolean
 	}): Promise<{ sequence: number }>
 	finish(args: {
@@ -131,7 +186,8 @@ export interface ConvexIngest {
 	searchKnowledgeBase(args: {
 		conversationId: string
 		query: string
-	}): Promise<{ text: string; score: number; documentId: string }[]>
+		callId?: string
+	}): Promise<{ text: string }>
 }
 
 /** Session-side control surface handed to system-tool executables. */
@@ -192,6 +248,7 @@ export interface VoiceProvider {
 export interface ResolvedAgentVersion {
 	versionId: string
 	agentId: string
+	agentVariantId: string
 	tenant: string
 	config: VersionConfig
 }

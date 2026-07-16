@@ -19,6 +19,7 @@ export class TranscriptRecorder {
 	private currentAgentTurn: PendingTurn | null = null
 	private startedAt = Date.now()
 	private failedStatus: string | null = null
+	private messageSequence = 0
 
 	constructor(private readonly ingest: ConvexIngest) {}
 
@@ -47,9 +48,11 @@ export class TranscriptRecorder {
 		switch (event.type) {
 			case 'user.transcript':
 				if (event.final && event.text) {
-					this.enqueue(() =>
+					const messageKey = `event:${++this.messageSequence}`
+					void this.enqueue(() =>
 						this.ingest.append({
 							conversationId,
+							messageKey,
 							role: 'user',
 							text: event.text,
 							interrupted: false,
@@ -90,9 +93,11 @@ export class TranscriptRecorder {
 				const turn = this.currentAgentTurn
 				this.currentAgentTurn = null
 				if (turn && (turn.text || turn.toolCalls.length > 0)) {
-					this.enqueue(() =>
+					const messageKey = `event:${++this.messageSequence}`
+					void this.enqueue(() =>
 						this.ingest.append({
 							conversationId,
+							messageKey,
 							role: 'agent',
 							text: turn.text || undefined,
 							toolCalls: turn.toolCalls.length ? turn.toolCalls : undefined,
@@ -103,7 +108,7 @@ export class TranscriptRecorder {
 				break
 			}
 			case 'closed':
-				this.enqueue(() =>
+				void this.enqueue(() =>
 					this.ingest.finish({
 						conversationId,
 						status: this.failedStatus ? 'failed' : 'done',
