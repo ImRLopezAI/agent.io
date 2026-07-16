@@ -10,6 +10,12 @@ deepened: 2026-07-05
 
 # feat: Domain layer integration — schemas, Convex wiring, and the agent package
 
+> **Current RAG authority:** The Knowledge Base target in this document is
+> historical. Execute the RAG integration from
+> `docs/plans/2026-07-15-001-feat-tenant-phone-number-inventory-plan.md`, whose
+> title is "Convex RAG and Tenant Telephony Backend Foundations" and which
+> incorporates ADR 0002 alongside the telephony backend foundation.
+
 ## Overview
 
 Build the complete multi-tenant domain layer for the agent.io voice-agent
@@ -20,7 +26,7 @@ platform in three landable phases:
    knowledge base, batch calling, tenant settings) on the `tenantTable` helper,
    hardened with index support.
 2. **`packages/convex`** — schema wiring, tenant-scoped function builders on
-   WorkOS AuthKit, domain API modules, and the KB embed/search actions.
+   WorkOS AuthKit, domain API modules, and the Convex RAG component integration.
 3. **`packages/agent`** — the realtime layer: agent resolution → session config
    expansion (procedures, system tools, Composio-scoped MCP) → provider
    connection (`@openai/agents-realtime`) → normalized events → transcript
@@ -52,10 +58,11 @@ verified against installed SDK types). This plan is the HOW.
 - R1. Every tenant-scoped table uses `tenantTable` with `tenant: z.string()`
   (WorkOS `org_…`) and a `by_tenant` index; **no** users/organizations/ sessions
   tables (ADR 0001).
-- R2. Tables per ERD §0 matrix: `agents`, `agentVersions`, `procedures`,
-  `conversations`, `conversationMessages`, `phoneNumbers`, `mcpConnections`,
-  `kbDocuments`, `kbChunks`, `kbEmbeddings`, `batchCallJobs`,
-  `batchCallRecipients`, `tenantSettings`.
+- R2. Tables per ERD §0 matrix, as amended by ADR 0002: `agents`,
+  `agentVersions`, `procedures`, `conversations`, `conversationMessages`,
+  `phoneNumbers`, `mcpConnections`, the minimal `kbDocuments` registry,
+  `batchCallJobs`, `batchCallRecipients`, and `tenantSettings`. Knowledge Base
+  content, chunks, embeddings, filters, and entry lifecycle are component-owned.
 - R3. Draft + immutable versions: `agents` is the mutable draft; publishing
   writes a self-contained `agentVersions` snapshot with procedures embedded;
   calls only ever run a published version (CONTEXT.md).
@@ -70,10 +77,11 @@ verified against installed SDK types). This plan is the HOW.
   enforced at Composio session creation via `toolkits/tools enable` +
   `DIRECT_TOOLS` preset + `mcp: true`
   (docs/.references/composio/configuring-sessions.md, sessions-via-mcp.md).
-- R7. Native KB/RAG: three-table split with vector index carrying `tenant` as
-  filterField; retrieval via action-based `search_knowledge_base` tool; hybrid
-  recall with full-text search; `usageMode: prompt` docs injected at expand (ERD
-  §1c, convex/vector-search.md, convex/text-search.md).
+- R7. Native KB/RAG: integrate `@convex-dev/rag` behind `upsertKnowledgeContent`
+  and `searchKnowledge` wrappers. Use tenant namespaces, typed `documentId`
+  filters, component thresholds/context expansion, graceful key replacement, and
+  direct component-result passthrough. Prompt-mode content is loaded from
+  component chunks during session expansion (ADR 0002).
 - R8. Conversations substrate: transcripts always stored live from session
   events; audio only when tenant recording setting is on; machine writers derive
   `tenant` from the owning resource, never from input (ADR 0001).
@@ -234,11 +242,10 @@ verified against installed SDK types). This plan is the HOW.
   immutability in one document. Guard: publish validates the snapshot stays
   under a size budget (~800 KB) and fails with a clear error before Convex's 1
   MiB limit does.
-- **Vectors in their own table** (`kbEmbeddings`) per Convex guidance — metadata
-  reads never load embeddings; `tenant` + `documentId` are filterFields _inside_
-  the vector index.
-- **One embedding model per deployment** (dimensions fixed in the index); model
-  change = reindex migration, deliberately not multi-model.
+- **The Convex RAG component owns retrieval storage**: Agent.io does not define
+  chunk or embedding tables, vector indexes, or a parallel normalized search
+  result. The minimal registry provides stable document identity while component
+  entries provide content revisions.
 - **The SDK executes tools**: system tools and the KB search tool are
   `tool({execute})` executables; MCP is hosted (server-side execution at
   Composio/BYO). No bespoke function-call plumbing.
@@ -271,10 +278,10 @@ verified against installed SDK types). This plan is the HOW.
     `ctx.db.query(` explicitly exempts `api/crud/**` (the helper's internals,
     not hand-written queries).
   - **`Triggers`** (same-transaction, atomic) own denormalization and cascades:
-    `kbDocuments.chunkCount`, batch job counters, cascade-delete (agent →
-    procedures/versions, kbDocument → chunks/embeddings), and procedure
-    reference-health flips when a referenced row is deleted. Wired once into the
-    custom mutation builders
+    batch job counters, agent → procedures/versions cascades, and procedure
+    reference-health flips when a referenced row is deleted. Knowledge Base
+    archive cleanup is coordinated through the RAG component wrapper, not a
+    table cascade. Triggers are wired once into the custom mutation builders
     (`customMutation(raw, customCtx(triggers.wrapDB))`).
   - **Relationship helpers** (`getManyFrom`, `getOneFromOrThrow`,
     `getManyViaOrThrow`, `asyncMap`) replace join boilerplate in api modules
@@ -301,11 +308,11 @@ verified against installed SDK types). This plan is the HOW.
 
 ### Deferred to Implementation
 
-- Exact chunking strategy for KB (token-based vs paragraph): start with
-  paragraph + max-token cap; tune after real documents exist.
-- Embedding model + dimensions constant (e.g. `text-embedding-3-small`/1536):
-  set in one `EMBEDDING` config constant during implementation; index dimensions
-  follow it.
+- Whether the component default chunker is sufficient for initial real
+  documents; add a custom splitter only after retrieval evaluation shows a
+  concrete need.
+- Component embedding-model configuration and the operational re-ingestion path
+  if that model changes later.
 - Whether `agentVersions` needs a secondary `by_tenant_agent` index beyond
   `by_tenant`: decide when the version-list query is written.
 - File/URL text-extraction approach for KB ingestion (libraries, parsing scope,
@@ -327,7 +334,7 @@ verified against installed SDK types). This plan is the HOW.
     ├── conversations.ts            # Conversations + ConversationMessages
     ├── phone-numbers.ts            # PhoneNumbers
     ├── mcp-connections.ts          # McpConnections (composio | byo)
-    ├── knowledge-base.ts           # KbDocuments + KbChunks + KbEmbeddings
+    ├── knowledge-base.ts           # Minimal KbDocuments identity registry
     ├── batch-calls.ts              # BatchCallJobs + BatchCallRecipients
     └── tenant-settings.ts          # TenantSettings
 
@@ -342,8 +349,8 @@ verified against installed SDK types). This plan is the HOW.
         ├── agents.ts               # business logic: publish (snapshot), draft rules
         ├── procedures.ts           # business logic: validation, reference health
         ├── mcpConnections.ts       # business logic: governance, health
-        ├── knowledgeBase.ts        # business logic: ingestion pipeline entry
-        ├── kbSearch.ts             # embed + vectorSearch + hybrid action
+        ├── knowledgeBase.ts        # RAG add/replace/archive coordination
+        ├── kbSearch.ts             # scoped searchKnowledge component wrapper
         ├── conversations.ts        # machine-path mutations (sequence, cross-checks) + queries
         └── tenantSettings.ts       # get/patch
 
@@ -375,13 +382,13 @@ verified against installed SDK types). This plan is the HOW.
 ```mermaid
 flowchart LR
     subgraph domain["@agent.io/domain"]
-        H[helper: tenantTable + indexes] --> T[13 table schemas + value objects]
+        H[helper: tenantTable + indexes] --> T[domain schemas + value objects]
     end
     subgraph convex["@agent.io/convex"]
         S[schema.ts] --> T
         B[tenantQuery / tenantMutation / machineMutation] --> AK[AuthKit JWT org claim]
         API[api/*: agents · procedures · mcp · kb · conversations] --> B
-        KBA[kbSearch action: embed → vectorSearch → hybrid] --> S
+        KBA[knowledge wrappers] --> RAG[Convex RAG component]
     end
     subgraph agent["@agent.io/agent"]
         R["AgentResolver: version → SessionConfig"] --> API
@@ -633,10 +640,10 @@ daily caps — one row per tenant (unique by `tenant` via `by_tenant`).
 
 **Verification:** schema exports compile; governance fields match ERD §1c.
 
-- [x] **Unit 5: Knowledge base schemas (3 tables, all indexes)**
+- [ ] **Unit 5: Minimal Knowledge Base registry and component contract**
 
-**Goal:** `kbDocuments` / `kbChunks` / `kbEmbeddings` with vector + search
-indexes per ERD §1c.
+**Goal:** Replace the unused three-table scaffold with the stable product
+identity required around the Convex RAG component.
 
 **Requirements:** R2, R7
 
@@ -647,24 +654,25 @@ indexes per ERD §1c.
 - Create: `packages/domain/src/schemas/knowledge-base.ts`
 - Test: `packages/domain/src/schemas/__tests__/knowledge-base.test.ts`
 
-**Approach:** Per ERD §1c: documents (type `text|url|file`,
-`usageMode auto|prompt`, status, sizeBytes, chunkCount, storageId?), chunks
-(documentId, order, text, embeddingId?; indexes `by_document`, `by_embedding`;
-search index `search_text` filterFields `['tenant','documentId']`), embeddings
-(embedding `float64[]`, documentId; vector index `by_embedding` with
-`dimensions: EMBEDDING.dimensions`, filterFields `['tenant','documentId']`).
-`EMBEDDING` constant (model id + dimensions) lives here as the single source.
+**Approach:** `kbDocuments` remains a tenant-scoped registry with only the
+stable `_id`, `activeEntryId?`, `pendingEntryId?`, `lastError?`, and
+`archivedAt?` plus standard tenant/timestamp fields. `ragKey` is derived as
+`kb:${documentId}` and is not stored. Title, source metadata, content, chunks,
+embeddings, typed filters, and entry status belong to the component. Remove the
+custom `kbChunks`, `kbEmbeddings`, and `EMBEDDING` schema substrate. Since no
+production Knowledge Base exists, this is direct integration cleanup with no
+backfill, dual write, compatibility period, or migration script.
 
 **Test scenarios:**
 
-- Happy path: all three tables compile; vector index declaration carries both
-  filterFields.
-- Edge case: chunk without `embeddingId` valid (pre-embedding state).
-- Error path: document `type: file` without `storageId` fails the cross-field
-  validator; `type: url` without `sourceUrl` fails.
+- Happy path: registry rows validate with no active entry and after a successful
+  active-entry assignment.
+- Edge case: active and pending entry ids can coexist during graceful
+  replacement.
+- Error path: archived rows cannot be newly attached or refreshed.
 
-**Verification:** `defineSchema` including all three tables typechecks with the
-vector index (Unit 7 proves it end-to-end).
+**Verification:** `defineSchema` typechecks without custom chunk/embedding
+tables; tests prove the registry/component ownership boundary from ADR 0002.
 
 - [x] **Unit 6: Conversations, messages, phone numbers, batch calls**
 
@@ -849,10 +857,14 @@ agents + conversations paths.
 **Verification:** publish flow proven by tests; ERD §1b rules enforced at the
 mutation boundary, not only in zod.
 
-- [x] **Unit 9: KB ingestion + search actions**
+- [ ] **Unit 9: Convex RAG component integration and scoped wrappers**
 
-**Goal:** Document → chunks → embeddings pipeline and the hybrid search action
-that becomes the session's `search_knowledge_base` tool.
+> Superseded for implementation by Units U1-U3 in
+> `docs/plans/2026-07-15-001-feat-tenant-phone-number-inventory-plan.md`. This
+> section remains historical context only; do not execute both definitions.
+
+**Goal:** Integrate component-owned ingestion and retrieval behind the two
+backend operations used by the product and session runtime.
 
 **Requirements:** R7
 
@@ -866,44 +878,41 @@ that becomes the session's `search_knowledge_base` tool.
 
 **Approach:**
 
-- Ingestion: `kbDocuments.create` (text/url/file) → schedules internal action:
-  extract text (file/url deferred to implementation for fetch/parse details) →
-  chunk (paragraph + max-token cap) → embed (batch). The action computes
-  chunks + embeddings **in memory** and commits them via internal mutation(s) —
-  Convex actions cannot write the db directly — either one transactional write
-  per document or idempotent batch writes keyed by `(documentId, order)` so a
-  retry after mid-batch failure **upserts** instead of duplicating. Status saga:
-  `processing → indexed` (`failed` with reason on error; retry re-enters
-  `processing`).
-- Triggers own the bookkeeping: `kbDocuments.chunkCount` denormalized on chunk
-  insert/delete; document delete cascades chunks + embeddings (same-transaction
-  — no orphan-cleanup job needed).
-- `kbSearch.search` (action): **tenant is derived, never passed** — the
-  session's tool wrapper passes the `conversationId` (or `agentVersionId`) it
-  was resolved for; the action loads that row, uses its `tenant` for the vector
-  filter, and validates requested documentIds ⊆ that version's KB scope (same
-  derive-from-owning-resource rule as machineMutation). Then: embed query →
-  `ctx.vectorSearch('kbEmbeddings', 'by_embedding', { vector, limit, filter: tenant AND documentId ∈ scope })`
-  → load chunk texts via `by_embedding` index → optionally merge full-text hits
-  (`search_text`) for exact-term recall → return `[{text, score, documentId}]`.
-- Embedding provider called through the AI gateway key already in convex env
-  (`AI_GATEWAY_API_KEY`); exact client deferred to implementation.
+- Configure `Rag<FilterTypes>` with a required `documentId` filter and component
+  entry metadata for title/source display. The default namespace is the trusted
+  WorkOS tenant id; `{tenant}:{agentId}` is reserved for explicitly private
+  corpora.
+- `upsertKnowledgeContent(documentId)` loads the registry row, derives namespace
+  and `kb:${documentId}`, adds the supplied/extracted text through the
+  component, and coordinates `pendingEntryId`, `activeEntryId`, and `lastError`.
+  The old active entry remains served until the component completes graceful key
+  replacement.
+- `searchKnowledge(conversationId, query, options)` derives tenant and auto-mode
+  document scope from the conversation's Agent Version, applies `documentId`
+  filters plus threshold/context options, and returns the component result
+  directly. The caller cannot provide tenant or widen document scope.
+- Prompt-mode expansion loads ordered chunks from each ready `activeEntryId` and
+  appends delimited content after the base prompt. Archive removes component
+  content and retains the registry tombstone.
+- Record retrieval text and component entry ids on the conversation tool event
+  for audit. Do not add custom chunk versioning.
 
 **Test scenarios:**
 
-- Happy path: text document ingests → status `indexed`, chunkCount correct, each
-  chunk has an embedding row (embedding calls mocked).
-- Integration: search returns the seeded relevant chunk first for a matching
-  query (mock embeddings with deterministic vectors).
-- Error path: embedding failure mid-batch → document `failed`, no orphan
-  embeddings for unwritten chunks (or documented cleanup), retry path re-enters
-  `processing`.
-- Edge case: search scoped to documentIds excludes hits from an unscoped
-  document of the same tenant; cross-tenant vectors never surface (two-org
-  seed).
+- Happy path: initial add becomes active and scoped search returns the component
+  result without translation.
+- Integration: replacement keeps the previous active entry searchable until the
+  new entry is ready, then swaps the registry pointers.
+- Error path: failed refresh records the error and preserves the previous active
+  content; failed first ingestion remains unavailable.
+- Edge case: scoped search excludes unattached documents in the same namespace;
+  two tenant namespaces never leak across each other.
+- Edge case: publish with unavailable content emits a live warning while session
+  expansion skips only that document.
 
-**Verification:** two-org isolation proven inside the vector search filter;
-hybrid path returns exact-term matches embeddings alone miss (seeded SKU test).
+**Verification:** component-backed tests prove tenant isolation, version scope,
+threshold behavior, replacement, archive, prompt precedence, and direct result
+passthrough.
 
 - [x] **Unit 10: Conversation ingestion mutations (machine path)**
 
@@ -1020,8 +1029,9 @@ MCP scoping, BYO MCP passthrough.
 
 - Resolver loads the published `agentVersions` snapshot (one read), renders
   `{{dynamic_variables}}` into instructions, appends `usageMode: 'prompt'` KB
-  docs verbatim, attaches the `search_knowledge_base` tool (wraps the Unit 9
-  action) scoped to the version's KB document ids.
+  content from each ready component entry after the base prompt with explicit
+  delimiters and base-prompt precedence. It attaches the `search_knowledge_base`
+  tool around `searchKnowledge`, scoped to the version's auto-mode document ids.
 - `system-tools.ts`: `tool({execute})` executables for the enabled built-ins;
   execute functions receive a `CallControl` interface (hangup, transfer,
   playDtmf, markVoicemail…) implemented by the session — keeps executables
@@ -1149,11 +1159,11 @@ devDependency of `packages/convex` (dev-only edge, no cycle — see Unit 11's
 dependency rule; the workspace task graph must build agent before convex tests).
 A convex-test-backed suite that imports the real `TranscriptRecorder` and
 `AgentResolver` from `@agent.io/agent`, binds their injected `ConvexIngest`
-interface to the actual `conversations.*` and `kbSearch.*` functions via
-`t.mutation(internal…)`, and drives them (realtime provider and Composio still
-mocked). This is the arg-shape and calling-convention contract test: recorder
-mutation payloads must satisfy the real validators, resolver KB-tool wiring must
-satisfy the real search action's derive-tenant path.
+interface to the actual `conversations.*`, `upsertKnowledgeContent`, and
+`searchKnowledge` wrappers, and drives them (realtime provider and Composio
+still mocked). This is the arg-shape and calling-convention contract test:
+recorder mutation payloads must satisfy the real validators, and resolver
+KB-tool wiring must satisfy the wrapper's derive-tenant path.
 
 **Test scenarios:**
 
@@ -1178,9 +1188,9 @@ Phase 3 are integrated inside this plan, not deferred to the apps.
   boundary → surfaced as Convex errors; the agent package wraps provider/
   Composio failures into typed `NormalizedEvent error` events; recorder retries
   transient Convex failures.
-- **State lifecycle risks:** publish is atomic (single mutation); KB ingestion
-  is multi-step — document status is the saga marker
-  (`processing/indexed/failed`), failures must not leave orphan embeddings;
+- **State lifecycle risks:** publish is atomic (single mutation); Knowledge Base
+  replacement is asynchronous, so registry `activeEntryId` and `pendingEntryId`
+  must preserve the last ready content across pending and failed refreshes;
   message `sequence` relies on OCC (documented prior art).
 - **API surface parity:** `DomainModule` in
   `packages/domain/src/work-os/types.ts` gains modules (`agents`,
@@ -1203,7 +1213,7 @@ Phase 3 are integrated inside this plan, not deferred to the apps.
 | Composio MCP path bypasses SDK modifiers — `inputOverrides` not enforceable server-side                   | High (known) | Med    | Documented decision: enforce via allowed-tools narrowing + instructions; revisit native-provider execution (`@composio/openai`) for tools needing hard overrides                                                                                                          |
 | xAI dialect drift (alias events, new quirks)                                                              | Med          | Low    | Quirk table isolates drift; normalizer fixtures per dialect make breakage visible                                                                                                                                                                                         |
 | Ask-step completion judgment is LLM-dependent (can't be fully gated in code)                              | Med          | Med    | Engine gates _advancement_ (no next step until a user turn arrives + model marks step complete); fixture tests pin the contract                                                                                                                                           |
-| Embedding model choice locks index dimensions                                                             | Low          | Med    | Single `EMBEDDING` constant; reindex migration documented as the change path                                                                                                                                                                                              |
+| Component embedding-model changes require content re-ingestion                                            | Low          | Med    | Keep model configuration centralized and document an explicit component re-ingestion operation before changing it                                                                                                                                                         |
 | Untrusted content (KB docs, MCP tool results) can inject instructions that steer live write-capable tools | Med          | Med    | Default `require_approval: always` for mutating tools on new connections; prompt-injected KB text delimited as data; KB search scope is never model-controllable (derive-from-resource invariant); Composio server-side filtering caps blast radius to the agent's subset |
 | Composio outage or slow API on the call-answer hot path                                                   | Med          | High   | Session resume-cache (`composio.use`) removes create from the hot path; per-connection degradation — call always connects, tools omitted with warning                                                                                                                     |
 | Forged machine writes if service auth is skipped during app wiring                                        | Med          | High   | Machine functions are internal-only behind token-authenticated HTTP actions (Key Technical Decisions); tests assert non-public surface + token rejection                                                                                                                  |

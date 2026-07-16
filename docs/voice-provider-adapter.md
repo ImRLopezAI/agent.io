@@ -100,7 +100,7 @@ Two consequences:
 │ (WebRTC·WS·SIP)           │ (WS only + quirk table)     │
 ├───────────────────────────┴─────────────────────────────┤
 │ our agent layer (Convex): agent config · tool registry  │
-│ KB/RAG · post-call analysis  ← ElevenLabs = flow ref    │
+│ KB/RAG · attributed Conversation · post-call analysis   │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -125,7 +125,7 @@ export interface ProviderCapabilities {
 export interface SessionConfig {
 	// WHO speaks — for EL this is just agentId (+optional overrides);
 	// for OpenAI/xAI we own the whole config.
-	agentRef?: { agentId: string; branchId?: string } // EL
+	agentRef?: { agentId: string; variantId: string; versionId: string }
 	model?: string // OpenAI/xAI
 	instructions?: string
 	voice?: string
@@ -683,7 +683,7 @@ export class AgentResolver {
 	/** ElevenLabs does this server-side; we do it here.
 	 *  Expansion compiles the full EL-shaped agent definition into raw-model config:
 	 *  - dynamicVariables → template slots in instructions ({{user_name}}, {{system__*}})
-	 *  - agentRef.versionId/branchId → which agent snapshot to load (procedures snapshot with it)
+	 *  - agentRef.variantId/versionId -> the already-resolved immutable snapshot
 	 *  - procedures → trigger index appended to instructions + start_procedure/end_procedure
 	 *    tools; structured-procedure steps become a constrained sub-loop the session enforces
 	 */
