@@ -26,6 +26,7 @@ import type { DataModel } from "./dataModel.js";
  */
 type Env = {
   readonly AI_GATEWAY_API_KEY: string;
+  readonly CONVEX_SERVICE_TOKEN: string;
   readonly EMAIL_FROM: string;
   readonly RESEND_API_KEY: string;
   readonly RESEND_WEBHOOK_SECRET: string;

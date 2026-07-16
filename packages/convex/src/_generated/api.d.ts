@@ -26,74 +26,7 @@ export declare const api: {
         "mutation",
         "public",
         {
-          archived?: boolean;
-          audio?: {
-            input: {
-              format: "pcm16" | "g711_ulaw" | "g711_alaw";
-              transcription?: boolean;
-            };
-            output: {
-              format: "pcm16" | "g711_ulaw" | "g711_alaw";
-              speed?: number;
-            };
-          };
-          dynamicVariableDefaults?: Record<string, string>;
-          instructions?: string;
-          knowledgeBase?: Array<{
-            documentId: string;
-            usageMode: "auto" | "prompt";
-          }>;
-          mcp?: Array<{
-            connectionId: string;
-            requireApproval?: "never" | "always";
-            toolkits?:
-              | { mode: "enable"; values: Array<string> }
-              | { mode: "disable"; values: Array<string> };
-            tools?: Record<
-              string,
-              | { mode: "enable"; values: Array<string> }
-              | { mode: "disable"; values: Array<string> }
-            >;
-          }>;
-          model: { model: string; provider: "openai" | "xai" };
-          name: string;
-          systemTools?: {
-            end_call?: { enabled: boolean };
-            language_detection?: { enabled: boolean };
-            play_keypad_touch_tone?: { enabled: boolean };
-            skip_turn?: { enabled: boolean };
-            transfer_to_agent?: {
-              enabled: boolean;
-              transfers: Array<{ agentId: string; condition: string }>;
-            };
-            transfer_to_number?: {
-              enabled: boolean;
-              transfers: Array<{ condition: string; target: string }>;
-            };
-            voicemail_detection?: {
-              enabled: boolean;
-              voicemailMessage?: string;
-            };
-          };
-          vad:
-            | { idleTimeoutMs?: number; mode: "server_vad"; silenceMs?: number }
-            | { eagerness?: "low" | "medium" | "high"; mode: "semantic_vad" }
-            | { mode: "manual" };
-          voice: string;
-        },
-        any
-      >;
-      get: FunctionReference<"query", "public", { id: string }, any>;
-      list: FunctionReference<"query", "public", {}, any>;
-      publish: FunctionReference<"mutation", "public", { id: string }, any>;
-      remove: FunctionReference<"mutation", "public", { id: string }, any>;
-      update: FunctionReference<
-        "mutation",
-        "public",
-        {
-          id: string;
-          patch: {
-            archived?: boolean;
+          draft: {
             audio?: {
               input: {
                 format: "pcm16" | "g711_ulaw" | "g711_alaw";
@@ -105,6 +38,13 @@ export declare const api: {
               };
             };
             dynamicVariableDefaults?: Record<string, string>;
+            inboundWorkflow: {
+              enabled?: boolean;
+              firstSpeaker: "agent" | "caller";
+              idleTimeoutSecs?: number;
+              maxDurationSecs?: number;
+              openingMessage?: string;
+            };
             instructions?: string;
             knowledgeBase?: Array<{
               documentId: string;
@@ -122,8 +62,14 @@ export declare const api: {
                 | { mode: "disable"; values: Array<string> }
               >;
             }>;
-            model?: { model: string; provider: "openai" | "xai" };
-            name?: string;
+            model: { model: string; provider: "openai" | "xai" };
+            outboundWorkflow: {
+              enabled?: boolean;
+              firstSpeaker?: "agent";
+              idleTimeoutSecs?: number;
+              maxDurationSecs?: number;
+              openingMessage?: string;
+            };
             systemTools?: {
               end_call?: { enabled: boolean };
               language_detection?: { enabled: boolean };
@@ -142,7 +88,7 @@ export declare const api: {
                 voicemailMessage?: string;
               };
             };
-            vad?:
+            vad:
               | {
                   idleTimeoutMs?: number;
                   mode: "server_vad";
@@ -150,46 +96,246 @@ export declare const api: {
                 }
               | { eagerness?: "low" | "medium" | "high"; mode: "semantic_vad" }
               | { mode: "manual" };
-            voice?: string;
+            voice: string;
+          };
+          name: string;
+        },
+        any
+      >;
+      get: FunctionReference<"query", "public", { id: string }, any>;
+      list: FunctionReference<
+        "query",
+        "public",
+        {
+          archived?: boolean;
+          paginationOpts: { cursor: string | null; numItems: number };
+        },
+        any
+      >;
+      publish: FunctionReference<"mutation", "public", { id: string }, any>;
+      remove: FunctionReference<"mutation", "public", { id: string }, any>;
+      update: FunctionReference<
+        "mutation",
+        "public",
+        {
+          id: string;
+          patch: {
+            allocationRevision?: number;
+            archived?: boolean;
+            name?: string;
+          };
+        },
+        any
+      >;
+    };
+    agentVariants: {
+      create: FunctionReference<
+        "mutation",
+        "public",
+        { agentId: string; name: string },
+        any
+      >;
+      get: FunctionReference<"query", "public", { id: string }, any>;
+      listByAgent: FunctionReference<
+        "query",
+        "public",
+        {
+          agentId: string;
+          paginationOpts: { cursor: string | null; numItems: number };
+        },
+        any
+      >;
+      mergeToMain: FunctionReference<
+        "mutation",
+        "public",
+        { sourceVariantId: string },
+        any
+      >;
+      publish: FunctionReference<"mutation", "public", { id: string }, any>;
+      remove: FunctionReference<"mutation", "public", { id: string }, any>;
+      setTrafficAllocation: FunctionReference<
+        "mutation",
+        "public",
+        {
+          agentId: string;
+          allocation: Array<{ variantId: string; weightBps: number }>;
+        },
+        any
+      >;
+      update: FunctionReference<
+        "mutation",
+        "public",
+        {
+          id: string;
+          patch: {
+            draft?: {
+              audio?: {
+                input: {
+                  format: "pcm16" | "g711_ulaw" | "g711_alaw";
+                  transcription?: boolean;
+                };
+                output: {
+                  format: "pcm16" | "g711_ulaw" | "g711_alaw";
+                  speed?: number;
+                };
+              };
+              dynamicVariableDefaults?: Record<string, string>;
+              inboundWorkflow?: {
+                enabled?: boolean;
+                firstSpeaker: "agent" | "caller";
+                idleTimeoutSecs?: number;
+                maxDurationSecs?: number;
+                openingMessage?: string;
+              };
+              instructions?: string;
+              knowledgeBase?: Array<{
+                documentId: string;
+                usageMode: "auto" | "prompt";
+              }>;
+              mcp?: Array<{
+                connectionId: string;
+                requireApproval?: "never" | "always";
+                toolkits?:
+                  | { mode: "enable"; values: Array<string> }
+                  | { mode: "disable"; values: Array<string> };
+                tools?: Record<
+                  string,
+                  | { mode: "enable"; values: Array<string> }
+                  | { mode: "disable"; values: Array<string> }
+                >;
+              }>;
+              model?: { model: string; provider: "openai" | "xai" };
+              outboundWorkflow?: {
+                enabled?: boolean;
+                firstSpeaker?: "agent";
+                idleTimeoutSecs?: number;
+                maxDurationSecs?: number;
+                openingMessage?: string;
+              };
+              systemTools?: {
+                end_call?: { enabled: boolean };
+                language_detection?: { enabled: boolean };
+                play_keypad_touch_tone?: { enabled: boolean };
+                skip_turn?: { enabled: boolean };
+                transfer_to_agent?: {
+                  enabled: boolean;
+                  transfers: Array<{ agentId: string; condition: string }>;
+                };
+                transfer_to_number?: {
+                  enabled: boolean;
+                  transfers: Array<{ condition: string; target: string }>;
+                };
+                voicemail_detection?: {
+                  enabled: boolean;
+                  voicemailMessage?: string;
+                };
+              };
+              vad?:
+                | {
+                    idleTimeoutMs?: number;
+                    mode: "server_vad";
+                    silenceMs?: number;
+                  }
+                | {
+                    eagerness?: "low" | "medium" | "high";
+                    mode: "semantic_vad";
+                  }
+                | { mode: "manual" };
+              voice?: string;
+            };
+            name?: string;
           };
         },
         any
       >;
     };
     conversations: {
-      list: FunctionReference<"query", "public", { status?: string }, any>;
-      messages: FunctionReference<
+      get: FunctionReference<
         "query",
         "public",
         { conversationId: string },
         any
       >;
+      list: FunctionReference<
+        "query",
+        "public",
+        {
+          agentId?: string;
+          channel?:
+            "voice_inbound" | "voice_outbound" | "whatsapp" | "sms" | "web";
+          direction?: "inbound" | "outbound";
+          paginationOpts: { cursor: string | null; numItems: number };
+          status?:
+            "initiated" | "in_progress" | "processing" | "done" | "failed";
+        },
+        any
+      >;
+      messages: FunctionReference<
+        "query",
+        "public",
+        {
+          conversationId: string;
+          paginationOpts: { cursor: string | null; numItems: number };
+        },
+        any
+      >;
       searchTranscripts: FunctionReference<
         "query",
         "public",
-        { conversationId?: string; text: string },
+        {
+          agentId?: string;
+          conversationId?: string;
+          paginationOpts: { cursor: string | null; numItems: number };
+          role?: "user" | "agent" | "system";
+          text: string;
+        },
         any
       >;
     };
     knowledgeBase: {
-      createDocument: FunctionReference<
-        "mutation",
+      archiveDocument: FunctionReference<
+        "action",
+        "public",
+        { documentId: string },
+        any
+      >;
+      createDocument: FunctionReference<"mutation", "public", {}, any>;
+      getDocument: FunctionReference<
+        "query",
+        "public",
+        { documentId: string },
+        any
+      >;
+      listDocumentChunks: FunctionReference<
+        "query",
         "public",
         {
-          content?: string;
-          name: string;
-          sourceUrl?: string;
-          storageId?: string;
-          type: "text" | "url" | "file";
-          usageMode?: "auto" | "prompt";
+          documentId: string;
+          paginationOpts: { cursor: string | null; numItems: number };
         },
         any
       >;
-      listDocuments: FunctionReference<"query", "public", {}, any>;
-      removeDocument: FunctionReference<
-        "mutation",
+      listDocuments: FunctionReference<
+        "query",
         "public",
-        { id: string },
+        {
+          archived?: boolean;
+          paginationOpts: { cursor: string | null; numItems: number };
+        },
+        any
+      >;
+      upsertKnowledgeContent: FunctionReference<
+        "action",
+        "public",
+        {
+          documentId: string;
+          metadata?: {
+            sourceType?: "text" | "url" | "file";
+            sourceUrl?: string | null;
+            title: string;
+          };
+          text: string;
+        },
         any
       >;
     };
@@ -207,9 +353,7 @@ export declare const api: {
           description?: string;
           kind: "composio" | "byo";
           name: string;
-          requestHeaders?: Record<string, string | { secretRef: string }>;
           responseTimeoutSecs?: number;
-          secretRef?: string;
           status?: "active" | "disabled" | "error";
           toolApprovals?: Array<{
             policy: "auto_approved" | "requires_approval";
@@ -232,7 +376,17 @@ export declare const api: {
         },
         any
       >;
-      list: FunctionReference<"query", "public", {}, any>;
+      get: FunctionReference<"query", "public", { id: string }, any>;
+      list: FunctionReference<
+        "query",
+        "public",
+        {
+          kind?: "composio" | "byo";
+          paginationOpts: { cursor: string | null; numItems: number };
+          status?: "active" | "disabled" | "error";
+        },
+        any
+      >;
       remove: FunctionReference<"mutation", "public", { id: string }, any>;
       update: FunctionReference<
         "mutation",
@@ -247,10 +401,9 @@ export declare const api: {
               | "require_approval_per_tool";
             composioAccountId?: string;
             description?: string;
+            kind?: "composio" | "byo";
             name?: string;
-            requestHeaders?: Record<string, string | { secretRef: string }>;
             responseTimeoutSecs?: number;
-            secretRef?: string;
             status?: "active" | "disabled" | "error";
             toolApprovals?: Array<{
               policy: "auto_approved" | "requires_approval";
@@ -275,12 +428,69 @@ export declare const api: {
         any
       >;
     };
+    phoneNumbers: {
+      archive: FunctionReference<
+        "mutation",
+        "public",
+        { phoneNumberId: string },
+        any
+      >;
+      assign: FunctionReference<
+        "mutation",
+        "public",
+        { agentId: string | null; phoneNumberId: string },
+        any
+      >;
+      get: FunctionReference<"query", "public", { phoneNumberId: string }, any>;
+      list: FunctionReference<
+        "query",
+        "public",
+        {
+          agentId?: string;
+          connectionId?: string;
+          countryCode?: string;
+          paginationOpts: {
+            cursor: string | null;
+            endCursor?: string | null;
+            numItems: number;
+          };
+          provider?: "twilio" | "sip_trunk";
+          regionCode?: string;
+          status?:
+            "pending" | "active" | "disabled" | "provider_missing" | "archived";
+        },
+        any
+      >;
+      setStatus: FunctionReference<
+        "mutation",
+        "public",
+        {
+          phoneNumberId: string;
+          status:
+            "pending" | "active" | "disabled" | "provider_missing" | "archived";
+        },
+        any
+      >;
+      updateConfiguration: FunctionReference<
+        "mutation",
+        "public",
+        {
+          patch: {
+            inboundSmsEnabled?: boolean;
+            label?: string;
+            routingRegion?: string | null;
+          };
+          phoneNumberId: string;
+        },
+        any
+      >;
+    };
     procedures: {
       create: FunctionReference<
         "mutation",
         "public",
         {
-          agentId: Id<"agents">;
+          agentVariantId: Id<"agentVariants">;
           content?: string;
           name: string;
           references?: Array<{
@@ -315,10 +525,15 @@ export declare const api: {
         },
         any
       >;
-      listByAgent: FunctionReference<
+      get: FunctionReference<"query", "public", { id: string }, any>;
+      listByVariant: FunctionReference<
         "query",
         "public",
-        { agentId: string },
+        {
+          agentVariantId: string;
+          paginationOpts: { cursor: string | null; numItems: number };
+          status?: "draft" | "active" | "archived";
+        },
         any
       >;
       remove: FunctionReference<"mutation", "public", { id: string }, any>;
@@ -363,6 +578,73 @@ export declare const api: {
         any
       >;
     };
+    telephonyConnections: {
+      archive: FunctionReference<
+        "mutation",
+        "public",
+        { connectionId: string },
+        any
+      >;
+      create: FunctionReference<
+        "mutation",
+        "public",
+        {
+          credentialSecretRef: string;
+          defaultRoutingRegion?: string;
+          label?: string;
+          lastError?: string;
+          lastSyncedAt?: string;
+          provider: "twilio" | "sip_trunk";
+          providerAccountId: string;
+          status:
+            | "pending_verification"
+            | "active"
+            | "disabled"
+            | "error"
+            | "archived";
+        },
+        any
+      >;
+      get: FunctionReference<"query", "public", { connectionId: string }, any>;
+      list: FunctionReference<
+        "query",
+        "public",
+        {
+          paginationOpts: { cursor: string | null; numItems: number };
+          provider?: "twilio" | "sip_trunk";
+          status?:
+            | "pending_verification"
+            | "active"
+            | "disabled"
+            | "error"
+            | "archived";
+        },
+        any
+      >;
+      setStatus: FunctionReference<
+        "mutation",
+        "public",
+        {
+          connectionId: string;
+          status:
+            | "pending_verification"
+            | "active"
+            | "disabled"
+            | "error"
+            | "archived";
+        },
+        any
+      >;
+      update: FunctionReference<
+        "mutation",
+        "public",
+        {
+          connectionId: string;
+          patch: { defaultRoutingRegion?: string | null; label?: string };
+        },
+        any
+      >;
+    };
     tenantSettings: {
       get: FunctionReference<"query", "public", {}, any>;
       patch: FunctionReference<
@@ -397,6 +679,7 @@ export declare const internal: {
         {
           audioStorageId?: string;
           interrupted?: boolean;
+          messageKey?: string;
           ownerId: Id<"conversations">;
           role: "user" | "agent" | "system";
           text?: string;
@@ -407,6 +690,7 @@ export declare const internal: {
             isError?: boolean;
             latencyMs?: number;
             output: string;
+            retrievalEntryIds?: Array<string>;
           }>;
         },
         any
@@ -427,14 +711,26 @@ export declare const internal: {
         },
         any
       >;
+      getMachineStartResult: FunctionReference<
+        "query",
+        "internal",
+        { conversationId: Id<"conversations"> },
+        any
+      >;
+      resolveInboundPhoneNumber: FunctionReference<
+        "query",
+        "internal",
+        {
+          providerNumberId: string;
+          telephonyConnectionId: Id<"telephonyConnections">;
+        },
+        any
+      >;
       startFromPhoneNumber: FunctionReference<
         "mutation",
         "internal",
         {
-          agentVersionId: string;
-          channel:
-            "voice_inbound" | "voice_outbound" | "whatsapp" | "sms" | "web";
-          direction: "inbound" | "outbound";
+          conversationKey: string;
           externalNumber?: string;
           ownerId: Id<"phoneNumbers">;
           provider: "openai" | "xai";
@@ -446,11 +742,39 @@ export declare const internal: {
         "mutation",
         "internal",
         {
-          channel:
-            "voice_inbound" | "voice_outbound" | "whatsapp" | "sms" | "web";
+          channel: "sms" | "web";
+          conversationKey: string;
           direction: "inbound" | "outbound";
           externalNumber?: string;
           ownerId: Id<"agentVersions">;
+          provider: "openai" | "xai";
+          providerSessionId?: string;
+        },
+        any
+      >;
+      startFromWhatsappAccount: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          conversationKey: string;
+          direction: "inbound" | "outbound";
+          externalNumber?: string;
+          ownerId: Id<"whatsappAccounts">;
+          provider: "openai" | "xai";
+          providerSessionId?: string;
+        },
+        any
+      >;
+      startOutboundFromRecipient: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          agentVariantOverrideId?: string;
+          conversationKey: string;
+          destinationCountryCode?: string;
+          destinationRegionCode?: string;
+          externalNumber?: string;
+          ownerId: Id<"batchCallRecipients">;
           provider: "openai" | "xai";
           providerSessionId?: string;
         },
@@ -465,68 +789,13 @@ export declare const internal: {
           {
             _creationTime?: number;
             _id?: Id<"agents">;
+            allocationRevision?: number;
             archived?: boolean;
-            audio?: {
-              input: {
-                format: "pcm16" | "g711_ulaw" | "g711_alaw";
-                transcription?: boolean;
-              };
-              output: {
-                format: "pcm16" | "g711_ulaw" | "g711_alaw";
-                speed?: number;
-              };
-            };
             createdAt: string;
-            dynamicVariableDefaults?: Record<string, string>;
-            instructions?: string;
-            knowledgeBase?: Array<{
-              documentId: string;
-              usageMode: "auto" | "prompt";
-            }>;
-            mcp?: Array<{
-              connectionId: string;
-              requireApproval?: "never" | "always";
-              toolkits?:
-                | { mode: "enable"; values: Array<string> }
-                | { mode: "disable"; values: Array<string> };
-              tools?: Record<
-                string,
-                | { mode: "enable"; values: Array<string> }
-                | { mode: "disable"; values: Array<string> }
-              >;
-            }>;
-            model: { model: string; provider: "openai" | "xai" };
+            mainVariantId?: Id<"agentVariants">;
             name: string;
-            publishedVersionId?: Id<"agentVersions">;
-            systemTools?: {
-              end_call?: { enabled: boolean };
-              language_detection?: { enabled: boolean };
-              play_keypad_touch_tone?: { enabled: boolean };
-              skip_turn?: { enabled: boolean };
-              transfer_to_agent?: {
-                enabled: boolean;
-                transfers: Array<{ agentId: string; condition: string }>;
-              };
-              transfer_to_number?: {
-                enabled: boolean;
-                transfers: Array<{ condition: string; target: string }>;
-              };
-              voicemail_detection?: {
-                enabled: boolean;
-                voicemailMessage?: string;
-              };
-            };
             tenant: string;
             updatedAt?: string;
-            vad:
-              | {
-                  idleTimeoutMs?: number;
-                  mode: "server_vad";
-                  silenceMs?: number;
-                }
-              | { eagerness?: "low" | "medium" | "high"; mode: "semantic_vad" }
-              | { mode: "manual" };
-            voice: string;
           },
           any
         >;
@@ -560,85 +829,30 @@ export declare const internal: {
             patch: {
               _creationTime?: number;
               _id?: Id<"agents">;
+              allocationRevision?: number;
               archived?: boolean;
-              audio?: {
-                input: {
-                  format: "pcm16" | "g711_ulaw" | "g711_alaw";
-                  transcription?: boolean;
-                };
-                output: {
-                  format: "pcm16" | "g711_ulaw" | "g711_alaw";
-                  speed?: number;
-                };
-              };
               createdAt?: string;
-              dynamicVariableDefaults?: Record<string, string>;
-              instructions?: string;
-              knowledgeBase?: Array<{
-                documentId: string;
-                usageMode: "auto" | "prompt";
-              }>;
-              mcp?: Array<{
-                connectionId: string;
-                requireApproval?: "never" | "always";
-                toolkits?:
-                  | { mode: "enable"; values: Array<string> }
-                  | { mode: "disable"; values: Array<string> };
-                tools?: Record<
-                  string,
-                  | { mode: "enable"; values: Array<string> }
-                  | { mode: "disable"; values: Array<string> }
-                >;
-              }>;
-              model?: { model: string; provider: "openai" | "xai" };
+              mainVariantId?: Id<"agentVariants">;
               name?: string;
-              publishedVersionId?: Id<"agentVersions">;
-              systemTools?: {
-                end_call?: { enabled: boolean };
-                language_detection?: { enabled: boolean };
-                play_keypad_touch_tone?: { enabled: boolean };
-                skip_turn?: { enabled: boolean };
-                transfer_to_agent?: {
-                  enabled: boolean;
-                  transfers: Array<{ agentId: string; condition: string }>;
-                };
-                transfer_to_number?: {
-                  enabled: boolean;
-                  transfers: Array<{ condition: string; target: string }>;
-                };
-                voicemail_detection?: {
-                  enabled: boolean;
-                  voicemailMessage?: string;
-                };
-              };
               tenant?: string;
               updatedAt?: string;
-              vad?:
-                | {
-                    idleTimeoutMs?: number;
-                    mode: "server_vad";
-                    silenceMs?: number;
-                  }
-                | {
-                    eagerness?: "low" | "medium" | "high";
-                    mode: "semantic_vad";
-                  }
-                | { mode: "manual" };
-              voice?: string;
             };
           },
           any
         >;
       };
-      agentVersions: {
+      agentVariants: {
         create: FunctionReference<
           "mutation",
           "internal",
           {
             _creationTime?: number;
-            _id?: Id<"agentVersions">;
+            _id?: Id<"agentVariants">;
             agentId: Id<"agents">;
-            config: {
+            allocationOrdinal: number;
+            archived?: boolean;
+            createdAt: string;
+            draft: {
               audio?: {
                 input: {
                   format: "pcm16" | "g711_ulaw" | "g711_alaw";
@@ -650,6 +864,13 @@ export declare const internal: {
                 };
               };
               dynamicVariableDefaults?: Record<string, string>;
+              inboundWorkflow: {
+                enabled?: boolean;
+                firstSpeaker: "agent" | "caller";
+                idleTimeoutSecs?: number;
+                maxDurationSecs?: number;
+                openingMessage?: string;
+              };
               instructions?: string;
               knowledgeBase?: Array<{
                 documentId: string;
@@ -668,7 +889,231 @@ export declare const internal: {
                 >;
               }>;
               model: { model: string; provider: "openai" | "xai" };
-              name: string;
+              outboundWorkflow: {
+                enabled?: boolean;
+                firstSpeaker?: "agent";
+                idleTimeoutSecs?: number;
+                maxDurationSecs?: number;
+                openingMessage?: string;
+              };
+              systemTools?: {
+                end_call?: { enabled: boolean };
+                language_detection?: { enabled: boolean };
+                play_keypad_touch_tone?: { enabled: boolean };
+                skip_turn?: { enabled: boolean };
+                transfer_to_agent?: {
+                  enabled: boolean;
+                  transfers: Array<{ agentId: string; condition: string }>;
+                };
+                transfer_to_number?: {
+                  enabled: boolean;
+                  transfers: Array<{ condition: string; target: string }>;
+                };
+                voicemail_detection?: {
+                  enabled: boolean;
+                  voicemailMessage?: string;
+                };
+              };
+              vad:
+                | {
+                    idleTimeoutMs?: number;
+                    mode: "server_vad";
+                    silenceMs?: number;
+                  }
+                | {
+                    eagerness?: "low" | "medium" | "high";
+                    mode: "semantic_vad";
+                  }
+                | { mode: "manual" };
+              voice: string;
+            };
+            isMain?: boolean;
+            name: string;
+            publishedVersionId?: Id<"agentVersions">;
+            tenant: string;
+            trafficWeightBps?: number;
+            updatedAt?: string;
+          },
+          any
+        >;
+        destroy: FunctionReference<
+          "mutation",
+          "internal",
+          { id: Id<"agentVariants"> },
+          any
+        >;
+        paginate: FunctionReference<
+          "query",
+          "internal",
+          {
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+          },
+          any
+        >;
+        read: FunctionReference<
+          "query",
+          "internal",
+          { id: Id<"agentVariants"> },
+          any
+        >;
+        update: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            id: Id<"agentVariants">;
+            patch: {
+              _creationTime?: number;
+              _id?: Id<"agentVariants">;
+              agentId?: Id<"agents">;
+              allocationOrdinal?: number;
+              archived?: boolean;
+              createdAt?: string;
+              draft?: {
+                audio?: {
+                  input: {
+                    format: "pcm16" | "g711_ulaw" | "g711_alaw";
+                    transcription?: boolean;
+                  };
+                  output: {
+                    format: "pcm16" | "g711_ulaw" | "g711_alaw";
+                    speed?: number;
+                  };
+                };
+                dynamicVariableDefaults?: Record<string, string>;
+                inboundWorkflow: {
+                  enabled?: boolean;
+                  firstSpeaker: "agent" | "caller";
+                  idleTimeoutSecs?: number;
+                  maxDurationSecs?: number;
+                  openingMessage?: string;
+                };
+                instructions?: string;
+                knowledgeBase?: Array<{
+                  documentId: string;
+                  usageMode: "auto" | "prompt";
+                }>;
+                mcp?: Array<{
+                  connectionId: string;
+                  requireApproval?: "never" | "always";
+                  toolkits?:
+                    | { mode: "enable"; values: Array<string> }
+                    | { mode: "disable"; values: Array<string> };
+                  tools?: Record<
+                    string,
+                    | { mode: "enable"; values: Array<string> }
+                    | { mode: "disable"; values: Array<string> }
+                  >;
+                }>;
+                model: { model: string; provider: "openai" | "xai" };
+                outboundWorkflow: {
+                  enabled?: boolean;
+                  firstSpeaker?: "agent";
+                  idleTimeoutSecs?: number;
+                  maxDurationSecs?: number;
+                  openingMessage?: string;
+                };
+                systemTools?: {
+                  end_call?: { enabled: boolean };
+                  language_detection?: { enabled: boolean };
+                  play_keypad_touch_tone?: { enabled: boolean };
+                  skip_turn?: { enabled: boolean };
+                  transfer_to_agent?: {
+                    enabled: boolean;
+                    transfers: Array<{ agentId: string; condition: string }>;
+                  };
+                  transfer_to_number?: {
+                    enabled: boolean;
+                    transfers: Array<{ condition: string; target: string }>;
+                  };
+                  voicemail_detection?: {
+                    enabled: boolean;
+                    voicemailMessage?: string;
+                  };
+                };
+                vad:
+                  | {
+                      idleTimeoutMs?: number;
+                      mode: "server_vad";
+                      silenceMs?: number;
+                    }
+                  | {
+                      eagerness?: "low" | "medium" | "high";
+                      mode: "semantic_vad";
+                    }
+                  | { mode: "manual" };
+                voice: string;
+              };
+              isMain?: boolean;
+              name?: string;
+              publishedVersionId?: Id<"agentVersions">;
+              tenant?: string;
+              trafficWeightBps?: number;
+              updatedAt?: string;
+            };
+          },
+          any
+        >;
+      };
+      agentVersions: {
+        create: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            _creationTime?: number;
+            _id?: Id<"agentVersions">;
+            agentId: Id<"agents">;
+            agentVariantId: Id<"agentVariants">;
+            config: {
+              audio?: {
+                input: {
+                  format: "pcm16" | "g711_ulaw" | "g711_alaw";
+                  transcription?: boolean;
+                };
+                output: {
+                  format: "pcm16" | "g711_ulaw" | "g711_alaw";
+                  speed?: number;
+                };
+              };
+              dynamicVariableDefaults?: Record<string, string>;
+              inboundWorkflow: {
+                enabled?: boolean;
+                firstSpeaker: "agent" | "caller";
+                idleTimeoutSecs?: number;
+                maxDurationSecs?: number;
+                openingMessage?: string;
+              };
+              instructions?: string;
+              knowledgeBase?: Array<{
+                documentId: string;
+                usageMode: "auto" | "prompt";
+              }>;
+              mcp?: Array<{
+                connectionId: string;
+                requireApproval?: "never" | "always";
+                toolkits?:
+                  | { mode: "enable"; values: Array<string> }
+                  | { mode: "disable"; values: Array<string> };
+                tools?: Record<
+                  string,
+                  | { mode: "enable"; values: Array<string> }
+                  | { mode: "disable"; values: Array<string> }
+                >;
+              }>;
+              model: { model: string; provider: "openai" | "xai" };
+              outboundWorkflow: {
+                enabled?: boolean;
+                firstSpeaker?: "agent";
+                idleTimeoutSecs?: number;
+                maxDurationSecs?: number;
+                openingMessage?: string;
+              };
               procedures:
                 | {
                     items: Array<{
@@ -795,6 +1240,7 @@ export declare const internal: {
               _creationTime?: number;
               _id?: Id<"agentVersions">;
               agentId?: Id<"agents">;
+              agentVariantId?: Id<"agentVariants">;
               config?: {
                 audio?: {
                   input: {
@@ -807,6 +1253,13 @@ export declare const internal: {
                   };
                 };
                 dynamicVariableDefaults?: Record<string, string>;
+                inboundWorkflow: {
+                  enabled?: boolean;
+                  firstSpeaker: "agent" | "caller";
+                  idleTimeoutSecs?: number;
+                  maxDurationSecs?: number;
+                  openingMessage?: string;
+                };
                 instructions?: string;
                 knowledgeBase?: Array<{
                   documentId: string;
@@ -825,7 +1278,13 @@ export declare const internal: {
                   >;
                 }>;
                 model: { model: string; provider: "openai" | "xai" };
-                name: string;
+                outboundWorkflow: {
+                  enabled?: boolean;
+                  firstSpeaker?: "agent";
+                  idleTimeoutSecs?: number;
+                  maxDurationSecs?: number;
+                  openingMessage?: string;
+                };
                 procedures:
                   | {
                       items: Array<{
@@ -926,10 +1385,18 @@ export declare const internal: {
             _creationTime?: number;
             _id?: Id<"batchCallJobs">;
             agentId: Id<"agents">;
-            agentVersionId?: Id<"agentVersions">;
+            agentVariantOverrideId?: Id<"agentVariants">;
+            callerIdPolicy: {
+              defaultPhoneNumberId: string;
+              rules: Array<{
+                destinationCountryCode?: string;
+                destinationRegionCode?: string;
+                id: string;
+                phoneNumberId: string;
+              }>;
+            };
             createdAt: string;
             name: string;
-            phoneNumberId: Id<"phoneNumbers">;
             ringingTimeoutSecs?: number;
             scheduledAt?: string;
             status:
@@ -980,10 +1447,18 @@ export declare const internal: {
               _creationTime?: number;
               _id?: Id<"batchCallJobs">;
               agentId?: Id<"agents">;
-              agentVersionId?: Id<"agentVersions">;
+              agentVariantOverrideId?: Id<"agentVariants">;
+              callerIdPolicy?: {
+                defaultPhoneNumberId: string;
+                rules: Array<{
+                  destinationCountryCode?: string;
+                  destinationRegionCode?: string;
+                  id: string;
+                  phoneNumberId: string;
+                }>;
+              };
               createdAt?: string;
               name?: string;
-              phoneNumberId?: Id<"phoneNumbers">;
               ringingTimeoutSecs?: number;
               scheduledAt?: string;
               status?:
@@ -1012,10 +1487,12 @@ export declare const internal: {
             _creationTime?: number;
             _id?: Id<"batchCallRecipients">;
             batchId: Id<"batchCallJobs">;
+            callerIdSelectionReason?: string;
             conversationId?: Id<"conversations">;
             createdAt: string;
             dynamicVariables?: Record<string, string>;
             phoneNumber: string;
+            selectedPhoneNumberId?: Id<"phoneNumbers">;
             status:
               | "pending"
               | "dispatched"
@@ -1066,10 +1543,12 @@ export declare const internal: {
               _creationTime?: number;
               _id?: Id<"batchCallRecipients">;
               batchId?: Id<"batchCallJobs">;
+              callerIdSelectionReason?: string;
               conversationId?: Id<"conversations">;
               createdAt?: string;
               dynamicVariables?: Record<string, string>;
               phoneNumber?: string;
+              selectedPhoneNumberId?: Id<"phoneNumbers">;
               status?:
                 | "pending"
                 | "dispatched"
@@ -1156,10 +1635,13 @@ export declare const internal: {
             _creationTime?: number;
             _id?: Id<"conversationMessages">;
             agentId: Id<"agents">;
+            agentVariantId: Id<"agentVariants">;
             audioStorageId?: string;
             conversationId: Id<"conversations">;
             createdAt: string;
+            idempotencyFingerprint?: string;
             interrupted?: boolean;
+            messageKey?: string;
             role: "user" | "agent" | "system";
             sequence: number;
             tenant: string;
@@ -1175,6 +1657,7 @@ export declare const internal: {
               isError?: boolean;
               latencyMs?: number;
               output: string;
+              retrievalEntryIds?: Array<string>;
             }>;
             updatedAt?: string;
           },
@@ -1216,10 +1699,13 @@ export declare const internal: {
               _creationTime?: number;
               _id?: Id<"conversationMessages">;
               agentId?: Id<"agents">;
+              agentVariantId?: Id<"agentVariants">;
               audioStorageId?: string;
               conversationId?: Id<"conversations">;
               createdAt?: string;
+              idempotencyFingerprint?: string;
               interrupted?: boolean;
+              messageKey?: string;
               role?: "user" | "agent" | "system";
               sequence?: number;
               tenant?: string;
@@ -1235,6 +1721,7 @@ export declare const internal: {
                 isError?: boolean;
                 latencyMs?: number;
                 output: string;
+                retrievalEntryIds?: Array<string>;
               }>;
               updatedAt?: string;
             };
@@ -1251,18 +1738,31 @@ export declare const internal: {
             _id?: Id<"conversations">;
             acceptedAt?: string;
             agentId: Id<"agents">;
+            agentVariantId: Id<"agentVariants">;
             agentVersionId: Id<"agentVersions">;
+            allocationBucket?: number;
+            allocationMode: "weighted" | "override" | "direct";
+            allocationRevision?: number;
             batchCallRecipientId?: Id<"batchCallRecipients">;
+            callerIdSelectionReason?: string;
             channel:
               "voice_inbound" | "voice_outbound" | "whatsapp" | "sms" | "web";
+            conversationKey: string;
             createdAt: string;
             direction: "inbound" | "outbound";
             durationSecs?: number;
             endedAt?: string;
             externalNumber?: string;
             hasAudio?: boolean;
+            idempotencyFingerprint: string;
             messageCount?: number;
             phoneNumberId?: Id<"phoneNumbers">;
+            phoneNumberSnapshot?: {
+              number: string;
+              provider: "twilio" | "sip_trunk";
+              providerNumberId: string;
+              telephonyConnectionId: string;
+            };
             provider: "openai" | "xai";
             providerSessionId?: string;
             startedAt: string;
@@ -1278,6 +1778,8 @@ export declare const internal: {
               inputTokens: number;
               outputTokens: number;
             };
+            whatsappAccountId?: Id<"whatsappAccounts">;
+            workflow: "inbound" | "outbound" | "none";
           },
           any
         >;
@@ -1318,18 +1820,31 @@ export declare const internal: {
               _id?: Id<"conversations">;
               acceptedAt?: string;
               agentId?: Id<"agents">;
+              agentVariantId?: Id<"agentVariants">;
               agentVersionId?: Id<"agentVersions">;
+              allocationBucket?: number;
+              allocationMode?: "weighted" | "override" | "direct";
+              allocationRevision?: number;
               batchCallRecipientId?: Id<"batchCallRecipients">;
+              callerIdSelectionReason?: string;
               channel?:
                 "voice_inbound" | "voice_outbound" | "whatsapp" | "sms" | "web";
+              conversationKey?: string;
               createdAt?: string;
               direction?: "inbound" | "outbound";
               durationSecs?: number;
               endedAt?: string;
               externalNumber?: string;
               hasAudio?: boolean;
+              idempotencyFingerprint?: string;
               messageCount?: number;
               phoneNumberId?: Id<"phoneNumbers">;
+              phoneNumberSnapshot?: {
+                number: string;
+                provider: "twilio" | "sip_trunk";
+                providerNumberId: string;
+                telephonyConnectionId: string;
+              };
               provider?: "openai" | "xai";
               providerSessionId?: string;
               startedAt?: string;
@@ -1345,6 +1860,8 @@ export declare const internal: {
                 inputTokens: number;
                 outputTokens: number;
               };
+              whatsappAccountId?: Id<"whatsappAccounts">;
+              workflow?: "inbound" | "outbound" | "none";
             };
           },
           any
@@ -1526,70 +2043,6 @@ export declare const internal: {
           any
         >;
       };
-      kbChunks: {
-        create: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            _creationTime?: number;
-            _id?: Id<"kbChunks">;
-            createdAt: string;
-            documentId: Id<"kbDocuments">;
-            embeddingId?: Id<"kbEmbeddings">;
-            order: number;
-            tenant: string;
-            text: string;
-            updatedAt?: string;
-          },
-          any
-        >;
-        destroy: FunctionReference<
-          "mutation",
-          "internal",
-          { id: Id<"kbChunks"> },
-          any
-        >;
-        paginate: FunctionReference<
-          "query",
-          "internal",
-          {
-            paginationOpts: {
-              cursor: string | null;
-              endCursor?: string | null;
-              id?: number;
-              maximumBytesRead?: number;
-              maximumRowsRead?: number;
-              numItems: number;
-            };
-          },
-          any
-        >;
-        read: FunctionReference<
-          "query",
-          "internal",
-          { id: Id<"kbChunks"> },
-          any
-        >;
-        update: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            id: Id<"kbChunks">;
-            patch: {
-              _creationTime?: number;
-              _id?: Id<"kbChunks">;
-              createdAt?: string;
-              documentId?: Id<"kbDocuments">;
-              embeddingId?: Id<"kbEmbeddings">;
-              order?: number;
-              tenant?: string;
-              text?: string;
-              updatedAt?: string;
-            };
-          },
-          any
-        >;
-      };
       kbDocuments: {
         create: FunctionReference<
           "mutation",
@@ -1597,19 +2050,13 @@ export declare const internal: {
           {
             _creationTime?: number;
             _id?: Id<"kbDocuments">;
-            chunkCount?: number;
-            content?: string;
+            activeEntryId?: string;
+            archived?: boolean;
+            archivedAt?: string;
             createdAt: string;
-            failureReason?: string;
-            name: string;
-            sizeBytes?: number;
-            sourceUrl?: string;
-            status?: "processing" | "indexed" | "failed";
-            storageId?: string;
+            lastError?: string;
             tenant: string;
-            type: "text" | "url" | "file";
             updatedAt?: string;
-            usageMode?: "auto" | "prompt";
           },
           any
         >;
@@ -1648,77 +2095,11 @@ export declare const internal: {
             patch: {
               _creationTime?: number;
               _id?: Id<"kbDocuments">;
-              chunkCount?: number;
-              content?: string;
+              activeEntryId?: string;
+              archived?: boolean;
+              archivedAt?: string;
               createdAt?: string;
-              failureReason?: string;
-              name?: string;
-              sizeBytes?: number;
-              sourceUrl?: string;
-              status?: "processing" | "indexed" | "failed";
-              storageId?: string;
-              tenant?: string;
-              type?: "text" | "url" | "file";
-              updatedAt?: string;
-              usageMode?: "auto" | "prompt";
-            };
-          },
-          any
-        >;
-      };
-      kbEmbeddings: {
-        create: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            _creationTime?: number;
-            _id?: Id<"kbEmbeddings">;
-            createdAt: string;
-            documentId: Id<"kbDocuments">;
-            embedding: Array<number>;
-            tenant: string;
-            updatedAt?: string;
-          },
-          any
-        >;
-        destroy: FunctionReference<
-          "mutation",
-          "internal",
-          { id: Id<"kbEmbeddings"> },
-          any
-        >;
-        paginate: FunctionReference<
-          "query",
-          "internal",
-          {
-            paginationOpts: {
-              cursor: string | null;
-              endCursor?: string | null;
-              id?: number;
-              maximumBytesRead?: number;
-              maximumRowsRead?: number;
-              numItems: number;
-            };
-          },
-          any
-        >;
-        read: FunctionReference<
-          "query",
-          "internal",
-          { id: Id<"kbEmbeddings"> },
-          any
-        >;
-        update: FunctionReference<
-          "mutation",
-          "internal",
-          {
-            id: Id<"kbEmbeddings">;
-            patch: {
-              _creationTime?: number;
-              _id?: Id<"kbEmbeddings">;
-              createdAt?: string;
-              documentId?: Id<"kbDocuments">;
-              embedding?: Array<number>;
+              lastError?: string;
               tenant?: string;
               updatedAt?: string;
             };
@@ -1851,12 +2232,33 @@ export declare const internal: {
           {
             _creationTime?: number;
             _id?: Id<"phoneNumbers">;
+            archivedAt?: string;
             assignedAgentId?: Id<"agents">;
+            capabilities: {
+              inboundSms: boolean;
+              inboundVoice: boolean;
+              outboundSms: boolean;
+              outboundVoice: boolean;
+            };
+            countryCode: string;
             createdAt: string;
+            inboundSmsEnabled?: boolean;
             label?: string;
+            lastError?: string;
+            lastSyncedAt?: string;
+            locality?: string;
             number: string;
             provider: "twilio" | "sip_trunk";
-            status?: "active" | "disabled";
+            providerNumberId: string;
+            regionCode?: string;
+            routingRegion?: string;
+            status?:
+              | "pending"
+              | "active"
+              | "disabled"
+              | "provider_missing"
+              | "archived";
+            telephonyConnectionId: Id<"telephonyConnections">;
             tenant: string;
             updatedAt?: string;
           },
@@ -1897,12 +2299,33 @@ export declare const internal: {
             patch: {
               _creationTime?: number;
               _id?: Id<"phoneNumbers">;
+              archivedAt?: string;
               assignedAgentId?: Id<"agents">;
+              capabilities?: {
+                inboundSms: boolean;
+                inboundVoice: boolean;
+                outboundSms: boolean;
+                outboundVoice: boolean;
+              };
+              countryCode?: string;
               createdAt?: string;
+              inboundSmsEnabled?: boolean;
               label?: string;
+              lastError?: string;
+              lastSyncedAt?: string;
+              locality?: string;
               number?: string;
               provider?: "twilio" | "sip_trunk";
-              status?: "active" | "disabled";
+              providerNumberId?: string;
+              regionCode?: string;
+              routingRegion?: string;
+              status?:
+                | "pending"
+                | "active"
+                | "disabled"
+                | "provider_missing"
+                | "archived";
+              telephonyConnectionId?: Id<"telephonyConnections">;
               tenant?: string;
               updatedAt?: string;
             };
@@ -1917,7 +2340,7 @@ export declare const internal: {
           {
             _creationTime?: number;
             _id?: Id<"procedures">;
-            agentId: Id<"agents">;
+            agentVariantId: Id<"agentVariants">;
             content?: string;
             createdAt: string;
             name: string;
@@ -1990,7 +2413,7 @@ export declare const internal: {
             patch: {
               _creationTime?: number;
               _id?: Id<"procedures">;
-              agentId?: Id<"agents">;
+              agentVariantId?: Id<"agentVariants">;
               content?: string;
               createdAt?: string;
               name?: string;
@@ -2024,6 +2447,88 @@ export declare const internal: {
               tenant?: string;
               trigger?: string;
               type?: "free_form" | "structured";
+              updatedAt?: string;
+            };
+          },
+          any
+        >;
+      };
+      telephonyConnections: {
+        create: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            _creationTime?: number;
+            _id?: Id<"telephonyConnections">;
+            createdAt: string;
+            credentialSecretRef: string;
+            defaultRoutingRegion?: string;
+            label?: string;
+            lastError?: string;
+            lastSyncedAt?: string;
+            provider: "twilio" | "sip_trunk";
+            providerAccountId: string;
+            status:
+              | "pending_verification"
+              | "active"
+              | "disabled"
+              | "error"
+              | "archived";
+            tenant: string;
+            updatedAt?: string;
+          },
+          any
+        >;
+        destroy: FunctionReference<
+          "mutation",
+          "internal",
+          { id: Id<"telephonyConnections"> },
+          any
+        >;
+        paginate: FunctionReference<
+          "query",
+          "internal",
+          {
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+          },
+          any
+        >;
+        read: FunctionReference<
+          "query",
+          "internal",
+          { id: Id<"telephonyConnections"> },
+          any
+        >;
+        update: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            id: Id<"telephonyConnections">;
+            patch: {
+              _creationTime?: number;
+              _id?: Id<"telephonyConnections">;
+              createdAt?: string;
+              credentialSecretRef?: string;
+              defaultRoutingRegion?: string;
+              label?: string;
+              lastError?: string;
+              lastSyncedAt?: string;
+              provider?: "twilio" | "sip_trunk";
+              providerAccountId?: string;
+              status?:
+                | "pending_verification"
+                | "active"
+                | "disabled"
+                | "error"
+                | "archived";
+              tenant?: string;
               updatedAt?: string;
             };
           },
@@ -2094,12 +2599,96 @@ export declare const internal: {
           any
         >;
       };
+      whatsappAccounts: {
+        create: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            _creationTime?: number;
+            _id?: Id<"whatsappAccounts">;
+            accessTokenSecretRef: string;
+            assignedAgentId?: Id<"agents">;
+            businessAccountId: string;
+            businessAccountName?: string;
+            createdAt: string;
+            enableAudioMessageResponse?: boolean;
+            enableMessaging?: boolean;
+            label?: string;
+            metaPhoneNumberId: string;
+            phoneNumber?: string;
+            phoneNumberName?: string;
+            status?: "active" | "disabled" | "token_expired";
+            tenant: string;
+            updatedAt?: string;
+          },
+          any
+        >;
+        destroy: FunctionReference<
+          "mutation",
+          "internal",
+          { id: Id<"whatsappAccounts"> },
+          any
+        >;
+        paginate: FunctionReference<
+          "query",
+          "internal",
+          {
+            paginationOpts: {
+              cursor: string | null;
+              endCursor?: string | null;
+              id?: number;
+              maximumBytesRead?: number;
+              maximumRowsRead?: number;
+              numItems: number;
+            };
+          },
+          any
+        >;
+        read: FunctionReference<
+          "query",
+          "internal",
+          { id: Id<"whatsappAccounts"> },
+          any
+        >;
+        update: FunctionReference<
+          "mutation",
+          "internal",
+          {
+            id: Id<"whatsappAccounts">;
+            patch: {
+              _creationTime?: number;
+              _id?: Id<"whatsappAccounts">;
+              accessTokenSecretRef?: string;
+              assignedAgentId?: Id<"agents">;
+              businessAccountId?: string;
+              businessAccountName?: string;
+              createdAt?: string;
+              enableAudioMessageResponse?: boolean;
+              enableMessaging?: boolean;
+              label?: string;
+              metaPhoneNumberId?: string;
+              phoneNumber?: string;
+              phoneNumberName?: string;
+              status?: "active" | "disabled" | "token_expired";
+              tenant?: string;
+              updatedAt?: string;
+            };
+          },
+          any
+        >;
+      };
     };
     kbSearch: {
-      loadChunksByEmbeddingIds: FunctionReference<
+      loadPromptKnowledge: FunctionReference<
+        "action",
+        "internal",
+        { conversationId: Id<"conversations"> },
+        any
+      >;
+      promptScopeForConversation: FunctionReference<
         "query",
         "internal",
-        { embeddingIds: Array<Id<"kbEmbeddings">>; tenant: string },
+        { conversationId: Id<"conversations"> },
         any
       >;
       scopeForConversation: FunctionReference<
@@ -2111,45 +2700,113 @@ export declare const internal: {
       search: FunctionReference<
         "action",
         "internal",
-        { conversationId: Id<"conversations">; limit?: number; query: string },
-        any
-      >;
-      searchWithVector: FunctionReference<
-        "action",
-        "internal",
         {
+          callId?: string;
+          chunkContext?: { after: number; before: number };
           conversationId: Id<"conversations">;
           limit?: number;
           query: string;
-          vector: Array<number>;
+          vectorScoreThreshold?: number;
         },
         any
       >;
-      textSearch: FunctionReference<
-        "query",
+      searchKnowledge: FunctionReference<
+        "action",
         "internal",
-        { documentIds: Array<string>; query: string; tenant: string },
+        {
+          callId?: string;
+          chunkContext?: { after: number; before: number };
+          conversationId: Id<"conversations">;
+          limit?: number;
+          query: string;
+          vectorScoreThreshold?: number;
+        },
         any
       >;
     };
     knowledgeBase: {
-      ingest: FunctionReference<
-        "action",
+      activateEntry: FunctionReference<
+        "mutation",
+        "internal",
+        { documentId: Id<"kbDocuments">; entryId: string },
+        any
+      >;
+      markArchived: FunctionReference<
+        "mutation",
         "internal",
         { documentId: Id<"kbDocuments"> },
         any
       >;
-      writeChunks: FunctionReference<
+      recordFailure: FunctionReference<
+        "mutation",
+        "internal",
+        { documentId: Id<"kbDocuments">; message: string },
+        any
+      >;
+      resolveDocument: FunctionReference<
+        "query",
+        "internal",
+        { documentId: string },
+        any
+      >;
+    };
+    phoneNumbers: {
+      markMissingAfterRefresh: FunctionReference<
         "mutation",
         "internal",
         {
-          chunks: Array<{
-            embedding: Array<number>;
-            order: number;
-            text: string;
-          }>;
-          documentId: Id<"kbDocuments">;
+          seenProviderNumberIds: Array<string>;
+          telephonyConnectionId: Id<"telephonyConnections">;
         },
+        any
+      >;
+      upsertImportedNumber: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          capabilities: {
+            inboundSms: boolean;
+            inboundVoice: boolean;
+            outboundSms: boolean;
+            outboundVoice: boolean;
+          };
+          countryCode: string;
+          inboundSmsEnabled: boolean;
+          label: string;
+          locality?: string;
+          number: string;
+          providerNumberId: string;
+          regionCode?: string;
+          routingRegion?: string;
+          status: "pending" | "active";
+          telephonyConnectionId: Id<"telephonyConnections">;
+        },
+        any
+      >;
+    };
+    phoneRouting: {
+      selectOutboundForRecipient: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          destinationCountryCode?: string;
+          destinationRegionCode?: string;
+          recipientId: Id<"batchCallRecipients">;
+        },
+        any
+      >;
+    };
+    telephonyConnections: {
+      recordProviderSync: FunctionReference<
+        "mutation",
+        "internal",
+        { connectionId: Id<"telephonyConnections">; error?: string },
+        any
+      >;
+      resolveForProviderSync: FunctionReference<
+        "query",
+        "internal",
+        { connectionId: Id<"telephonyConnections"> },
         any
       >;
     };
@@ -2176,4 +2833,5 @@ export declare const internal: {
 export declare const components: {
   workOSAuthKit: import("@convex-dev/workos-authkit/_generated/component.js").ComponentApi<"workOSAuthKit">;
   resend: import("@convex-dev/resend/_generated/component.js").ComponentApi<"resend">;
+  rag: import("@convex-dev/rag/_generated/component.js").ComponentApi<"rag">;
 };

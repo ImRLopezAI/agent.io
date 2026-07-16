@@ -40,6 +40,7 @@ import { authKit } from './auth'
 // side-effect import: trigger registrations must load before any mutation runs
 import './api/registrations'
 import { TENANT_TABLES, type TenantTableName } from './schema'
+import { hasTenantRole } from './tenancy'
 import { triggers } from './triggers'
 
 type WithMatching<T extends GenericTableInfo> = QueryInitializer<T> & {
@@ -205,6 +206,9 @@ export const tenantMutation = zCustomMutation(convexMutation, {
 	},
 })
 
+export type TenantQueryCtx = ZCustomCtx<typeof tenantQuery>
+export type TenantMutationCtx = ZCustomCtx<typeof tenantMutation>
+
 /**
  * Machine-path factory (ADR 0001): callers never pass `tenant` — they pass
  * the OWNING resource id; the builder loads it and copies its tenant.
@@ -234,7 +238,12 @@ export const machineMutation = <Table extends TenantTableName>(
 		},
 	})
 
-export { assertSameTenant } from './tenancy'
+export {
+	assertSameTenant,
+	hasTenantRole,
+	requirePermission,
+	resolveTenantId,
+} from './tenancy'
 
 export const authQuery = zCustomQuery(convexQuery, {
 	args: {},
@@ -290,6 +299,7 @@ type JwtOrganizationClaims = {
 	name?: string
 	role?: string
 	roles?: string[] | string
+	permissions?: string[] | string
 }
 
 async function getAuthUser(
@@ -344,5 +354,12 @@ function getOrgFromJwt(
 			organization?.role ??
 			(typeof identity.role === 'string' ? identity.role : undefined),
 		roles: organization?.roles ?? identity.roles,
+		permissions: organization?.permissions ?? identity.permissions,
+	}
+}
+
+export const requireTenantAdmin = (org: { role?: string; roles?: unknown }) => {
+	if (!hasTenantRole(org, ['admin', 'owner'])) {
+		throw new Error('Forbidden: tenant administrator permission required')
 	}
 }

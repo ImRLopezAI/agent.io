@@ -8,7 +8,6 @@ import {
 export const VERSION_SIZE_BUDGET_BYTES = 800_000
 
 interface DraftLike {
-	name: string
 	instructions: string
 	model: VersionConfig['model']
 	voice: string
@@ -18,6 +17,8 @@ interface DraftLike {
 	mcp: VersionConfig['mcp']
 	knowledgeBase: VersionConfig['knowledgeBase']
 	dynamicVariableDefaults?: VersionConfig['dynamicVariableDefaults']
+	inboundWorkflow: VersionConfig['inboundWorkflow']
+	outboundWorkflow: VersionConfig['outboundWorkflow']
 }
 
 interface ProcedureLike {
@@ -59,7 +60,6 @@ export const buildVersionSnapshot = (
 		references: p.references,
 	}))
 	const config: VersionConfig = {
-		name: draft.name,
 		instructions: draft.instructions,
 		model: draft.model,
 		voice: draft.voice,
@@ -69,6 +69,8 @@ export const buildVersionSnapshot = (
 		mcp: draft.mcp,
 		knowledgeBase: draft.knowledgeBase,
 		dynamicVariableDefaults: draft.dynamicVariableDefaults,
+		inboundWorkflow: draft.inboundWorkflow,
+		outboundWorkflow: draft.outboundWorkflow,
 		procedures: { kind: 'inline', items },
 	}
 	const sizeBytes = new TextEncoder().encode(JSON.stringify(config)).length

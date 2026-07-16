@@ -13,6 +13,7 @@
 	"dependencies": {
 		"@agent.io/domain": "workspace:*",
 		"@ai-sdk/gateway": "catalog:ai",
+		"@convex-dev/rag": "^0.7.5",
 		"@convex-dev/resend": "catalog:convex",
 		"@convex-dev/workos-authkit": "catalog:convex",
 		"ai": "catalog:ai",

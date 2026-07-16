@@ -1,126 +1,171 @@
-import { agents } from '@agent.io/domain/schemas'
-import { internal } from '@convex/api'
-import { getManyFrom } from 'convex-helpers/server/relationships'
+import { agents, agentVariantDraftConfig } from '@agent.io/domain/schemas'
 import { z } from 'zod'
 
-import { tenantMutation, tenantQuery } from '@/utils'
+import { nativePaginationOpts, now, stampUpdate } from '../lib'
+import {
+	requirePermission,
+	resolveTenantId,
+	tenantMutation,
+	tenantQuery,
+} from '../utils'
+import { toVariantSummary } from './agentVariantDtos'
+import { publishVariantForContext } from './agentVariants'
+import { validateAgentAttachments } from './internals/agentAttachments'
 
-import { stampCreate, stampUpdate } from '../lib'
-import { buildVersionSnapshot } from './publishCore'
+export const toAgentSummary = (agent: {
+	_id: string
+	_creationTime: number
+	name: string
+	mainVariantId?: string
+	allocationRevision: number
+	archived: boolean
+	createdAt: string
+	updatedAt?: string
+}) => ({
+	id: agent._id,
+	name: agent.name,
+	mainVariantId: agent.mainVariantId,
+	allocationRevision: agent.allocationRevision,
+	archived: agent.archived,
+	createdAt: agent.createdAt,
+	updatedAt: agent.updatedAt,
+	creationTime: agent._creationTime,
+})
 
-/**
- * Business tier: validations/asserts here, writes delegated to the internal
- * crud tier (sub-transactions — triggers fire through the wrapped builder).
- */
+export const toAgentDetail = toAgentSummary
 
 export const create = tenantMutation({
-	args: agents.insert({ tenant: true, publishedVersionId: true }).shape,
-	handler: async (ctx, args) => {
-		// drafts are born unpublished — publishedVersionId only moves via publish()
-		const created: z.infer<typeof agents.schema> = await ctx.runMutation(
-			internal.api.internals.agents.create,
-			stampCreate(ctx.tenant, args),
-		)
-		return created
+	args: {
+		name: z.string().min(1).max(120),
+		draft: agentVariantDraftConfig,
+	},
+	handler: async (ctx, { name, draft }) => {
+		requirePermission(ctx.org, 'prompts:write')
+		await validateAgentAttachments(ctx, draft)
+		const timestamp = now()
+		const agentId = await ctx.db.insert('agents', {
+			tenant: ctx.tenant,
+			name,
+			allocationRevision: 0,
+			archived: false,
+			createdAt: timestamp,
+		})
+		const mainVariantId = await ctx.db.insert('agentVariants', {
+			tenant: ctx.tenant,
+			agentId,
+			name: 'Main',
+			isMain: true,
+			allocationOrdinal: 1,
+			trafficWeightBps: 0,
+			draft,
+			archived: false,
+			createdAt: timestamp,
+		})
+		await ctx.db.patch(agentId, { mainVariantId, updatedAt: timestamp })
+		const agent = await ctx.db.get(agentId)
+		if (!agent) throw new Error('agent creation failed')
+		const mainVariant = await ctx.db.get(mainVariantId)
+		if (!mainVariant) throw new Error('Main Variant creation failed')
+		return {
+			...toAgentDetail(agent),
+			mainVariant: toVariantSummary(mainVariant),
+		}
 	},
 })
 
 export const update = tenantMutation({
 	args: {
 		id: z.string(),
-		patch: agents.update({ tenant: true, publishedVersionId: true }),
+		patch: agents.update({ tenant: true, mainVariantId: true }),
 	},
 	handler: async (ctx, { id, patch }) => {
-		const agentId = ctx.db.normalizeId('agents', id)
-		if (!agentId) throw new Error('invalid agent id')
+		requirePermission(ctx.org, 'prompts:write')
+		const agentId = await resolveTenantId(ctx, 'agents', id, 'agent')
 		const existing = await ctx.db.get(agentId)
 		if (!existing) throw new Error('agent not found')
-		// business rule: archived drafts are read-only until unarchived
 		if (existing.archived && patch.archived !== false) {
-			throw new Error('agent is archived — unarchive it before editing')
+			throw new Error('agent is archived - unarchive it before editing')
 		}
-		await ctx.runMutation(internal.api.internals.agents.update, {
-			id: agentId,
-			patch: stampUpdate(patch),
-		})
+		await ctx.db.patch(agentId, stampUpdate(patch))
 	},
 })
 
 export const remove = tenantMutation({
 	args: { id: z.string() },
 	handler: async (ctx, { id }) => {
-		const agentId = ctx.db.normalizeId('agents', id)
-		if (!agentId) throw new Error('invalid agent id')
-		// tenant check through the RLS-wrapped read before the internal destroy
-		const existing = await ctx.db.get(agentId)
-		if (!existing) throw new Error('agent not found')
-		await ctx.runMutation(internal.api.internals.agents.destroy, {
-			id: agentId,
-		})
+		requirePermission(ctx.org, 'prompts:write')
+		const agentId = await resolveTenantId(ctx, 'agents', id, 'agent')
+		await ctx.db.patch(agentId, stampUpdate({ archived: true }))
 	},
 })
 
 export const get = tenantQuery({
 	args: { id: z.string() },
 	handler: async (ctx, { id }) => {
-		const agentId = ctx.db.normalizeId('agents', id)
-		return agentId ? ctx.db.get(agentId) : null
+		requirePermission(ctx.org, 'prompts:read')
+		const agentId = await resolveTenantId(ctx, 'agents', id, 'agent')
+		const agent = await ctx.db.get(agentId)
+		if (!agent) throw new Error('agent not found')
+		const mainVariant = agent.mainVariantId
+			? await ctx.db.get(agent.mainVariantId)
+			: null
+		return {
+			...toAgentDetail(agent),
+			mainVariant: mainVariant ? toVariantSummary(mainVariant) : undefined,
+		}
 	},
 })
 
 export const list = tenantQuery({
-	args: {},
-	handler: async (ctx) =>
-		ctx.db
-			.query('agents')
-			.withIndex('by_tenant', (q) => q.eq('tenant', ctx.tenant))
-			.collect(),
+	args: {
+		paginationOpts: nativePaginationOpts,
+		archived: z.boolean().optional(),
+	},
+	handler: async (ctx, { paginationOpts, archived }) => {
+		requirePermission(ctx.org, 'prompts:read')
+		const result =
+			archived === undefined
+				? await ctx.db
+						.query('agents')
+						.withIndex('by_tenant', (q) => q.eq('tenant', ctx.tenant))
+						.order('desc')
+						.paginate(paginationOpts)
+				: await ctx.db
+						.query('agents')
+						.withIndex('by_tenant_and_archived', (q) =>
+							q.eq('tenant', ctx.tenant).eq('archived', archived),
+						)
+						.order('desc')
+						.paginate(paginationOpts)
+		return {
+			...result,
+			page: await Promise.all(
+				result.page.map(async (agent) => {
+					const mainVariant = agent.mainVariantId
+						? await ctx.db.get(agent.mainVariantId)
+						: null
+					return {
+						...toAgentSummary(agent),
+						mainVariant: mainVariant
+							? toVariantSummary(mainVariant)
+							: undefined,
+					}
+				}),
+			),
+		}
+	},
 })
 
-/**
- * Publish (plan Unit 8): draft + active procedures → immutable agentVersions
- * snapshot with procedures embedded. Atomic — validation or budget failure
- * writes nothing (sub-mutations share the transaction).
- */
+/** Backwards-compatible convenience: publish the Agent's Main Variant. */
 export const publish = tenantMutation({
 	args: { id: z.string() },
 	handler: async (ctx, { id }) => {
-		const agentId = ctx.db.normalizeId('agents', id)
-		if (!agentId) throw new Error('invalid agent id')
-		const draft = await ctx.db.get(agentId)
-		if (!draft) throw new Error('agent not found')
-
-		const procedures = await getManyFrom(
-			ctx.db,
-			'procedures',
-			'by_agent',
-			agentId,
-			'agentId',
-		)
-		const config = buildVersionSnapshot(draft, procedures)
-
-		const versions = await getManyFrom(
-			ctx.db,
-			'agentVersions',
-			'by_agent',
-			agentId,
-			'agentId',
-		)
-		const version = versions.reduce((max, v) => Math.max(max, v.version), 0) + 1
-
-		const created = await ctx.runMutation(
-			internal.api.internals.agentVersions.create,
-			stampCreate(ctx.tenant, {
-				agentId,
-				version,
-				publishedBy: ctx.user.externalId ?? ctx.user.id,
-				config,
-			}),
-		)
-		await ctx.runMutation(internal.api.internals.agents.update, {
-			id: agentId,
-			patch: stampUpdate({ publishedVersionId: created._id }),
-		})
-		return { versionId: created._id, version }
+		requirePermission(ctx.org, 'prompts:write')
+		const agentId = await resolveTenantId(ctx, 'agents', id, 'agent')
+		const agent = await ctx.db.get(agentId)
+		if (!agent?.mainVariantId) throw new Error('agent Main Variant not found')
+		return publishVariantForContext(ctx, agent.mainVariantId)
 	},
 })
+
+export { validateAgentAttachments } from './internals/agentAttachments'
