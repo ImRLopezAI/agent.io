@@ -239,6 +239,93 @@ describe('outbound phone routing (U7)', () => {
 		).rejects.toThrow(/no_eligible_number/)
 	})
 
+	test('failed dial finishes the conversation and fails the recipient', async () => {
+		const t = convexTest(schema, modules)
+		const state = await seed(t)
+		const recipientId = await addRecipient(t, state.batchId, '+18095550888')
+		const conversationId = await t.mutation(
+			internal.api.conversations.startOutboundFromRecipient,
+			{
+				ownerId: recipientId,
+				conversationKey: 'outbound-dial-fail-1',
+				provider: 'openai',
+				destinationCountryCode: 'DO',
+			},
+		)
+		// dial failure with a non-failed status is invalid
+		await expect(
+			t.mutation(internal.api.conversations.finish, {
+				ownerId: conversationId,
+				conversationKey: 'outbound-dial-fail-1',
+				status: 'done',
+				terminationReason: 'dial_failed',
+			}),
+		).rejects.toThrow(/dial_failure_invalid/)
+		await t.mutation(internal.api.conversations.finish, {
+			ownerId: conversationId,
+			conversationKey: 'outbound-dial-fail-1',
+			status: 'failed',
+			terminationReason: 'dial_failed',
+		})
+		const recipient = await t.run(async (ctx) =>
+			ctx.db.get(recipientId as never),
+		)
+		expect((recipient as { status?: string })?.status).toBe('failed')
+		// idempotent retry of the same failure
+		expect(
+			await t.mutation(internal.api.conversations.finish, {
+				ownerId: conversationId,
+				conversationKey: 'outbound-dial-fail-1',
+				status: 'failed',
+				terminationReason: 'dial_failed',
+			}),
+		).toEqual({ status: 'already_finished' })
+	})
+
+	test('dial failure is rejected once the call has progressed', async () => {
+		const t = convexTest(schema, modules)
+		const state = await seed(t)
+		const recipientId = await addRecipient(t, state.batchId, '+18095550666')
+		const conversationId = await t.mutation(
+			internal.api.conversations.startOutboundFromRecipient,
+			{
+				ownerId: recipientId,
+				conversationKey: 'outbound-dial-progress-1',
+				provider: 'openai',
+				destinationCountryCode: 'DO',
+			},
+		)
+		await t.mutation(internal.api.conversations.appendMessage, {
+			ownerId: conversationId,
+			conversationKey: 'outbound-dial-progress-1',
+			role: 'user',
+			text: 'hello',
+			interrupted: false,
+		})
+		await expect(
+			t.mutation(internal.api.conversations.finish, {
+				ownerId: conversationId,
+				conversationKey: 'outbound-dial-progress-1',
+				status: 'failed',
+				terminationReason: 'dial_failed',
+			}),
+		).rejects.toThrow(/dial_failure_invalid/)
+	})
+
+	test('machine body cannot smuggle a variant override', async () => {
+		const t = convexTest(schema, modules)
+		const state = await seed(t)
+		const recipientId = await addRecipient(t, state.batchId, '+18095550777')
+		await expect(
+			t.mutation(internal.api.conversations.startOutboundFromRecipient, {
+				ownerId: recipientId,
+				conversationKey: 'outbound-smuggle-1',
+				provider: 'openai',
+				agentVariantOverrideId: 'smuggled-variant-id',
+			} as never),
+		).rejects.toThrow(/agentVariantOverrideId/)
+	})
+
 	test('starts one immutable recipient attempt across retries and config changes', async () => {
 		const t = convexTest(schema, modules)
 		const state = await seed(t)

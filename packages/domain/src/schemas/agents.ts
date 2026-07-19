@@ -66,6 +66,14 @@ export const agentVariants = tenantTable('agentVariants', (id) => ({
 	publishedVersionId: id('agentVersions').optional(),
 	draft: agentVariantDraftConfig,
 	archived: z.boolean().default(false),
+	/**
+	 * Minimal merge-decision signal, cumulative per Variant across republish
+	 * events. Maintained inside start/finish transactions (OCC-serialized;
+	 * sharded counters are the documented scale path).
+	 */
+	conversationCount: z.number().int().nonnegative().optional(),
+	doneCount: z.number().int().nonnegative().optional(),
+	failedCount: z.number().int().nonnegative().optional(),
 }))
 
 /** Fully expanded immutable configuration embedded in an Agent Version. */

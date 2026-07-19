@@ -252,7 +252,7 @@ describe('agent ↔ convex contract (Unit 14)', () => {
 		})
 		const conversationId = start.conversationId
 		const recorder = new TranscriptRecorder(ingest)
-		recorder.bind(conversationId)
+		recorder.bind(conversationId, 'contract-recorder-1')
 
 		const stream: NormalizedEvent[] = [
 			{ type: 'session.ready' },
@@ -387,6 +387,7 @@ describe('agent ↔ convex contract (Unit 14)', () => {
 		await expect(
 			t.mutation(internal.api.conversations.appendMessage, {
 				ownerId: ids.versionId as never, // wrong owner table id
+				conversationKey: 'contract-drift-1',
 				role: 'user',
 				text: 'x',
 				interrupted: false,

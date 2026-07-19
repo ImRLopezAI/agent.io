@@ -42,7 +42,14 @@ export const callerIdPolicy = z.object({
 export const batchCallJobs = tenantTable('batchCallJobs', (id) => ({
 	name: z.string().min(1).max(200),
 	agentId: id('agents'),
+	/**
+	 * Overrides bypass weighted allocation, so they are server-side state
+	 * only: set via the tenant-admin mutation (never a machine request body)
+	 * with the authorizing principal and reason persisted alongside.
+	 */
 	agentVariantOverrideId: id('agentVariants').optional(),
+	overrideAuthorizedBy: z.string().optional(),
+	overrideReason: z.string().min(1).max(500).optional(),
 	callerIdPolicy,
 	status: z.enum(BATCH_JOB_STATUSES),
 	scheduledAt: z.string().optional(),
@@ -53,6 +60,8 @@ export const batchCallJobs = tenantTable('batchCallJobs', (id) => ({
 	totalScheduled: z.number().int().nonnegative().default(0),
 	totalDispatched: z.number().int().nonnegative().default(0),
 	totalFinished: z.number().int().nonnegative().default(0),
+	/** Set once recipient phone numbers were redacted by retention/erasure. */
+	redactedAt: z.string().optional(),
 }))
 
 export const batchCallRecipients = tenantTable('batchCallRecipients', (id) => ({

@@ -18,7 +18,7 @@ import { internal } from './_generated/api'
 import type { ActionCtx } from './_generated/server'
 import { env } from './_generated/server'
 import { agentRequestHandler } from './ai'
-import { hasValidMachineAuthorization } from './api/internals/machineAuth'
+import { resolveMachineService } from './api/internals/machineAuth'
 import { toMachineError } from './api/internals/machineErrors'
 import { authKit } from './auth'
 import { resend } from './resend'
@@ -28,12 +28,13 @@ export const app: HonoWithConvex<ActionCtx> = new Hono()
 app.use(requestId())
 app.use(cors())
 app.use('/api/machine/*', async (c, next) => {
-	if (
-		!hasValidMachineAuthorization(
-			c.req.header('authorization'),
-			env.CONVEX_SERVICE_TOKEN,
-		)
-	) {
+	// Identity is HTTP-layer scoped (logging/audit); it does not cross into
+	// mutations — handlers pass explicit args only.
+	const machineService = resolveMachineService(
+		c.req.header('authorization'),
+		env.CONVEX_SERVICE_TOKENS,
+	)
+	if (!machineService) {
 		return c.json({ error: 'unauthorized' }, 401)
 	}
 	await next()
@@ -42,8 +43,13 @@ app.onError((error, c) => {
 	if (!c.req.path.startsWith('/api/machine/')) throw error
 	const machineError = toMachineError(error)
 	return c.json(
-		{ error: machineError.code },
-		machineError.status as 409 | 422 | 500,
+		{
+			error: machineError.code,
+			...('conversationId' in machineError && machineError.conversationId
+				? { conversationId: machineError.conversationId }
+				: {}),
+		},
+		machineError.status as 401 | 409 | 422 | 500,
 	)
 })
 app.on('POST', ['/api/agents', '/api/chat'], async (c) => {
@@ -55,8 +61,13 @@ app.post('/resend/events', async (c) => {
 	return await resend.handleResendEventWebhook(c.env, c.req.raw)
 })
 
+/**
+ * `conversationKey` is ownership proof for later append/finish, so its
+ * unforgeability cannot rest on caller discipline: the machine boundary only
+ * accepts high-entropy UUID-shaped keys.
+ */
 const startBase = z.object({
-	conversationKey: z.string().min(1).max(255),
+	conversationKey: z.string().uuid(),
 	provider: z.enum(PROVIDERS),
 	providerSessionId: z.string().optional(),
 	externalNumber: z.string().optional(),
@@ -187,6 +198,7 @@ app.post('/api/machine/conversations/:conversationId/messages', async (c) => {
 	const input = await parseBody(
 		c.req.raw,
 		z.object({
+			conversationKey: z.string().min(1).max(255),
 			messageKey: z.string().min(1).max(255),
 			role: z.enum(MESSAGE_ROLES),
 			text: z.string().optional(),
@@ -212,6 +224,7 @@ app.post('/api/machine/conversations/:conversationId/finish', async (c) => {
 	const input = await parseBody(
 		c.req.raw,
 		z.object({
+			conversationKey: z.string().min(1).max(255),
 			status: z.enum(['done', 'failed']),
 			terminationReason: z.string().optional(),
 			durationSecs: z.number().nonnegative().optional(),

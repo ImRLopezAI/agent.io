@@ -5,7 +5,7 @@ import { requirePermission } from '../../tenancy'
 import { toVariantSummary } from '../agentVariantDtos'
 import { toConversationDetailDto } from '../conversationDtos'
 import {
-	hasValidMachineAuthorization,
+	resolveMachineService,
 	serviceTokensMatch,
 } from '../internals/machineAuth'
 import { toMachineError } from '../internals/machineErrors'
@@ -49,20 +49,29 @@ describe('public data-service contracts', () => {
 		).toThrow(/prompts:write/)
 	})
 
-	test('machine authorization requires an exact bearer token', () => {
+	test('machine authorization resolves an exact per-service bearer token', () => {
+		const tokens = 'v-inbound:secret,v-outbound:other'
 		expect(serviceTokensMatch('secret', 'secret')).toBe(true)
 		expect(serviceTokensMatch('secret', 'secrex')).toBe(false)
 		expect(serviceTokensMatch('short', 'longer')).toBe(false)
-		expect(hasValidMachineAuthorization('Bearer secret', 'secret')).toBe(true)
-		expect(hasValidMachineAuthorization('Basic secret', 'secret')).toBe(false)
-		expect(hasValidMachineAuthorization('Bearer wrong', 'secret')).toBe(false)
-		expect(hasValidMachineAuthorization(undefined, 'secret')).toBe(false)
+		expect(resolveMachineService('Bearer secret', tokens)).toBe('v-inbound')
+		expect(resolveMachineService('Basic secret', tokens)).toBeUndefined()
+		expect(resolveMachineService('Bearer wrong', tokens)).toBeUndefined()
+		expect(resolveMachineService(undefined, tokens)).toBeUndefined()
+		expect(
+			resolveMachineService('Bearer dupe', 'a:dupe,b:dupe'),
+		).toBeUndefined()
 	})
 
 	test('machine failures expose only stable allowlisted codes', () => {
 		expect(toMachineError(new Error('idempotency_conflict'))).toEqual({
 			code: 'idempotency_conflict',
 			status: 409,
+		})
+		expect(toMachineError(new Error('idempotency_conflict:conv_1'))).toEqual({
+			code: 'idempotency_conflict',
+			status: 409,
+			conversationId: 'conv_1',
 		})
 		expect(toMachineError(new Error('database details'))).toEqual({
 			code: 'machine_request_failed',

@@ -54,6 +54,16 @@ export default defineSchema({
 	[conversations.tableName]: conversations.table
 		.index('by_tenant', ['tenant'])
 		.index('by_tenant_and_conversationKey', ['tenant', 'conversationKey'])
+		/** Server-side redelivery dedupe: stateless webhook callers may mint a
+		 * fresh key on provider redelivery; a matching session is the same
+		 * attempt. */
+		.index('by_tenant_provider_session', [
+			'tenant',
+			'provider',
+			'providerSessionId',
+		])
+		/** Retention purge pages unredacted finished conversations by endedAt. */
+		.index('by_redaction', ['redactedAt', 'endedAt'])
 		.index('by_agent', ['agentId'])
 		.index('by_agentVariantId', ['agentVariantId'])
 		.index('by_status', ['tenant', 'status'])

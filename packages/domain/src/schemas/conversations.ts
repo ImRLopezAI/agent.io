@@ -73,6 +73,8 @@ export const conversations = tenantTable('conversations', (id) => ({
 	whatsappAccountId: id('whatsappAccounts').optional(),
 	batchCallRecipientId: id('batchCallRecipients').optional(),
 	externalNumber: z.string().optional(),
+	/** Set once the retention purge or an erasure request redacted PII. */
+	redactedAt: z.string().optional(),
 	// rollups
 	usage: z
 		.object({

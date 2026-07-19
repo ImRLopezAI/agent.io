@@ -157,6 +157,9 @@ export const create = tenantMutation({
 			isMain: false,
 			allocationOrdinal,
 			trafficWeightBps: 0,
+			conversationCount: 0,
+			doneCount: 0,
+			failedCount: 0,
 			draft: main.draft,
 			archived: false,
 			createdAt: now(),
@@ -251,6 +254,38 @@ export const publish = tenantMutation({
 			'Agent Variant',
 		)
 		return publishVariantForContext(ctx, variantId)
+	},
+})
+
+/**
+ * Emergency rollback for a bad publish or merge: repoints the Variant to any
+ * of its existing immutable Versions. No new Version row, no draft mutation,
+ * no allocation change — nothing new can enter the deployment through this
+ * path, so it cannot act as a publish bypass.
+ */
+export const republishVersion = tenantMutation({
+	args: { agentVariantId: z.string(), versionId: z.string() },
+	handler: async (ctx, args) => {
+		requirePermission(ctx.org, 'prompts:write')
+		const variant = await getVariant(ctx, args.agentVariantId)
+		if (variant.archived) {
+			throw new Error('archived Variants cannot republish')
+		}
+		const versionId = await resolveTenantId(
+			ctx,
+			'agentVersions',
+			args.versionId,
+			'Agent Version',
+		)
+		const version = await ctx.db.get(versionId)
+		if (!version || version.agentVariantId !== variant._id) {
+			throw new Error('Agent Version not found')
+		}
+		await ctx.db.patch(variant._id, {
+			publishedVersionId: versionId,
+			updatedAt: now(),
+		})
+		return { publishedVersionId: versionId, version: version.version }
 	},
 })
 

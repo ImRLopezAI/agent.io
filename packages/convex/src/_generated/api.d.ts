@@ -153,6 +153,12 @@ export declare const api: {
       >;
       publish: FunctionReference<"mutation", "public", { id: string }, any>;
       remove: FunctionReference<"mutation", "public", { id: string }, any>;
+      republishVersion: FunctionReference<
+        "mutation",
+        "public",
+        { agentVariantId: string; versionId: string },
+        any
+      >;
       setTrafficAllocation: FunctionReference<
         "mutation",
         "public",
@@ -245,6 +251,18 @@ export declare const api: {
             };
             name?: string;
           };
+        },
+        any
+      >;
+    };
+    batchCalls: {
+      setVariantOverride: FunctionReference<
+        "mutation",
+        "public",
+        {
+          agentVariantOverrideId: string | null;
+          batchId: string;
+          reason?: string;
         },
         any
       >;
@@ -678,6 +696,7 @@ export declare const internal: {
         "internal",
         {
           audioStorageId?: string;
+          conversationKey: string;
           interrupted?: boolean;
           messageKey?: string;
           ownerId: Id<"conversations">;
@@ -699,6 +718,7 @@ export declare const internal: {
         "mutation",
         "internal",
         {
+          conversationKey: string;
           durationSecs?: number;
           ownerId: Id<"conversations">;
           status: "done" | "failed";
@@ -769,7 +789,6 @@ export declare const internal: {
         "mutation",
         "internal",
         {
-          agentVariantOverrideId?: string;
           conversationKey: string;
           destinationCountryCode?: string;
           destinationRegionCode?: string;
@@ -851,7 +870,9 @@ export declare const internal: {
             agentId: Id<"agents">;
             allocationOrdinal: number;
             archived?: boolean;
+            conversationCount?: number;
             createdAt: string;
+            doneCount?: number;
             draft: {
               audio?: {
                 input: {
@@ -927,6 +948,7 @@ export declare const internal: {
                 | { mode: "manual" };
               voice: string;
             };
+            failedCount?: number;
             isMain?: boolean;
             name: string;
             publishedVersionId?: Id<"agentVersions">;
@@ -974,7 +996,9 @@ export declare const internal: {
               agentId?: Id<"agents">;
               allocationOrdinal?: number;
               archived?: boolean;
+              conversationCount?: number;
               createdAt?: string;
+              doneCount?: number;
               draft?: {
                 audio?: {
                   input: {
@@ -1050,6 +1074,7 @@ export declare const internal: {
                   | { mode: "manual" };
                 voice: string;
               };
+              failedCount?: number;
               isMain?: boolean;
               name?: string;
               publishedVersionId?: Id<"agentVersions">;
@@ -1397,6 +1422,9 @@ export declare const internal: {
             };
             createdAt: string;
             name: string;
+            overrideAuthorizedBy?: string;
+            overrideReason?: string;
+            redactedAt?: string;
             ringingTimeoutSecs?: number;
             scheduledAt?: string;
             status:
@@ -1459,6 +1487,9 @@ export declare const internal: {
               };
               createdAt?: string;
               name?: string;
+              overrideAuthorizedBy?: string;
+              overrideReason?: string;
+              redactedAt?: string;
               ringingTimeoutSecs?: number;
               scheduledAt?: string;
               status?:
@@ -1765,6 +1796,7 @@ export declare const internal: {
             };
             provider: "openai" | "xai";
             providerSessionId?: string;
+            redactedAt?: string;
             startedAt: string;
             status:
               "initiated" | "in_progress" | "processing" | "done" | "failed";
@@ -1847,6 +1879,7 @@ export declare const internal: {
               };
               provider?: "openai" | "xai";
               providerSessionId?: string;
+              redactedAt?: string;
               startedAt?: string;
               status?:
                 "initiated" | "in_progress" | "processing" | "done" | "failed";
@@ -2450,6 +2483,20 @@ export declare const internal: {
               updatedAt?: string;
             };
           },
+          any
+        >;
+      };
+      retention: {
+        deleteConversationData: FunctionReference<
+          "mutation",
+          "internal",
+          { conversationIds: Array<Id<"conversations">>; tenant: string },
+          any
+        >;
+        purgeExpiredConversationData: FunctionReference<
+          "mutation",
+          "internal",
+          { limit?: number; retentionDays: number },
           any
         >;
       };

@@ -249,6 +249,139 @@ describe('crud tier + triggers (Units 8-9)', () => {
 	})
 })
 
+describe('retention and erasure (hardening U8)', () => {
+	const conversationDoc = (
+		ids: { agentId: unknown; variantId: unknown; versionId: unknown },
+		overrides: Record<string, unknown>,
+	) => ({
+		tenant: ORG_A,
+		conversationKey: 'ret-default',
+		idempotencyFingerprint: 'fp',
+		agentId: ids.agentId as never,
+		agentVariantId: ids.variantId as never,
+		agentVersionId: ids.versionId as never,
+		allocationMode: 'weighted' as const,
+		workflow: 'inbound' as const,
+		provider: 'openai' as const,
+		channel: 'voice_inbound' as const,
+		direction: 'inbound' as const,
+		status: 'done' as const,
+		startedAt: T0,
+		hasAudio: false,
+		messageCount: 1,
+		createdAt: T0,
+		externalNumber: '+18095550001',
+		...overrides,
+	})
+
+	test('purge redacts expired conversations, keeps recent, sweeps abandoned', async () => {
+		const t = convexTest(schema, modules)
+		const ids = await seedAgentWithVersion(t, ORG_A)
+		const { expiredId, recentId, abandonedId } = await t.run(async (ctx) => {
+			const expiredId = await ctx.db.insert(
+				'conversations',
+				conversationDoc(ids, {
+					conversationKey: 'ret-expired-1',
+					endedAt: '2026-01-01T00:00:00.000Z',
+				}) as never,
+			)
+			await ctx.db.insert('conversationMessages', {
+				tenant: ORG_A,
+				conversationId: expiredId,
+				agentId: ids.agentId as never,
+				agentVariantId: ids.variantId as never,
+				sequence: 1,
+				role: 'user',
+				text: 'sensitive transcript',
+				interrupted: false,
+				createdAt: T0,
+			} as never)
+			const recentId = await ctx.db.insert(
+				'conversations',
+				conversationDoc(ids, {
+					conversationKey: 'ret-recent-1',
+					endedAt: new Date().toISOString(),
+				}) as never,
+			)
+			const abandonedId = await ctx.db.insert(
+				'conversations',
+				conversationDoc(ids, {
+					conversationKey: 'ret-abandoned-1',
+					status: 'initiated',
+					endedAt: undefined,
+				}) as never,
+			)
+			return { expiredId, recentId, abandonedId }
+		})
+		await t.mutation(
+			internal.api.internals.retention.purgeExpiredConversationData,
+			{ retentionDays: 30 },
+		)
+		const [expired, recent, abandoned, messages] = await t.run(async (ctx) => [
+			await ctx.db.get(expiredId),
+			await ctx.db.get(recentId),
+			await ctx.db.get(abandonedId),
+			await ctx.db
+				.query('conversationMessages')
+				.withIndex('by_conversation', (q) => q.eq('conversationId', expiredId))
+				.collect(),
+		])
+		expect((expired as { redactedAt?: string })?.redactedAt).toBeDefined()
+		expect(
+			(expired as { externalNumber?: string })?.externalNumber,
+		).toBeUndefined()
+		expect((expired as { conversationKey?: string })?.conversationKey).toBe(
+			`redacted:${expiredId}`,
+		)
+		expect((expired as { agentVariantId?: string })?.agentVariantId).toBe(
+			ids.variantId,
+		)
+		expect(messages).toHaveLength(0)
+		expect((recent as { redactedAt?: string })?.redactedAt).toBeUndefined()
+		expect((recent as { externalNumber?: string })?.externalNumber).toBe(
+			'+18095550001',
+		)
+		// _creationTime is set at insert, so the abandoned row is not yet past
+		// the window — a purge with a future cutoff exercises Sweep B.
+		expect((abandoned as { status?: string })?.status).toBe('initiated')
+		await t.mutation(
+			internal.api.internals.retention.purgeExpiredConversationData,
+			{ retentionDays: -1 },
+		)
+		const abandonedAfter = await t.run(async (ctx) => ctx.db.get(abandonedId))
+		expect((abandonedAfter as { status?: string })?.status).toBe('failed')
+		expect(
+			(abandonedAfter as { terminationReason?: string })?.terminationReason,
+		).toBe('never_dialed')
+	})
+
+	test('erasure primitive redacts named conversations, tenant-guarded', async () => {
+		const t = convexTest(schema, modules)
+		const ids = await seedAgentWithVersion(t, ORG_A)
+		const conversationId = await t.run(async (ctx) =>
+			ctx.db.insert(
+				'conversations',
+				conversationDoc(ids, {
+					conversationKey: 'ret-erase-1',
+					endedAt: new Date().toISOString(),
+				}) as never,
+			),
+		)
+		const wrongTenant = await t.mutation(
+			internal.api.internals.retention.deleteConversationData,
+			{ tenant: ORG_B, conversationIds: [conversationId] },
+		)
+		expect(wrongTenant.redacted).toBe(0)
+		const result = await t.mutation(
+			internal.api.internals.retention.deleteConversationData,
+			{ tenant: ORG_A, conversationIds: [conversationId] },
+		)
+		expect(result.redacted).toBe(1)
+		const row = await t.run(async (ctx) => ctx.db.get(conversationId))
+		expect((row as { redactedAt?: string })?.redactedAt).toBeDefined()
+	})
+})
+
 describe('conversation machine path (Unit 10)', () => {
 	test('start from phone → appends with gapless sequences → finish', async () => {
 		const t = convexTest(schema, modules)
@@ -297,6 +430,7 @@ describe('conversation machine path (Unit 10)', () => {
 				provider: 'openai',
 			},
 		)
+		const conversationKey = 'api-inbound-1'
 		const retriedConversationId = await t.mutation(
 			internal.api.conversations.startFromPhoneNumber,
 			{
@@ -313,10 +447,31 @@ describe('conversation machine path (Unit 10)', () => {
 				provider: 'xai',
 			}),
 		).rejects.toThrow(/idempotency_conflict/)
+		// Stateless-caller redelivery: fresh key, same provider session → same row.
+		const sessionConversationId = await t.mutation(
+			internal.api.conversations.startFromPhoneNumber,
+			{
+				ownerId: phoneId,
+				conversationKey: 'api-inbound-session-1',
+				provider: 'openai',
+				providerSessionId: 'CA_redelivery_1',
+			},
+		)
+		const redeliveredConversationId = await t.mutation(
+			internal.api.conversations.startFromPhoneNumber,
+			{
+				ownerId: phoneId,
+				conversationKey: 'api-inbound-session-2',
+				provider: 'openai',
+				providerSessionId: 'CA_redelivery_1',
+			},
+		)
+		expect(redeliveredConversationId).toBe(sessionConversationId)
 		let firstRetrySequence: number | undefined
 		for (let i = 0; i < 3; i++) {
 			const appendArgs = {
 				ownerId: conversationId,
+				conversationKey,
 				messageKey: `turn:${i}`,
 				role: i % 2 === 0 ? ('user' as const) : ('agent' as const),
 				text: `turn ${i}`,
@@ -340,6 +495,7 @@ describe('conversation machine path (Unit 10)', () => {
 			internal.api.conversations.appendMessage,
 			{
 				ownerId: conversationId,
+				conversationKey,
 				role: 'agent',
 				toolResults: [
 					{
@@ -353,14 +509,24 @@ describe('conversation machine path (Unit 10)', () => {
 			},
 		)
 		expect(retrieval.sequence).toBe(4)
+		await expect(
+			t.mutation(internal.api.conversations.finish, {
+				ownerId: conversationId,
+				conversationKey: 'wrong-key',
+				status: 'done',
+				durationSecs: 42,
+			}),
+		).rejects.toThrow(/conversation_key_mismatch/)
 		await t.mutation(internal.api.conversations.finish, {
 			ownerId: conversationId,
+			conversationKey,
 			status: 'done',
 			durationSecs: 42,
 		})
 		expect(
 			await t.mutation(internal.api.conversations.finish, {
 				ownerId: conversationId,
+				conversationKey,
 				status: 'done',
 				durationSecs: 42,
 			}),
@@ -368,6 +534,7 @@ describe('conversation machine path (Unit 10)', () => {
 		await expect(
 			t.mutation(internal.api.conversations.finish, {
 				ownerId: conversationId,
+				conversationKey,
 				status: 'done',
 				durationSecs: 43,
 			}),
@@ -378,6 +545,13 @@ describe('conversation machine path (Unit 10)', () => {
 		expect(conversation?.tenant).toBe(ORG_A)
 		expect(conversation?.agentVariantId).toBe(variantId)
 		expect(conversation?.allocationMode).toBe('weighted')
+		const variantAfter = await t.run(async (ctx) =>
+			ctx.db.get(variantId as Id<'agentVariants'>),
+		)
+		// 1 keyed conversation + 1 session-dedupe conversation; one finish
+		expect(variantAfter?.conversationCount).toBe(2)
+		expect(variantAfter?.doneCount).toBe(1)
+		expect(variantAfter?.failedCount ?? 0).toBe(0)
 		expect(conversation?.status).toBe('done')
 		expect(conversation?.messageCount).toBe(4)
 		expect(conversation?.phoneNumberSnapshot?.number).toBe('+15551234567')
@@ -412,6 +586,7 @@ describe('conversation machine path (Unit 10)', () => {
 		await expect(
 			t.mutation(internal.api.conversations.appendMessage, {
 				ownerId: conversationId,
+				conversationKey,
 				role: 'user',
 				text: 'late',
 				interrupted: false,
@@ -628,6 +803,10 @@ describe('kb search scoping (U2)', () => {
 		const scope = await t.query(internal.api.kbSearch.scopeForConversation, {
 			conversationId: seeded.conversationId,
 		})
-		expect(scope).toEqual({ tenant: ORG_A, documentIds: [seeded.readyAuto] })
+		expect(scope).toEqual({
+			tenant: ORG_A,
+			conversationKey: 'kb-scope-1',
+			documentIds: [seeded.readyAuto],
+		})
 	})
 })

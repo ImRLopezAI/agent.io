@@ -1,3 +1,4 @@
+import { conversationFingerprint } from '@agent.io/domain'
 import {
 	CONVERSATION_CHANNELS,
 	CONVERSATION_DIRECTIONS,
@@ -10,7 +11,7 @@ import {
 import { v } from 'convex/values'
 import { z } from 'zod'
 
-import type { Doc } from '../_generated/dataModel'
+import type { Doc, Id } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { nativePaginationOpts, now } from '../lib'
 import {
@@ -29,6 +30,7 @@ import {
 	resolveAgentDeployment,
 	type ResolvedDeployment,
 } from './internals/agentRouting'
+import { serviceTokensMatch } from './internals/machineAuth'
 import { selectOutboundNumber } from './phoneRouting'
 
 /**
@@ -46,6 +48,71 @@ const startBaseShape = {
 
 const fingerprint = (value: Record<string, unknown>) => JSON.stringify(value)
 
+/**
+ * Idempotency for starts, two layers:
+ * 1. `conversationKey` lookup — the caller re-sent its stored key.
+ * 2. Provider-session dedupe — a stateless webhook caller crashed before
+ *    persisting its key and minted a fresh one on redelivery; a same-tenant
+ *    same-provider `providerSessionId` match with an identical durable
+ *    fingerprint is the same attempt and returns the stored row.
+ * A fingerprint mismatch on either layer is a conflict carrying the existing
+ * conversation id so the caller can recover by fetching.
+ */
+const findExistingStart = async (
+	ctx: Pick<MutationCtx, 'db'> & { tenant: string },
+	args: {
+		conversationKey: string
+		provider: Doc<'conversations'>['provider']
+		providerSessionId?: string
+	},
+	idempotencyFingerprint: string,
+) => {
+	const byKey = await ctx.db
+		.query('conversations')
+		.withIndex('by_tenant_and_conversationKey', (q) =>
+			q.eq('tenant', ctx.tenant).eq('conversationKey', args.conversationKey),
+		)
+		.unique()
+	if (byKey) {
+		if (byKey.idempotencyFingerprint !== idempotencyFingerprint) {
+			throw new Error(`idempotency_conflict:${byKey._id}`)
+		}
+		return byKey
+	}
+	if (!args.providerSessionId) return null
+	const bySession = await ctx.db
+		.query('conversations')
+		.withIndex('by_tenant_provider_session', (q) =>
+			q
+				.eq('tenant', ctx.tenant)
+				.eq('provider', args.provider)
+				.eq('providerSessionId', args.providerSessionId),
+		)
+		.first()
+	if (!bySession) return null
+	if (bySession.idempotencyFingerprint !== idempotencyFingerprint) {
+		throw new Error(`idempotency_conflict:${bySession._id}`)
+	}
+	return bySession
+}
+
+/** Terminal reasons for outbound attempts whose provider dial never happened. */
+const DIAL_FAILURE_REASONS = new Set(['dial_failed', 'never_dialed'])
+
+/**
+ * Per-Variant outcome counters (merge-decision signal). Runs inside the
+ * start/finish transaction; Convex OCC serializes concurrent bumps.
+ */
+const bumpVariantCounter = async (
+	ctx: Pick<MutationCtx, 'db'>,
+	agentVariantId: Id<'agentVariants'>,
+	field: 'conversationCount' | 'doneCount' | 'failedCount',
+) => {
+	const variant = await ctx.db.get(agentVariantId)
+	if (!variant) return
+	await ctx.db.patch(agentVariantId, { [field]: (variant[field] ?? 0) + 1 })
+}
+
 const toDeploymentAttribution = (deployment: ResolvedDeployment) => ({
 	agentId: deployment.agent._id,
 	agentVariantId: deployment.variant._id,
@@ -55,24 +122,6 @@ const toDeploymentAttribution = (deployment: ResolvedDeployment) => ({
 	allocationRevision: deployment.allocationRevision,
 	workflow: deployment.workflow,
 })
-
-const existingConversation = async (
-	ctx: Pick<MutationCtx, 'db'> & { tenant: string },
-	conversationKey: string,
-	idempotencyFingerprint: string,
-) => {
-	const existing = await ctx.db
-		.query('conversations')
-		.withIndex('by_tenant_and_conversationKey', (q) =>
-			q.eq('tenant', ctx.tenant).eq('conversationKey', conversationKey),
-		)
-		.unique()
-	if (!existing) return null
-	if (existing.idempotencyFingerprint !== idempotencyFingerprint) {
-		throw new Error('idempotency_conflict')
-	}
-	return existing
-}
 
 export const getMachineStartResult = internalQuery({
 	args: { conversationId: v.id('conversations') },
@@ -141,18 +190,12 @@ export const startFromPhoneNumber = machineMutation('phoneNumbers')({
 	args: startBaseShape,
 	handler: async (ctx, args) => {
 		const phone = ctx.owner as Doc<'phoneNumbers'>
-		const idempotencyFingerprint = fingerprint({
+		const idempotencyFingerprint = conversationFingerprint({
 			direction: 'inbound',
 			ownerId: phone._id,
 			provider: args.provider,
-			providerSessionId: args.providerSessionId,
-			externalNumber: args.externalNumber,
 		})
-		const existing = await existingConversation(
-			ctx as never,
-			args.conversationKey,
-			idempotencyFingerprint,
-		)
+		const existing = await findExistingStart(ctx, args, idempotencyFingerprint)
 		if (existing) return existing._id
 		const connection = await ctx.db.get(phone.telephonyConnectionId)
 		if (
@@ -165,12 +208,12 @@ export const startFromPhoneNumber = machineMutation('phoneNumbers')({
 		) {
 			throw new Error('phone_number_not_routable')
 		}
-		const deployment = await resolveAgentDeployment(ctx as never, {
+		const deployment = await resolveAgentDeployment(ctx, {
 			agentId: phone.assignedAgentId,
 			conversationKey: args.conversationKey,
 			workflow: 'inbound',
 		})
-		return ctx.db.insert('conversations', {
+		const inboundConversationId = await ctx.db.insert('conversations', {
 			tenant: ctx.tenant,
 			conversationKey: args.conversationKey,
 			idempotencyFingerprint,
@@ -193,6 +236,8 @@ export const startFromPhoneNumber = machineMutation('phoneNumbers')({
 			direction: 'inbound',
 			externalNumber: args.externalNumber,
 		})
+		await bumpVariantCounter(ctx, deployment.variant._id, 'conversationCount')
+		return inboundConversationId
 	},
 })
 
@@ -207,18 +252,13 @@ export const startFromWhatsappAccount = machineMutation('whatsappAccounts')({
 	},
 	handler: async (ctx, args) => {
 		const account = ctx.owner as Doc<'whatsappAccounts'>
-		const idempotencyFingerprint = fingerprint({
+		const idempotencyFingerprint = conversationFingerprint({
+			channel: 'whatsapp',
 			direction: args.direction,
 			ownerId: account._id,
 			provider: args.provider,
-			providerSessionId: args.providerSessionId,
-			externalNumber: args.externalNumber,
 		})
-		const existing = await existingConversation(
-			ctx as never,
-			args.conversationKey,
-			idempotencyFingerprint,
-		)
+		const existing = await findExistingStart(ctx, args, idempotencyFingerprint)
 		if (existing) return existing._id
 		if (
 			account.status !== 'active' ||
@@ -227,12 +267,12 @@ export const startFromWhatsappAccount = machineMutation('whatsappAccounts')({
 		) {
 			throw new Error('whatsapp_account_not_routable')
 		}
-		const deployment = await resolveAgentDeployment(ctx as never, {
+		const deployment = await resolveAgentDeployment(ctx, {
 			agentId: account.assignedAgentId,
 			conversationKey: args.conversationKey,
 			workflow: 'none',
 		})
-		return ctx.db.insert('conversations', {
+		const whatsappConversationId = await ctx.db.insert('conversations', {
 			tenant: ctx.tenant,
 			conversationKey: args.conversationKey,
 			idempotencyFingerprint,
@@ -249,6 +289,8 @@ export const startFromWhatsappAccount = machineMutation('whatsappAccounts')({
 			direction: args.direction,
 			externalNumber: args.externalNumber,
 		})
+		await bumpVariantCounter(ctx, deployment.variant._id, 'conversationCount')
+		return whatsappConversationId
 	},
 })
 
@@ -261,21 +303,15 @@ export const startFromVersion = machineMutation('agentVersions')({
 	},
 	handler: async (ctx, args) => {
 		const version = ctx.owner as Doc<'agentVersions'>
-		const idempotencyFingerprint = fingerprint({
+		const idempotencyFingerprint = conversationFingerprint({
 			channel: args.channel,
 			direction: args.direction,
 			ownerId: version._id,
 			provider: args.provider,
-			providerSessionId: args.providerSessionId,
-			externalNumber: args.externalNumber,
 		})
-		const existing = await existingConversation(
-			ctx as never,
-			args.conversationKey,
-			idempotencyFingerprint,
-		)
+		const existing = await findExistingStart(ctx, args, idempotencyFingerprint)
 		if (existing) return existing._id
-		return ctx.db.insert('conversations', {
+		const directConversationId = await ctx.db.insert('conversations', {
 			tenant: ctx.tenant,
 			conversationKey: args.conversationKey,
 			idempotencyFingerprint,
@@ -295,6 +331,8 @@ export const startFromVersion = machineMutation('agentVersions')({
 			direction: args.direction,
 			externalNumber: args.externalNumber,
 		})
+		await bumpVariantCounter(ctx, version.agentVariantId, 'conversationCount')
+		return directConversationId
 	},
 })
 
@@ -305,27 +343,20 @@ export const startOutboundFromRecipient = machineMutation(
 		...startBaseShape,
 		destinationCountryCode: z.string().optional(),
 		destinationRegionCode: z.string().optional(),
-		agentVariantOverrideId: z.string().optional(),
 	},
 	handler: async (ctx, args) => {
 		const recipient = ctx.owner as Doc<'batchCallRecipients'>
 		const batch = await ctx.db.get(recipient.batchId)
 		if (!batch || batch.tenant !== ctx.tenant)
 			throw new Error('batch_not_found')
-		const idempotencyFingerprint = fingerprint({
+		const idempotencyFingerprint = conversationFingerprint({
 			direction: 'outbound',
 			ownerId: recipient._id,
 			provider: args.provider,
-			providerSessionId: args.providerSessionId,
 			destinationCountryCode: args.destinationCountryCode,
 			destinationRegionCode: args.destinationRegionCode,
-			agentVariantOverrideId: args.agentVariantOverrideId,
 		})
-		const existing = await existingConversation(
-			ctx as never,
-			args.conversationKey,
-			idempotencyFingerprint,
-		)
+		const existing = await findExistingStart(ctx, args, idempotencyFingerprint)
 		if (existing) return existing._id
 		if (
 			recipient.conversationId ||
@@ -336,14 +367,15 @@ export const startOutboundFromRecipient = machineMutation(
 		if (!['pending', 'in_progress'].includes(batch.status)) {
 			throw new Error('batch_not_routable')
 		}
-		const variantOverrideId =
-			args.agentVariantOverrideId ?? batch.agentVariantOverrideId
-		const selected = await selectOutboundNumber(ctx as never, {
+		// Overrides come only from persisted, tenant-admin-authorized batch
+		// state — never from the machine request body (see api/batchCalls.ts).
+		const variantOverrideId = batch.agentVariantOverrideId
+		const selected = await selectOutboundNumber(ctx, {
 			recipientId: recipient._id,
 			destinationCountryCode: args.destinationCountryCode,
 			destinationRegionCode: args.destinationRegionCode,
 		})
-		const deployment = await resolveAgentDeployment(ctx as never, {
+		const deployment = await resolveAgentDeployment(ctx, {
 			agentId: batch.agentId,
 			conversationKey: args.conversationKey,
 			workflow: 'outbound',
@@ -379,16 +411,33 @@ export const startOutboundFromRecipient = machineMutation(
 			status: 'initiated',
 			updatedAt: now(),
 		})
+		await bumpVariantCounter(ctx, deployment.variant._id, 'conversationCount')
 		return conversationId
 	},
 })
 
 /**
- * Append one turn. `sequence` is assigned mutation-side via read-max+1
- * (OCC-safe per conversation; stays correct if a second writer appears).
+ * The stored `conversationKey` doubles as the ownership proof for lifecycle
+ * mutations (a valid service token alone is not enough): callers re-present
+ * the key and it is compared constant-work, like a service token.
+ */
+const requireConversationKey = (
+	conversation: { conversationKey: string },
+	providedKey: string,
+) => {
+	if (!serviceTokensMatch(providedKey, conversation.conversationKey)) {
+		throw new Error('conversation_key_mismatch')
+	}
+}
+
+/**
+ * Append one turn. `sequence` derives from the stored `messageCount` counter;
+ * Convex OCC serializes the mutation, so concurrent appends retry rather than
+ * collide and sequences stay gapless.
  */
 export const appendMessage = machineMutation('conversations')({
 	args: {
+		conversationKey: z.string().min(1).max(255),
 		messageKey: z.string().min(1).max(255).optional(),
 		role: z.enum(MESSAGE_ROLES),
 		text: z.string().optional(),
@@ -399,26 +448,21 @@ export const appendMessage = machineMutation('conversations')({
 		audioStorageId: z.string().optional(),
 	},
 	handler: async (ctx, args) => {
-		const conversation = ctx.owner as {
-			_id: string
-			agentId: string
-			agentVariantId: string
-			status: string
-			messageCount: number
-			tenant: string
-		}
+		const conversation = ctx.owner as Doc<'conversations'>
+		requireConversationKey(conversation, args.conversationKey)
 		if (conversation.status === 'done' || conversation.status === 'failed') {
 			throw new Error(`cannot append to a ${conversation.status} conversation`)
 		}
+		const { conversationKey: _conversationKey, ...messageArgs } = args
 		const idempotencyFingerprint = args.messageKey
-			? fingerprint(args)
+			? fingerprint(messageArgs)
 			: undefined
 		if (args.messageKey) {
 			const existing = await ctx.db
 				.query('conversationMessages')
 				.withIndex('by_conversation_and_messageKey', (q) =>
 					q
-						.eq('conversationId', conversation._id as never)
+						.eq('conversationId', conversation._id)
 						.eq('messageKey', args.messageKey),
 				)
 				.unique()
@@ -432,28 +476,26 @@ export const appendMessage = machineMutation('conversations')({
 		const sequence = conversation.messageCount + 1
 		const messageId = await ctx.db.insert('conversationMessages', {
 			tenant: ctx.tenant,
-			conversationId: conversation._id as never,
-			agentId: conversation.agentId as never,
-			agentVariantId: conversation.agentVariantId as never,
+			conversationId: conversation._id,
+			agentId: conversation.agentId,
+			agentVariantId: conversation.agentVariantId,
 			sequence,
 			idempotencyFingerprint,
 			createdAt: now(),
-			...args,
+			...messageArgs,
 		})
-		await ctx.db.patch(
-			conversation._id as never,
-			{
-				messageCount: conversation.messageCount + 1,
-				status: 'in_progress',
-				...(args.audioStorageId ? { hasAudio: true } : {}),
-			} as never,
-		)
+		await ctx.db.patch(conversation._id, {
+			messageCount: conversation.messageCount + 1,
+			status: 'in_progress',
+			...(args.audioStorageId ? { hasAudio: true } : {}),
+		})
 		return { messageId, sequence }
 	},
 })
 
 export const finish = machineMutation('conversations')({
 	args: {
+		conversationKey: z.string().min(1).max(255),
 		status: z.enum(['done', 'failed']),
 		terminationReason: z.string().optional(),
 		durationSecs: z.number().nonnegative().optional(),
@@ -466,12 +508,21 @@ export const finish = machineMutation('conversations')({
 			.optional(),
 	},
 	handler: async (ctx, args) => {
-		const conversation = ctx.owner as {
-			_id: string
-			status: string
-			terminationReason?: string
-			durationSecs?: number
-			usage?: { inputTokens: number; outputTokens: number; costUsd?: number }
+		const conversation = ctx.owner as Doc<'conversations'>
+		requireConversationKey(conversation, args.conversationKey)
+		// A dial that never happened is only reportable while the call never
+		// progressed past `initiated` — once media flowed the call did start.
+		const isDialFailure =
+			args.terminationReason !== undefined &&
+			DIAL_FAILURE_REASONS.has(args.terminationReason)
+		if (
+			isDialFailure &&
+			(args.status !== 'failed' ||
+				(conversation.status !== 'initiated' &&
+					conversation.status !== 'done' &&
+					conversation.status !== 'failed'))
+		) {
+			throw new Error('dial_failure_invalid')
 		}
 		if (conversation.status === 'done' || conversation.status === 'failed') {
 			const metadataMatches =
@@ -486,13 +537,26 @@ export const finish = machineMutation('conversations')({
 			}
 			return { status: 'already_finished' as const }
 		}
-		await ctx.db.patch(
-			conversation._id as never,
-			{
-				...args,
-				endedAt: now(),
-			} as never,
+		const { conversationKey: _conversationKey, ...finishArgs } = args
+		await ctx.db.patch(conversation._id, {
+			...finishArgs,
+			endedAt: now(),
+		})
+		// Dial failures flow back to the batch recipient so campaigns can
+		// distinguish phantom attempts from real exposures. A re-dial is a new
+		// dispatch with a new stored conversationKey (v-outbound owns retry
+		// scheduling).
+		await bumpVariantCounter(
+			ctx,
+			conversation.agentVariantId,
+			args.status === 'done' ? 'doneCount' : 'failedCount',
 		)
+		if (isDialFailure && conversation.batchCallRecipientId) {
+			await ctx.db.patch(conversation.batchCallRecipientId, {
+				status: 'failed',
+				updatedAt: now(),
+			})
+		}
 		return { status: 'finished' as const }
 	},
 })

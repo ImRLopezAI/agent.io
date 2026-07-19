@@ -7,7 +7,7 @@ import { v } from 'convex/values'
 const app = defineApp({
 	env: {
 		AI_GATEWAY_API_KEY: v.string(),
-		CONVEX_SERVICE_TOKEN: v.string(),
+		CONVEX_SERVICE_TOKENS: v.string(),
 		EMAIL_FROM: v.string(),
 		RESEND_API_KEY: v.string(),
 		RESEND_WEBHOOK_SECRET: v.string(),

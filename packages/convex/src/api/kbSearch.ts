@@ -34,7 +34,11 @@ export const scopeForConversation = internalQuery({
 				documentIds.push(documentId)
 			}
 		}
-		return { tenant: conversation.tenant, documentIds }
+		return {
+			tenant: conversation.tenant,
+			conversationKey: conversation.conversationKey,
+			documentIds,
+		}
 	},
 })
 
@@ -202,6 +206,7 @@ export const searchKnowledge = internalAction({
 					})
 		await ctx.runMutation(internal.api.conversations.appendMessage, {
 			ownerId: conversationId,
+			conversationKey: scope.conversationKey,
 			role: 'agent',
 			toolResults: [
 				{

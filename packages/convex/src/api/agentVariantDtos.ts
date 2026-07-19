@@ -19,6 +19,11 @@ export const toVariantSummary = (variant: VariantDoc) => ({
 		knowledgeBaseAttachments: variant.draft.knowledgeBase.length,
 		mcpConnections: variant.draft.mcp.length,
 	},
+	outcomes: {
+		conversationCount: variant.conversationCount ?? 0,
+		doneCount: variant.doneCount ?? 0,
+		failedCount: variant.failedCount ?? 0,
+	},
 	archived: variant.archived,
 	createdAt: variant.createdAt,
 	updatedAt: variant.updatedAt,
