@@ -15,6 +15,8 @@ import * as React from 'react'
  * cell trigger validates against this symbol instead of referential equality.
  */
 const PREVIEW_TAG: unique symbol = Symbol.for('sunday/grid-preview')
+const MIN_RESIZABLE_PREVIEW_WIDTH = 320
+const PREVIEW_VIEWPORT_GUTTER = 48
 
 interface PreviewTagged {
 	[PREVIEW_TAG]: true
@@ -63,6 +65,8 @@ export interface DataGridPreviewProps {
 	title?: React.ReactNode
 	/** Panel width variant. Defaults to `default` (28rem). */
 	size?: DataGridPreviewSize
+	/** Lets the user drag the panel's left edge to change its width. */
+	resizable?: boolean
 	/** Extra props merged (mergeProps) onto each part. */
 	props?: DataGridPreviewSlotProps
 }
@@ -89,6 +93,7 @@ interface DataGridPreviewPayload {
 	footer?: useRender.RenderProp<DataGridPreviewState>
 	title?: React.ReactNode
 	size?: DataGridPreviewSize
+	resizable?: boolean
 	slotProps?: DataGridPreviewSlotProps
 }
 
@@ -240,6 +245,7 @@ function DataGridPreviewImpl({
 	footer,
 	title,
 	size,
+	resizable,
 	props: slotProps,
 }: DataGridPreviewProps) {
 	const cellContext = React.useContext(DataGridPreviewCellContext)
@@ -260,6 +266,7 @@ function DataGridPreviewImpl({
 		footer,
 		title,
 		size,
+		resizable,
 		slotProps,
 	}
 
@@ -361,7 +368,7 @@ export function DataGridPreviewCellTrigger<TData>({
 			ref={wrapperRef}
 			data-slot='grid-preview-trigger'
 			data-active={isActive ? '' : undefined}
-			className='absolute end-1.5 top-1/2 z-10 flex -translate-y-1/2 items-center opacity-0 transition-opacity focus-within:opacity-100 group-hover/grid-cell:opacity-100 data-active:opacity-100'
+			className='absolute inset-e-1.5 top-1/2 z-10 flex -translate-y-1/2 items-center opacity-0 transition-opacity focus-within:opacity-100 group-hover/grid-cell:opacity-100 data-active:opacity-100'
 		>
 			<DataGridPreviewCellContext.Provider value={cellContextValue}>
 				{element}
@@ -442,6 +449,46 @@ function DataGridPreviewPanel({
 	open: boolean
 }) {
 	const state = React.useMemo<DataGridPreviewState>(() => ({ open }), [open])
+	const popupRef = React.useRef<HTMLDivElement>(null)
+	const [resizedWidth, setResizedWidth] = React.useState<number | null>(null)
+
+	React.useEffect(() => {
+		if (!payload.resizable) setResizedWidth(null)
+	}, [payload.resizable])
+
+	const startResize = React.useCallback(
+		(event: React.PointerEvent<HTMLButtonElement>) => {
+			if (event.button !== 0) return
+			const initialWidth = popupRef.current?.getBoundingClientRect().width
+			if (!initialWidth) return
+
+			event.preventDefault()
+			const startX = event.clientX
+			const onPointerMove = (moveEvent: PointerEvent) => {
+				const maxWidth = Math.max(
+					MIN_RESIZABLE_PREVIEW_WIDTH,
+					window.innerWidth - PREVIEW_VIEWPORT_GUTTER,
+				)
+				setResizedWidth(
+					Math.min(
+						maxWidth,
+						Math.max(
+							MIN_RESIZABLE_PREVIEW_WIDTH,
+							initialWidth + startX - moveEvent.clientX,
+						),
+					),
+				)
+			}
+			const stopResize = () => {
+				window.removeEventListener('pointermove', onPointerMove)
+				window.removeEventListener('pointerup', stopResize)
+			}
+
+			window.addEventListener('pointermove', onPointerMove)
+			window.addEventListener('pointerup', stopResize, { once: true })
+		},
+		[],
+	)
 
 	const body = useRender({
 		render: payload.render,
@@ -477,14 +524,31 @@ function DataGridPreviewPanel({
 				className='pointer-events-none fixed inset-0 z-50 flex items-stretch justify-end'
 			>
 				<DrawerPrimitive.Popup
+					ref={popupRef}
 					data-slot='grid-preview-popup'
 					className={cn(dataGridPreviewPopupVariants({ size: payload.size }))}
+					style={
+						payload.resizable && resizedWidth !== null
+							? { width: `${resizedWidth}px` }
+							: undefined
+					}
 				>
+					{payload.resizable ? (
+						<button
+							aria-label='Resize preview'
+							className='group absolute inset-y-0 inset-s-0 z-20 flex w-3 cursor-col-resize touch-none items-center justify-center'
+							data-slot='grid-preview-resize-handle'
+							type='button'
+							onPointerDown={startResize}
+						>
+							<div className='h-12 w-1 rounded-full bg-border opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100' />
+						</button>
+					) : null}
 					{/* Swipe affordance: dragging the panel toward the edge dismisses
 					    it (Base UI swipe), mirroring the bottom drawer's grab pill. */}
 					<div
 						data-slot='grid-preview-handle'
-						className='absolute inset-y-0 start-0 z-10 flex w-4 cursor-grab touch-none items-center justify-center active:cursor-grabbing'
+						className='absolute inset-y-0 inset-s-0 z-10 flex w-4 cursor-grab touch-none items-center justify-center active:cursor-grabbing'
 					>
 						<div className='h-12 w-1 shrink-0 rounded-full bg-muted' />
 					</div>
@@ -518,7 +582,7 @@ function DataGridPreviewPanel({
 							</DrawerPrimitive.Title>
 							<DrawerPrimitive.Close
 								aria-label='Close preview'
-								className='absolute end-3 top-3 z-10 inline-flex size-6 items-center justify-center rounded-md bg-background/80 text-muted-foreground backdrop-blur-xs transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-ring'
+								className='absolute inset-e-3 top-3 z-10 inline-flex size-6 items-center justify-center rounded-md bg-background/80 text-muted-foreground backdrop-blur-xs transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-ring'
 							>
 								<X className='size-4' />
 							</DrawerPrimitive.Close>

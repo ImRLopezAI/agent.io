@@ -7,10 +7,17 @@ import { modules } from '../testModules.test'
 
 const ORG_A = 'org_aaaa'
 const ORG_B = 'org_bbbb'
+const T0 = '2026-07-05T00:00:00Z'
 
 const agentDoc = (tenant: string, name: string) => ({
 	tenant,
 	name,
+	allocationRevision: 0,
+	archived: false,
+	createdAt: T0,
+})
+
+const variantDraft = {
 	instructions: '',
 	model: { provider: 'openai' as const, model: 'gpt-realtime' },
 	voice: 'marin',
@@ -18,9 +25,9 @@ const agentDoc = (tenant: string, name: string) => ({
 	systemTools: {},
 	mcp: [],
 	knowledgeBase: [],
-	archived: false,
-	createdAt: '2026-07-05T00:00:00Z',
-})
+	inboundWorkflow: { enabled: true, firstSpeaker: 'caller' as const },
+	outboundWorkflow: { enabled: true, firstSpeaker: 'agent' as const },
+}
 
 describe('tenant isolation at the schema/db layer', () => {
 	test('by_tenant index scoping returns only the caller org rows', async () => {
@@ -42,33 +49,68 @@ describe('tenant isolation at the schema/db layer', () => {
 
 	test('machine-path derivation: conversation copies tenant from phone number', async () => {
 		const t = convexTest(schema, modules)
-		const { phoneId, agentId, versionId } = await t.run(async (ctx) => {
-			const agentId = await ctx.db.insert('agents', agentDoc(ORG_A, 'A'))
-			const versionId = await ctx.db.insert('agentVersions', {
-				tenant: ORG_A,
-				agentId,
-				version: 1,
-				publishedBy: 'user_1',
-				config: {
-					...agentDoc(ORG_A, 'A'),
-					tenant: undefined,
-					archived: undefined,
-					createdAt: undefined,
-					procedures: { kind: 'inline' as const, items: [] },
-				} as never,
-				createdAt: '2026-07-05T00:00:00Z',
-			})
-			const phoneId = await ctx.db.insert('phoneNumbers', {
-				tenant: ORG_A,
-				number: '+15551234567',
-				provider: 'twilio' as const,
-				label: '',
-				status: 'active' as const,
-				assignedAgentId: agentId,
-				createdAt: '2026-07-05T00:00:00Z',
-			})
-			return { phoneId, agentId, versionId }
-		})
+		const { phoneId, agentId, variantId, versionId } = await t.run(
+			async (ctx) => {
+				const agentId = await ctx.db.insert('agents', agentDoc(ORG_A, 'A'))
+				const variantId = await ctx.db.insert('agentVariants', {
+					tenant: ORG_A,
+					agentId,
+					name: 'Main',
+					isMain: true,
+					allocationOrdinal: 1,
+					trafficWeightBps: 10_000,
+					draft: variantDraft,
+					archived: false,
+					createdAt: T0,
+				})
+				const versionId = await ctx.db.insert('agentVersions', {
+					tenant: ORG_A,
+					agentId,
+					agentVariantId: variantId,
+					version: 1,
+					publishedBy: 'user_1',
+					config: {
+						...variantDraft,
+						procedures: { kind: 'inline' as const, items: [] },
+					},
+					createdAt: T0,
+				})
+				await ctx.db.patch(agentId, { mainVariantId: variantId })
+				await ctx.db.patch(variantId, { publishedVersionId: versionId })
+				const telephonyConnectionId = await ctx.db.insert(
+					'telephonyConnections',
+					{
+						tenant: ORG_A,
+						provider: 'twilio',
+						label: 'Test',
+						providerAccountId: 'AC_A',
+						credentialSecretRef: 'secret_a',
+						status: 'active',
+						createdAt: '2026-07-05T00:00:00Z',
+					},
+				)
+				const phoneId = await ctx.db.insert('phoneNumbers', {
+					tenant: ORG_A,
+					telephonyConnectionId,
+					providerNumberId: 'PN_A_1',
+					number: '+15551234567',
+					provider: 'twilio' as const,
+					label: '',
+					countryCode: 'US',
+					capabilities: {
+						inboundVoice: true,
+						outboundVoice: true,
+						inboundSms: false,
+						outboundSms: false,
+					},
+					inboundSmsEnabled: false,
+					status: 'active' as const,
+					assignedAgentId: agentId,
+					createdAt: '2026-07-05T00:00:00Z',
+				})
+				return { phoneId, agentId, variantId, versionId }
+			},
+		)
 
 		// derive tenant the machineMutation way: load owner, copy tenant
 		const derived = await t.run(async (ctx) => {
@@ -76,8 +118,13 @@ describe('tenant isolation at the schema/db layer', () => {
 			if (!owner?.tenant) throw new Error('no tenant on owner')
 			const conversationId = await ctx.db.insert('conversations', {
 				tenant: owner.tenant,
+				conversationKey: 'tenant-derivation-1',
+				idempotencyFingerprint: 'tenant-derivation-1',
 				agentId,
+				agentVariantId: variantId,
 				agentVersionId: versionId,
+				allocationMode: 'direct' as const,
+				workflow: 'inbound' as const,
 				provider: 'openai' as const,
 				channel: 'voice_inbound' as const,
 				direction: 'inbound' as const,
@@ -91,6 +138,7 @@ describe('tenant isolation at the schema/db layer', () => {
 			return ctx.db.get(conversationId)
 		})
 		expect(derived?.tenant).toBe(ORG_A)
+		expect(derived?.agentVariantId).toBe(variantId)
 	})
 
 	test('tenant mismatch across referenced resources is detectable', async () => {
@@ -98,25 +146,56 @@ describe('tenant isolation at the schema/db layer', () => {
 		const { phoneA, versionB } = await t.run(async (ctx) => {
 			const agentA = await ctx.db.insert('agents', agentDoc(ORG_A, 'A'))
 			const agentB = await ctx.db.insert('agents', agentDoc(ORG_B, 'B'))
+			const variantB = await ctx.db.insert('agentVariants', {
+				tenant: ORG_B,
+				agentId: agentB,
+				name: 'Main',
+				isMain: true,
+				allocationOrdinal: 1,
+				trafficWeightBps: 10_000,
+				draft: variantDraft,
+				archived: false,
+				createdAt: T0,
+			})
 			const versionB = await ctx.db.insert('agentVersions', {
 				tenant: ORG_B,
 				agentId: agentB,
+				agentVariantId: variantB,
 				version: 1,
 				publishedBy: 'user_b',
 				config: {
-					...agentDoc(ORG_B, 'B'),
-					tenant: undefined,
-					archived: undefined,
-					createdAt: undefined,
+					...variantDraft,
 					procedures: { kind: 'inline' as const, items: [] },
-				} as never,
-				createdAt: '2026-07-05T00:00:00Z',
+				},
+				createdAt: T0,
 			})
+			const telephonyConnectionId = await ctx.db.insert(
+				'telephonyConnections',
+				{
+					tenant: ORG_A,
+					provider: 'twilio',
+					label: 'Test',
+					providerAccountId: 'AC_A',
+					credentialSecretRef: 'secret_a',
+					status: 'active',
+					createdAt: '2026-07-05T00:00:00Z',
+				},
+			)
 			const phoneA = await ctx.db.insert('phoneNumbers', {
 				tenant: ORG_A,
+				telephonyConnectionId,
+				providerNumberId: 'PN_A_2',
 				number: '+15550000001',
 				provider: 'twilio' as const,
 				label: '',
+				countryCode: 'US',
+				capabilities: {
+					inboundVoice: true,
+					outboundVoice: true,
+					inboundSms: false,
+					outboundSms: false,
+				},
+				inboundSmsEnabled: false,
 				status: 'active' as const,
 				assignedAgentId: agentA,
 				createdAt: '2026-07-05T00:00:00Z',
@@ -134,38 +213,17 @@ describe('tenant isolation at the schema/db layer', () => {
 		})
 	})
 
-	test('vector + search index definitions survive schema wiring', async () => {
-		// convexTest(schema) validates the schema shape — reaching here means
-		// vector/search index declarations from the domain helper are accepted.
+	test('minimal knowledge registry survives schema wiring', async () => {
 		const t = convexTest(schema, modules)
-		await t.run(async (ctx) => {
-			const docId = await ctx.db.insert('kbDocuments', {
+		const documentId = await t.run(async (ctx) =>
+			ctx.db.insert('kbDocuments', {
 				tenant: ORG_A,
-				name: 'FAQ',
-				type: 'text' as const,
-				content: 'hello world',
-				usageMode: 'auto' as const,
-				status: 'processing' as const,
-				sizeBytes: 11,
-				chunkCount: 0,
+				activeEntryId: 'entry_1',
+				archived: false,
 				createdAt: '2026-07-05T00:00:00Z',
-			})
-			await ctx.db.insert('kbChunks', {
-				tenant: ORG_A,
-				documentId: docId,
-				order: 0,
-				text: 'hello world',
-				createdAt: '2026-07-05T00:00:00Z',
-			})
-		})
-		const chunks = await t.run(async (ctx) =>
-			ctx.db
-				.query('kbChunks')
-				.withSearchIndex('search_text', (q) =>
-					q.search('text', 'hello').eq('tenant', ORG_A),
-				)
-				.collect(),
+			}),
 		)
-		expect(chunks).toHaveLength(1)
+		const document = await t.run(async (ctx) => ctx.db.get(documentId))
+		expect(document?.activeEntryId).toBe('entry_1')
 	})
 })

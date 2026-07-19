@@ -10,10 +10,9 @@
 > **Provenance.** Snapshot of the ElevenLabs docs fetched **2026-07-05** into
 > `docs/.references/api-reference/`. Volatile enum lists (LLM model ids,
 > initiation sources, PII entity types, widget strings) are transcribed
-> abbreviated — treat the fetched `.md` files as authoritative and re-fetch
-> when integrating a new API area. For request/response typing, prefer
-> generating types from the OpenAPI blocks in those files over hand-copying
-> from this ERD.
+> abbreviated — treat the fetched `.md` files as authoritative and re-fetch when
+> integrating a new API area. For request/response typing, prefer generating
+> types from the OpenAPI blocks in those files over hand-copying from this ERD.
 
 Source of truth: the API response schemas in this folder
 (`api-reference/agents/get.md`, `conversations/get.md`, `batch-calling/get.md`,
@@ -34,24 +33,24 @@ split into four domain diagrams that share entities by name.
 ## 0. App ownership & persistence matrix
 
 How this model maps onto the four apps in `apps/` and the Convex substrate
-(`packages/convex`). Legend: **W** = writes/initiates via ElevenLabs API,
-**R** = reads, **M** = mirrored into Convex (subset of fields), **–** = not
-touched. ElevenLabs is the system of record for every entity; "mirror" means a
-local projection keyed by the vendor ID.
+(`packages/convex`). Legend: **W** = writes/initiates via ElevenLabs API, **R**
+= reads, **M** = mirrored into Convex (subset of fields), **–** = not touched.
+ElevenLabs is the system of record for every entity; "mirror" means a local
+projection keyed by the vendor ID.
 
-| Entity cluster | messages | v-inbound | v-outbound | back-office | Local persistence (Convex) |
-|---|---|---|---|---|---|
-| AGENT + config tree (diag. 1) | R | R | R | W | M: agent_id, name, tags, version/branch ids for listing; config fetched live |
-| PROCEDURE / STEP / REFERENCE (diag. 1b) | R | R | R | W | **Fully platform-owned** (no vendor API yet): authored in back-office, stored in Convex, compiled into session config by the resolver |
-| CONVERSATION + transcript (diag. 2) | W (WhatsApp/SMS) | W (inbound calls) | W (outbound calls) | R (analysis, tags) | M: single `conversations` table — see single-writer rule below |
-| PHONE_NUMBER + SIP trunks | – | R | R | W | M: phone_number_id, number, provider, assigned agent |
-| WHATSAPP_ACCOUNT | W | – | – | R | M: phone_number_id, business account, assigned agent |
-| BATCH_CALL_JOB / RECIPIENT | – | – | W | R | M: batch_id, status, counters for dashboards |
-| OUTBOUND_CALL_REQUEST | W (WhatsApp) | – | W (twilio/sip/exotel) | – | not persisted; resulting conversation_id is |
-| TOOL / MCP_SERVER / SECRET | – | – | – | W | M: ids + names for pickers; config fetched live |
-| KB_DOCUMENT / RAG_INDEX | – | – | – | W | M: ids + names; content stays vendor-side |
-| TEST / TEST_INVOCATION / TEST_RUN | – | – | – | W | R via API; persist only invocation ids if dashboards need history |
-| WORKSPACE / ENVIRONMENT_VARIABLE | – | – | – | W | see tenancy note below |
+| Entity cluster                          | messages         | v-inbound         | v-outbound            | back-office        | Local persistence (Convex)                                                                                                            |
+| --------------------------------------- | ---------------- | ----------------- | --------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| AGENT + config tree (diag. 1)           | R                | R                 | R                     | W                  | M: agent_id, name, tags, version/branch ids for listing; config fetched live                                                          |
+| PROCEDURE / STEP / REFERENCE (diag. 1b) | R                | R                 | R                     | W                  | **Fully platform-owned** (no vendor API yet): authored in back-office, stored in Convex, compiled into session config by the resolver |
+| CONVERSATION + transcript (diag. 2)     | W (WhatsApp/SMS) | W (inbound calls) | W (outbound calls)    | R (analysis, tags) | M: single `conversations` table — see single-writer rule below                                                                        |
+| PHONE_NUMBER + SIP trunks               | –                | R                 | R                     | W                  | M: phone_number_id, number, provider, assigned agent                                                                                  |
+| WHATSAPP_ACCOUNT                        | W                | –                 | –                     | R                  | M: phone_number_id, business account, assigned agent                                                                                  |
+| BATCH_CALL_JOB / RECIPIENT              | –                | –                 | W                     | R                  | M: batch_id, status, counters for dashboards                                                                                          |
+| OUTBOUND_CALL_REQUEST                   | W (WhatsApp)     | –                 | W (twilio/sip/exotel) | –                  | not persisted; resulting conversation_id is                                                                                           |
+| TOOL / MCP_SERVER / SECRET              | –                | –                 | –                     | W                  | M: ids + names for pickers; config fetched live                                                                                       |
+| KB_DOCUMENT / RAG_INDEX                 | –                | –                 | –                     | W                  | M: ids + names; content stays vendor-side                                                                                             |
+| TEST / TEST_INVOCATION / TEST_RUN       | –                | –                 | –                     | W                  | R via API; persist only invocation ids if dashboards need history                                                                     |
+| WORKSPACE / ENVIRONMENT_VARIABLE        | –                | –                 | –                     | W                  | see tenancy note below                                                                                                                |
 
 **CONVERSATION single-writer rule.** All four apps touch conversations, so the
 local mirror must be single: one Convex `conversations` table keyed by
@@ -62,11 +61,10 @@ transitions (`initiated → done`) flow in through webhooks/polling only.
 
 **Tenancy note.** Current assumption: **one ElevenLabs workspace per
 deployment**, credentials in env — WORKSPACE is then an implicit singleton and
-no `workspace_id` FK needs threading through local tables. If the platform
-goes multi-tenant (customers bring their own ElevenLabs workspace), every
-mirrored table gains a `workspace_id` column and the ERD's WORKSPACE
-relationships become real FKs. Decide before authoring the first Convex
-tables.
+no `workspace_id` FK needs threading through local tables. If the platform goes
+multi-tenant (customers bring their own ElevenLabs workspace), every mirrored
+table gains a `workspace_id` column and the ERD's WORKSPACE relationships become
+real FKs. Decide before authoring the first Convex tables.
 
 **Do not create local tables for non-PK entities.** The flattened 1–1 config
 entities in diagram 1 (TTS_CONFIG, TURN_CONFIG, GUARDRAILS, WIDGET_CONFIG, …)
@@ -418,9 +416,9 @@ erDiagram
 Source: `eleven-agents/customization/procedures*.md` (prose docs only; the
 Agents API has no procedures endpoints yet — the only API traces are the
 `start_procedure` / `end_procedure` system tools whose params carry
-`procedures: map<string, ProcedureAtVersion>`). Because our platform runs on
-raw model providers, **procedures are a platform-owned entity from day one**:
-we author and store them ourselves (Convex) and compile them into session
+`procedures: map<string, ProcedureAtVersion>`). Because our platform runs on raw
+model providers, **procedures are a platform-owned entity from day one**: we
+author and store them ourselves (Convex) and compile them into session
 instructions/tools at connect time. The vendor's shape below is the reference
 contract, marked alpha — expect breaking changes.
 
@@ -468,17 +466,15 @@ erDiagram
 ```
 
 **Structural rules (structured procedures):** a procedure cannot start with an
-If step; If steps cannot nest inside If steps; two If steps cannot be
-adjacent; Ask steps block until answered; Tool steps cannot speak or branch —
-put Tell/If around them. Free-form ↔ structured composition: free-form may
-reference structured (delegate identity verification, escalation), not the
-reverse.
+If step; If steps cannot nest inside If steps; two If steps cannot be adjacent;
+Ask steps block until answered; Tool steps cannot speak or branch — put Tell/If
+around them. Free-form ↔ structured composition: free-form may reference
+structured (delegate identity verification, escalation), not the reverse.
 
-**Selection model:** trigger matching is LLM-driven (agent compares user
-intent to all triggers) — no priority field exists; disambiguation comes from
-writing distinct triggers. This matters for our resolver: all procedure
-triggers must be compiled into the session instructions (or a router tool) at
-expand time.
+**Selection model:** trigger matching is LLM-driven (agent compares user intent
+to all triggers) — no priority field exists; disambiguation comes from writing
+distinct triggers. This matters for our resolver: all procedure triggers must be
+compiled into the session instructions (or a router tool) at expand time.
 
 ### Proposed platform schema (documentation only — no code yet)
 
@@ -524,7 +520,8 @@ Validation rules to enforce (as schema refinements when implemented):
 1. `steps[0].type !== 'if'` — a procedure cannot start with an If step.
 2. No two adjacent `if` steps.
 3. If-inside-If impossible structurally (`if.steps` only accepts basic steps).
-4. `type = free_form` ⇒ `content` required; `type = structured` ⇒ `steps` required.
+4. `type = free_form` ⇒ `content` required; `type = structured` ⇒ `steps`
+   required.
 5. Structured procedures may only hold tool references (`system_tool` /
    `mcp_tool`) — `knowledge_base` and `procedure` targets are free-form-only
    (vendor rule).
@@ -534,8 +531,8 @@ Validation rules to enforce (as schema refinements when implemented):
 
 ### Runtime flow — how our model works, inbound & outbound
 
-Both directions converge on one session loop; the difference is who
-originates the call leg and how the agent is selected.
+Both directions converge on one session loop; the difference is who originates
+the call leg and how the agent is selected.
 
 ```mermaid
 flowchart TB
@@ -588,9 +585,9 @@ flowchart TB
 ```
 
 Differentiator vs ElevenLabs: their structured procedures depend on the LLM
-honoring step order; our engine enforces it in code — Ask completion is
-gated, the agent stays silent during Tool steps, and `expression` conditions
-evaluate without the model.
+honoring step order; our engine enforces it in code — Ask completion is gated,
+the agent stays silent during Tool steps, and `expression` conditions evaluate
+without the model.
 
 ---
 
@@ -601,10 +598,9 @@ Documentation only — no code yet. Both tables via `tenantTable`.
 ### mcpConnections
 
 Modeled on the EL MCP server resource (`api-reference/mcp/get.md`,
-`MCPServerConfig`), reduced to what our platform needs: Composio is the
-managed path (customer connects toolkits themselves), BYO covers any other
-MCP server. Maps 1:1 onto the SDK's `HostedMCPToolDefinition` at session
-expand time.
+`MCPServerConfig`), reduced to what our platform needs: Composio is the managed
+path (customer connects toolkits themselves), BYO covers any other MCP server.
+Maps 1:1 onto the SDK's `HostedMCPToolDefinition` at session expand time.
 
 ```
 mcpConnections (tenantTable)
@@ -641,8 +637,8 @@ session; `require_approval` derives from `approvalPolicy` + `toolApprovals`.
 
 Three tables, following Convex's separate-vector-table pattern
 (`docs/.references/convex/vector-search.md`): metadata reads never load
-embeddings, and the vector index carries `tenant` as a filterField —
-tenant isolation enforced inside the index, not in post-filtering.
+embeddings, and the vector index carries `tenant` as a filterField — tenant
+isolation enforced inside the index, not in post-filtering.
 
 ```
 kbDocuments (tenantTable)                                  # what the agent knows — user-facing unit
@@ -675,26 +671,24 @@ kbEmbeddings (tenantTable)                                 # vectors only — lo
 
 Retrieval flow (Convex constraint: `ctx.vectorSearch` only in **actions**):
 session tool `search_knowledge_base(query)` → action embeds the query →
-`vectorSearch('kbEmbeddings','by_embedding',{vector, limit, filter:
-tenant AND documentId ∈ agent's attached docs})` → returned `_id/_score`
-pairs → load matching `kbChunks.text` via `by_embedding` index → chunks
-with `_score` above threshold go back to the model. `usageMode='prompt'`
-documents skip retrieval entirely — their content is appended to
-instructions at expand time. Agent↔document attachment lives in agent config
-(array of `kbDocuments` ids), snapshotting with the Agent Version like
-everything else.
+`vectorSearch('kbEmbeddings','by_embedding',{vector, limit, filter: tenant AND documentId ∈ agent's attached docs})`
+→ returned `_id/_score` pairs → load matching `kbChunks.text` via `by_embedding`
+index → chunks with `_score` above threshold go back to the model.
+`usageMode='prompt'` documents skip retrieval entirely — their content is
+appended to instructions at expand time. Agent↔document attachment lives in
+agent config (array of `kbDocuments` ids), snapshotting with the Agent Version
+like everything else.
 
-Limits to respect (from the Convex doc): dimensions 2–4096, ≤16 filter
-fields, ≤4 vector indexes/table, ≤256 results/query, search returns only
-`_id` + `_score` (never the document), millions of vectors supported.
+Limits to respect (from the Convex doc): dimensions 2–4096, ≤16 filter fields,
+≤4 vector indexes/table, ≤256 results/query, search returns only `_id` +
+`_score` (never the document), millions of vectors supported.
 
 ### Full-text search indexes (Convex Tantivy search)
 
 Source: `docs/.references/convex/text-search.md`. Unlike vector search,
-full-text search runs in **plain reactive queries** (no action needed),
-supports pagination, and the final term is prefix-matched — built for
-as-you-type UIs. This is how we replicate EL's conversation Text/Smart
-search endpoints natively:
+full-text search runs in **plain reactive queries** (no action needed), supports
+pagination, and the final term is prefix-matched — built for as-you-type UIs.
+This is how we replicate EL's conversation Text/Smart search endpoints natively:
 
 ```
 conversationMessages
@@ -720,12 +714,10 @@ kbDocuments
     # document picker / library search in back-office
 ```
 
-Rules from the doc worth encoding: always push filters into
-`withSearchIndex` (tenant ALWAYS in the filter expression — same isolation
-rule as the vector index); results come in relevance order only; `take(n)` /
-pagination over `collect()` (1024-doc throw); one `search` expression per
-query, max 16 terms.
-
+Rules from the doc worth encoding: always push filters into `withSearchIndex`
+(tenant ALWAYS in the filter expression — same isolation rule as the vector
+index); results come in relevance order only; `take(n)` / pagination over
+`collect()` (1024-doc throw); one `search` expression per query, max 16 terms.
 
 ---
 
@@ -1017,6 +1009,13 @@ erDiagram
 ---
 
 ## 3. Telephony, WhatsApp & Batch Calling
+
+> **Agent.io target model.** The diagram below remains an ElevenLabs API
+> reference. Agent.io's normalized tenant-owned schema and routing rules are
+> defined in `docs/reference/phone-number-inventory.md`. In particular,
+> `assigned_agent_id` is the optional inbound default, provider accounts are
+> separate `telephonyConnections` rows, and Agent Variants are never assigned
+> directly to phone numbers.
 
 ```mermaid
 erDiagram
@@ -1360,9 +1359,9 @@ erDiagram
   interaction, SMS thread, batch-call leg, and test simulation produces one.
   Channel-specific data lives in the mutually exclusive metadata sub-objects
   `PHONE_CALL_INFO`, `WHATSAPP_INFO`, `SMS_INFO`, `BATCH_CALL_REF`.
-- **1–1 entities are flattened JSON objects**, not separate API resources —
-  e.g. `TTS_CONFIG` is `agent.conversation_config.tts`. Only entities with a
-  `PK` marked ID are independently addressable via the API.
+- **1–1 entities are flattened JSON objects**, not separate API resources — e.g.
+  `TTS_CONFIG` is `agent.conversation_config.tts`. Only entities with a `PK`
+  marked ID are independently addressable via the API.
 - **Discriminated unions** (TOOL.type, PHONE_NUMBER.provider, TEST.type,
   KB_DOCUMENT.type, PHONE_CALL_INFO.type) are modeled as one entity with the
   discriminator enum plus the variant-specific fields; variant-only fields are

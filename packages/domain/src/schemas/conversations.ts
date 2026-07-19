@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { AGENT_TRAFFIC_BPS_TOTAL } from './agents.ts'
 import { tenantTable } from './helper.ts'
 import { PROVIDERS } from './shared.ts'
 
@@ -31,10 +32,24 @@ export const CONVERSATION_DIRECTIONS = ['inbound', 'outbound'] as const
 export const MESSAGE_ROLES = ['user', 'agent', 'system'] as const
 
 export const SUCCESS_STATUSES = ['success', 'failure', 'unknown'] as const
+export const ALLOCATION_MODES = ['weighted', 'override', 'direct'] as const
+export const WORKFLOW_ATTRIBUTIONS = ['inbound', 'outbound', 'none'] as const
 
 export const conversations = tenantTable('conversations', (id) => ({
+	conversationKey: z.string().min(1).max(255),
+	idempotencyFingerprint: z.string().min(1).max(1_000),
 	agentId: id('agents'),
+	agentVariantId: id('agentVariants'),
 	agentVersionId: id('agentVersions'),
+	allocationMode: z.enum(ALLOCATION_MODES),
+	allocationBucket: z
+		.number()
+		.int()
+		.min(0)
+		.max(AGENT_TRAFFIC_BPS_TOTAL - 1)
+		.optional(),
+	allocationRevision: z.number().int().nonnegative().optional(),
+	workflow: z.enum(WORKFLOW_ATTRIBUTIONS),
 	provider: z.enum(PROVIDERS),
 	providerSessionId: z.string().optional(),
 	channel: z.enum(CONVERSATION_CHANNELS),
@@ -44,10 +59,22 @@ export const conversations = tenantTable('conversations', (id) => ({
 	acceptedAt: z.string().optional(),
 	endedAt: z.string().optional(),
 	durationSecs: z.number().nonnegative().optional(),
-	// channel refs (mutually exclusive)
+	// channel refs (mutually exclusive where applicable)
 	phoneNumberId: id('phoneNumbers').optional(),
+	phoneNumberSnapshot: z
+		.object({
+			number: z.string(),
+			provider: z.enum(['twilio', 'sip_trunk']),
+			providerNumberId: z.string(),
+			telephonyConnectionId: z.string(),
+		})
+		.optional(),
+	callerIdSelectionReason: z.string().optional(),
+	whatsappAccountId: id('whatsappAccounts').optional(),
 	batchCallRecipientId: id('batchCallRecipients').optional(),
 	externalNumber: z.string().optional(),
+	/** Set once the retention purge or an erasure request redacted PII. */
+	redactedAt: z.string().optional(),
 	// rollups
 	usage: z
 		.object({
@@ -75,6 +102,7 @@ export const toolResultPayload = z.object({
 	output: z.string(),
 	isError: z.boolean().default(false),
 	latencyMs: z.number().nonnegative().optional(),
+	retrievalEntryIds: z.array(z.string()).optional(),
 })
 
 export const conversationMessages = tenantTable(
@@ -83,6 +111,10 @@ export const conversationMessages = tenantTable(
 		conversationId: id('conversations'),
 		/** Denormalized for the search index filter. */
 		agentId: id('agents'),
+		agentVariantId: id('agentVariants'),
+		/** Stable runtime event key for transport-safe append retries. */
+		messageKey: z.string().min(1).max(255).optional(),
+		idempotencyFingerprint: z.string().min(1).max(4_000).optional(),
 		/** Monotonic per conversation; assigned by the append mutation. */
 		sequence: z.number().int().positive(),
 		role: z.enum(MESSAGE_ROLES),

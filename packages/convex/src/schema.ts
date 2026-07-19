@@ -1,19 +1,19 @@
 import {
 	agents,
+	agentVariants,
 	agentVersions,
 	batchCallJobs,
 	batchCallRecipients,
 	composioSessions,
 	conversationMessages,
 	conversations,
-	EMBEDDING,
-	kbChunks,
 	kbDocuments,
-	kbEmbeddings,
 	mcpConnections,
 	phoneNumbers,
 	procedures,
+	telephonyConnections,
 	tenantSettings,
+	whatsappAccounts,
 } from '@agent.io/domain/schemas'
 import { defineSchema } from 'convex/server'
 
@@ -25,49 +25,87 @@ import { defineSchema } from 'convex/server'
  * tables, deliberately.
  */
 export default defineSchema({
-	[agents.tableName]: agents.table.index('by_tenant', ['tenant']),
-	[agentVersions.tableName]: agentVersions.table
+	[agents.tableName]: agents.table
 		.index('by_tenant', ['tenant'])
-		.index('by_agent', ['agentId']),
-	[procedures.tableName]: procedures.table
-		.index('by_tenant', ['tenant'])
-		.index('by_agent', ['agentId']),
-	[mcpConnections.tableName]: mcpConnections.table.index('by_tenant', [
-		'tenant',
-	]),
-	[kbDocuments.tableName]: kbDocuments.table
-		.index('by_tenant', ['tenant'])
-		.searchIndex('search_name', {
-			searchField: 'name',
-			filterFields: ['tenant'],
-		}),
-	[kbChunks.tableName]: kbChunks.table
-		.index('by_tenant', ['tenant'])
-		.index('by_document', ['documentId', 'order'])
-		.index('by_embedding', ['embeddingId'])
-		.searchIndex('search_text', {
-			searchField: 'text',
-			filterFields: ['tenant', 'documentId'],
-		}),
-	[kbEmbeddings.tableName]: kbEmbeddings.table
-		.index('by_tenant', ['tenant'])
-		.vectorIndex('by_embedding', {
-			vectorField: 'embedding',
-			dimensions: EMBEDDING.dimensions,
-			filterFields: ['tenant', 'documentId'],
-		}),
-	[conversations.tableName]: conversations.table
+		.index('by_tenant_and_archived', ['tenant', 'archived']),
+	[agentVariants.tableName]: agentVariants.table
 		.index('by_tenant', ['tenant'])
 		.index('by_agent', ['agentId'])
-		.index('by_status', ['tenant', 'status']),
+		.index('by_agent_and_isMain', ['agentId', 'isMain'])
+		.index('by_agent_and_archived', ['agentId', 'archived'])
+		.index('by_agent_and_allocationOrdinal', ['agentId', 'allocationOrdinal']),
+	[agentVersions.tableName]: agentVersions.table
+		.index('by_tenant', ['tenant'])
+		.index('by_agent', ['agentId'])
+		.index('by_variant', ['agentVariantId'])
+		.index('by_variant_and_version', ['agentVariantId', 'version']),
+	[procedures.tableName]: procedures.table
+		.index('by_tenant', ['tenant'])
+		.index('by_variant', ['agentVariantId'])
+		.index('by_agentVariantId_and_status', ['agentVariantId', 'status']),
+	[mcpConnections.tableName]: mcpConnections.table
+		.index('by_tenant', ['tenant'])
+		.index('by_tenant_and_kind', ['tenant', 'kind'])
+		.index('by_tenant_and_status', ['tenant', 'status'])
+		.index('by_tenant_and_kind_and_status', ['tenant', 'kind', 'status']),
+	[kbDocuments.tableName]: kbDocuments.table
+		.index('by_tenant', ['tenant'])
+		.index('by_tenant_and_archived', ['tenant', 'archived']),
+	[conversations.tableName]: conversations.table
+		.index('by_tenant', ['tenant'])
+		.index('by_tenant_and_conversationKey', ['tenant', 'conversationKey'])
+		/** Server-side redelivery dedupe: stateless webhook callers may mint a
+		 * fresh key on provider redelivery; a matching session is the same
+		 * attempt. */
+		.index('by_tenant_provider_session', [
+			'tenant',
+			'provider',
+			'providerSessionId',
+		])
+		/** Retention purge pages unredacted finished conversations by endedAt. */
+		.index('by_redaction', ['redactedAt', 'endedAt'])
+		.index('by_agent', ['agentId'])
+		.index('by_agentVariantId', ['agentVariantId'])
+		.index('by_status', ['tenant', 'status'])
+		.index('by_tenant_agent', ['tenant', 'agentId'])
+		.index('by_tenant_channel', ['tenant', 'channel'])
+		.index('by_tenant_direction', ['tenant', 'direction']),
 	[conversationMessages.tableName]: conversationMessages.table
 		.index('by_tenant', ['tenant'])
 		.index('by_conversation', ['conversationId', 'sequence'])
+		.index('by_conversation_and_messageKey', ['conversationId', 'messageKey'])
 		.searchIndex('search_text', {
 			searchField: 'text',
 			filterFields: ['tenant', 'conversationId', 'agentId', 'role'],
 		}),
-	[phoneNumbers.tableName]: phoneNumbers.table.index('by_tenant', ['tenant']),
+	[telephonyConnections.tableName]: telephonyConnections.table
+		.index('by_tenant', ['tenant'])
+		.index('by_tenant_provider', ['tenant', 'provider'])
+		.index('by_tenant_status', ['tenant', 'status'])
+		.index('by_tenant_provider_status', ['tenant', 'provider', 'status'])
+		.index('by_tenant_provider_account', [
+			'tenant',
+			'provider',
+			'providerAccountId',
+		]),
+	[phoneNumbers.tableName]: phoneNumbers.table
+		.index('by_tenant', ['tenant'])
+		.index('by_tenant_status', ['tenant', 'status'])
+		.index('by_tenant_agent', ['tenant', 'assignedAgentId'])
+		.index('by_tenant_country', ['tenant', 'countryCode'])
+		.index('by_tenant_region', ['tenant', 'regionCode'])
+		.index('by_tenant_country_region', ['tenant', 'countryCode', 'regionCode'])
+		.index('by_tenant_provider', ['tenant', 'provider'])
+		.index('by_tenant_connection', ['tenant', 'telephonyConnectionId'])
+		.index('by_connection_provider_number', [
+			'telephonyConnectionId',
+			'providerNumberId',
+		])
+		.index('by_connection_number', ['telephonyConnectionId', 'number']),
+	[whatsappAccounts.tableName]: whatsappAccounts.table
+		.index('by_tenant', ['tenant'])
+		/** Webhook path: Meta phone_number_id → row → tenant (ADR 0001). */
+		.index('by_meta_phone_number', ['metaPhoneNumberId']),
 	[batchCallJobs.tableName]: batchCallJobs.table.index('by_tenant', ['tenant']),
 	batchCallRecipients: batchCallRecipients.table
 		.index('by_tenant', ['tenant'])
@@ -83,15 +121,16 @@ export default defineSchema({
 /** Tenant-scoped table names (all of them — ADR 0001 default). */
 export const TENANT_TABLES = [
 	agents.tableName,
+	agentVariants.tableName,
 	agentVersions.tableName,
 	procedures.tableName,
 	mcpConnections.tableName,
 	kbDocuments.tableName,
-	kbChunks.tableName,
-	kbEmbeddings.tableName,
 	conversations.tableName,
 	conversationMessages.tableName,
+	telephonyConnections.tableName,
 	phoneNumbers.tableName,
+	whatsappAccounts.tableName,
 	batchCallJobs.tableName,
 	batchCallRecipients.tableName,
 	tenantSettings.tableName,

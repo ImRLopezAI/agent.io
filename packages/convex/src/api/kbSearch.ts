@@ -1,148 +1,226 @@
+import type { EntryId } from '@convex-dev/rag'
 import { v } from 'convex/values'
 
 import { internal } from '../_generated/api'
-import {
-	internalAction,
-	internalQuery as rawInternalQuery,
-} from '../_generated/server'
-import { embedText } from './embeddings'
+import { internalAction, internalQuery } from '../_generated/server'
+import { rag } from '../rag'
 
-/**
- * KB retrieval (plan Unit 9). Tenant is DERIVED, never passed: the session's
- * tool wrapper passes the conversationId it was resolved for; the action
- * loads that row, uses its tenant for the vector filter, and validates the
- * document scope. Same derive-from-owning-resource rule as machineMutation.
- */
+const MAX_PROMPT_DOCUMENT_CHUNKS = 512
 
-export const scopeForConversation = rawInternalQuery({
+export const scopeForConversation = internalQuery({
 	args: { conversationId: v.id('conversations') },
 	handler: async (ctx, { conversationId }) => {
 		const conversation = await ctx.db.get(conversationId)
 		if (!conversation) throw new Error('conversation not found')
 		const version = await ctx.db.get(conversation.agentVersionId)
-		if (!version) throw new Error('agent version not found')
-		const documentIds = version.config.knowledgeBase
-			.filter((k: { usageMode: string }) => k.usageMode === 'auto')
-			.map((k: { documentId: string }) => k.documentId)
-		return { tenant: conversation.tenant, documentIds }
-	},
-})
-
-export const loadChunksByEmbeddingIds = rawInternalQuery({
-	args: { embeddingIds: v.array(v.id('kbEmbeddings')), tenant: v.string() },
-	handler: async (ctx, { embeddingIds, tenant }) => {
-		const chunks = []
-		for (const embeddingId of embeddingIds) {
-			const chunk = await ctx.db
-				.query('kbChunks')
-				.withIndex('by_embedding', (q) => q.eq('embeddingId', embeddingId))
-				.unique()
-			if (chunk && chunk.tenant === tenant) chunks.push(chunk)
+		if (!version || version.tenant !== conversation.tenant) {
+			throw new Error('agent version not found')
 		}
-		return chunks
-	},
-})
 
-/** Core search taking a precomputed vector — the public path embeds first. */
-export const searchWithVector = internalAction({
-	args: {
-		conversationId: v.id('conversations'),
-		vector: v.array(v.float64()),
-		query: v.string(),
-		limit: v.optional(v.number()),
-	},
-	handler: async (ctx, { conversationId, vector, query, limit }) => {
-		const scope = await ctx.runQuery(
-			internal.api.kbSearch.scopeForConversation,
-			{ conversationId },
-		)
-		if (scope.documentIds.length === 0) return []
-
-		const results = await ctx.vectorSearch('kbEmbeddings', 'by_embedding', {
-			vector,
-			limit: Math.min(limit ?? 8, 64),
-			filter: (q) =>
-				q.or(
-					...scope.documentIds.map((id: string) =>
-						q.eq('documentId', id as never),
-					),
-				),
-		})
-		const chunks = await ctx.runQuery(
-			internal.api.kbSearch.loadChunksByEmbeddingIds,
-			{
-				embeddingIds: results.map((r) => r._id),
-				tenant: scope.tenant,
-			},
-		)
-		const scoreByEmbedding = new Map(results.map((r) => [r._id, r._score]))
-		// hybrid recall: merge exact-term hits (SKUs, names) embeddings miss
-		const textHits = await ctx.runQuery(internal.api.kbSearch.textSearch, {
-			tenant: scope.tenant,
-			documentIds: scope.documentIds,
-			query,
-		})
-		const byId = new Map<
-			string,
-			{ text: string; score: number; documentId: string }
-		>()
-		for (const chunk of chunks) {
-			byId.set(chunk._id, {
-				text: chunk.text,
-				score: chunk.embeddingId
-					? (scoreByEmbedding.get(chunk.embeddingId) ?? 0)
-					: 0,
-				documentId: chunk.documentId,
-			})
-		}
-		for (const hit of textHits) {
-			if (!byId.has(hit._id)) {
-				byId.set(hit._id, {
-					text: hit.text,
-					score: 0.5,
-					documentId: hit.documentId,
-				})
+		const documentIds = []
+		for (const attachment of version.config.knowledgeBase) {
+			if (attachment.usageMode !== 'auto') continue
+			const documentId = ctx.db.normalizeId(
+				'kbDocuments',
+				attachment.documentId,
+			)
+			if (!documentId) continue
+			const document = await ctx.db.get(documentId)
+			if (
+				document?.tenant === conversation.tenant &&
+				document.activeEntryId &&
+				!document.archivedAt
+			) {
+				documentIds.push(documentId)
 			}
 		}
-		return [...byId.values()].sort((a, b) => b.score - a.score)
+		return {
+			tenant: conversation.tenant,
+			conversationKey: conversation.conversationKey,
+			documentIds,
+		}
 	},
 })
 
-export const textSearch = rawInternalQuery({
-	args: {
-		tenant: v.string(),
-		documentIds: v.array(v.string()),
-		query: v.string(),
-	},
-	handler: async (ctx, { tenant, documentIds, query }) => {
-		const hits = await ctx.db
-			.query('kbChunks')
-			.withSearchIndex('search_text', (q) =>
-				q.search('text', query).eq('tenant', tenant),
+export const promptScopeForConversation = internalQuery({
+	args: { conversationId: v.id('conversations') },
+	handler: async (ctx, { conversationId }) => {
+		const conversation = await ctx.db.get(conversationId)
+		if (!conversation) throw new Error('conversation not found')
+		const version = await ctx.db.get(conversation.agentVersionId)
+		if (!version || version.tenant !== conversation.tenant) {
+			throw new Error('agent version not found')
+		}
+
+		const documents: {
+			documentId: string
+			entryId: string | null
+		}[] = []
+		for (const attachment of version.config.knowledgeBase) {
+			if (attachment.usageMode !== 'prompt') continue
+			const documentId = ctx.db.normalizeId(
+				'kbDocuments',
+				attachment.documentId,
 			)
-			.take(16)
-		const allowed = new Set(documentIds)
-		return hits.filter((h) => allowed.has(h.documentId))
+			if (!documentId) {
+				documents.push({ documentId: attachment.documentId, entryId: null })
+				continue
+			}
+			const document = await ctx.db.get(documentId)
+			documents.push({
+				documentId,
+				entryId:
+					document?.tenant === conversation.tenant &&
+					document.activeEntryId &&
+					!document.archivedAt
+						? document.activeEntryId
+						: null,
+			})
+		}
+		return { documents }
 	},
 })
 
-/** Public entry for the session's search_knowledge_base tool. */
-export const search = internalAction({
+export const loadPromptKnowledge = internalAction({
+	args: { conversationId: v.id('conversations') },
+	handler: async (ctx, { conversationId }) => {
+		const scope: {
+			documents: { documentId: string; entryId: string | null }[]
+		} = await ctx.runQuery(internal.api.kbSearch.promptScopeForConversation, {
+			conversationId,
+		})
+		const documents: {
+			documentId: string
+			name: string
+			content: string
+		}[] = []
+		const warnings: string[] = []
+
+		for (const scopedDocument of scope.documents) {
+			if (!scopedDocument.entryId) {
+				warnings.push(
+					`knowledge document ${scopedDocument.documentId} is unavailable - skipped`,
+				)
+				continue
+			}
+			const entryId = scopedDocument.entryId as EntryId
+			const entry = await rag.getEntry(ctx, { entryId })
+			if (!entry || entry.status !== 'ready') {
+				warnings.push(
+					`knowledge document ${scopedDocument.documentId} is unavailable - skipped`,
+				)
+				continue
+			}
+
+			const chunks: string[] = []
+			let cursor: string | null = null
+			let complete = false
+			while (chunks.length < MAX_PROMPT_DOCUMENT_CHUNKS) {
+				const result = await rag.listChunks(ctx, {
+					entryId,
+					paginationOpts: {
+						cursor,
+						numItems: Math.min(64, MAX_PROMPT_DOCUMENT_CHUNKS - chunks.length),
+					},
+				})
+				chunks.push(...result.page.map((chunk) => chunk.text))
+				if (result.isDone) {
+					complete = true
+					break
+				}
+				cursor = result.continueCursor
+			}
+			if (!complete) {
+				warnings.push(
+					`knowledge document ${scopedDocument.documentId} exceeds the prompt chunk limit - skipped`,
+				)
+				continue
+			}
+
+			documents.push({
+				documentId: scopedDocument.documentId,
+				name: entry.metadata?.title ?? entry.title ?? scopedDocument.documentId,
+				content: chunks.join('\n\n'),
+			})
+		}
+
+		return { documents, warnings }
+	},
+})
+
+export const searchKnowledge = internalAction({
 	args: {
 		conversationId: v.id('conversations'),
 		query: v.string(),
 		limit: v.optional(v.number()),
+		vectorScoreThreshold: v.optional(v.number()),
+		chunkContext: v.optional(
+			v.object({ before: v.number(), after: v.number() }),
+		),
+		callId: v.optional(v.string()),
 	},
 	handler: async (
 		ctx,
-		{ conversationId, query, limit },
-	): Promise<{ text: string; score: number; documentId: string }[]> => {
-		const vector = await embedText(query)
-		return ctx.runAction(internal.api.kbSearch.searchWithVector, {
+		{
 			conversationId,
-			vector,
 			query,
-			limit,
+			limit = 8,
+			vectorScoreThreshold = 0.5,
+			chunkContext = { before: 1, after: 1 },
+			callId,
+		},
+	) => {
+		if (limit < 1 || limit > 20)
+			throw new Error('limit must be between 1 and 20')
+		if (vectorScoreThreshold < 0 || vectorScoreThreshold > 1) {
+			throw new Error('vectorScoreThreshold must be between 0 and 1')
+		}
+		if (
+			chunkContext.before < 0 ||
+			chunkContext.before > 3 ||
+			chunkContext.after < 0 ||
+			chunkContext.after > 3
+		) {
+			throw new Error('chunkContext values must be between 0 and 3')
+		}
+
+		const scope = await ctx.runQuery(
+			internal.api.kbSearch.scopeForConversation,
+			{
+				conversationId,
+			},
+		)
+		const result =
+			scope.documentIds.length === 0
+				? { text: '', results: [], entries: [], usage: { tokens: 0 } }
+				: await rag.search(ctx, {
+						namespace: scope.tenant,
+						query,
+						filters: scope.documentIds.map((documentId: string) => ({
+							name: 'documentId' as const,
+							value: documentId,
+						})),
+						limit,
+						vectorScoreThreshold,
+						chunkContext,
+					})
+		await ctx.runMutation(internal.api.conversations.appendMessage, {
+			ownerId: conversationId,
+			conversationKey: scope.conversationKey,
+			role: 'agent',
+			toolResults: [
+				{
+					callId: callId ?? `knowledge:${Date.now()}`,
+					output: result.text,
+					isError: false,
+					retrievalEntryIds: result.entries.map((entry) => entry.entryId),
+				},
+			],
+			interrupted: false,
 		})
+		return result
 	},
 })
+
+/** Runtime alias retained while the Agent resolver migrates in U3. */
+export const search = searchKnowledge

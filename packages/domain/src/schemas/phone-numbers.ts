@@ -8,13 +8,46 @@ import { tenantTable } from './helper.ts'
  */
 
 export const PHONE_PROVIDERS = ['twilio', 'sip_trunk'] as const
-export const PHONE_STATUSES = ['active', 'disabled'] as const
+export const PHONE_STATUSES = [
+	'pending',
+	'active',
+	'disabled',
+	'provider_missing',
+	'archived',
+] as const
 
 export const phoneNumbers = tenantTable('phoneNumbers', (id) => ({
-	/** E.164 */
+	telephonyConnectionId: id('telephonyConnections'),
+	providerNumberId: z.string().min(1).max(255),
 	number: z.string().regex(/^\+[1-9]\d{6,14}$/),
 	provider: z.enum(PHONE_PROVIDERS),
 	label: z.string().max(120).default(''),
+	countryCode: z.string().regex(/^[A-Z]{2}$/),
+	regionCode: z.string().min(1).max(120).optional(),
+	locality: z.string().min(1).max(200).optional(),
+	capabilities: z.object({
+		inboundVoice: z.boolean(),
+		outboundVoice: z.boolean(),
+		inboundSms: z.boolean(),
+		outboundSms: z.boolean(),
+	}),
 	assignedAgentId: id('agents').optional(),
-	status: z.enum(PHONE_STATUSES).default('active'),
+	routingRegion: z.string().min(1).max(120).optional(),
+	inboundSmsEnabled: z.boolean().default(false),
+	status: z.enum(PHONE_STATUSES).default('pending'),
+	lastSyncedAt: z.string().optional(),
+	lastError: z.string().max(1_000).optional(),
+	archivedAt: z.string().optional(),
 }))
+
+export const phoneNumberInput = phoneNumbers.insertSchema.superRefine(
+	(value, ctx) => {
+		if (value.inboundSmsEnabled && !value.capabilities.inboundSms) {
+			ctx.addIssue({
+				code: 'custom',
+				path: ['inboundSmsEnabled'],
+				message: 'inbound SMS cannot be enabled without provider capability',
+			})
+		}
+	},
+)
