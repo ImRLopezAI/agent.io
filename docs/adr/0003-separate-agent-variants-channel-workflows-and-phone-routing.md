@@ -15,9 +15,9 @@ paths.
 An Agent Variant is a complete experimental configuration lane such as Main,
 Variant A, or Variant B. A variant can change prompt, voice, model, tools,
 Knowledge Base attachments, and channel workflows. Active variant traffic
-weights must total exactly 100 percent. Normal allocation is deterministic from
-the conversation id, so one conversation never changes variants while it is
-running.
+weights must total exactly 10,000 basis points (100 percent; integer basis
+points are the implemented unit). Normal allocation is deterministic from the
+conversation id, so one conversation never changes variants while it is running.
 
 Variants do not separate inbound from outbound traffic. After resolving a
 variant, call direction selects that variant's inbound or outbound workflow.

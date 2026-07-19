@@ -22,6 +22,27 @@ It builds on the completed tenant-safe CRUD, Convex RAG, and phone-number
 inventory layers and creates the business boundary needed before back-office
 Agent, workflow, and deployment screens are implemented.
 
+## Implementation Status (2026-07-18)
+
+All units U1-U8 were implemented on branch `codex/convex-rag-telephony-backend`
+in commits `4318f4d` (domain), `aa8cb93` (agent), `42a9ded` (convex), and
+`2e8081f` (docs). Structural deviations from the unit file lists, with identical
+behavior:
+
+- U5/U6 routing was consolidated into `packages/convex/src/api/conversations.ts`
+  (`startFromPhoneNumber`, `startOutboundFromRecipient`) plus
+  `api/internals/agentRouting.ts` and `api/internals/machineErrors.ts`; the
+  planned `internals/inboundRouting.ts` and `internals/outboundRouting.ts`
+  modules were not created.
+- The plan-named test files `agentVariants.test.ts`,
+  `agentVariantDeployment.test.ts`, `agentRouting.test.ts`,
+  `inboundRouting.test.ts`, and `outboundRouting.test.ts` were folded into
+  `api/__tests__/api.test.ts`, `__tests__/tenancy.test.ts`,
+  `__tests__/agent-contract.test.ts`, and `__tests__/machineHttp.test.ts`.
+
+`docs/reference/agent-deployment-routing.md` is the living contract for the
+implemented surface.
+
 ## Product Contract
 
 ### Problem Frame
@@ -294,11 +315,21 @@ and piecemeal updates.
 
 ### KTD6: `conversationKey` Is the Allocation and Idempotency Identity
 
-Trusted inbound/outbound services generate a UUID-like `conversationKey` before
-routing. A shared pure domain hash maps the key into bucket `0..9_999`, and
-cumulative basis-point ranges select the Variant in a stable order. The
-Conversation stores the key, bucket, allocation mode, selected Variant, and
-Version. Convex `_id` remains the storage identifier.
+Trusted inbound/outbound services generate a `conversationKey` before routing.
+The key is a high-entropy random UUID (it doubles as ownership proof for
+append/finish, so it must never be derivable), persisted on the caller's durable
+attempt record and re-sent verbatim on retry. Convex additionally dedupes
+redeliveries server-side by tenant + provider + `providerSessionId`, so a
+stateless caller that crashed before persisting its key cannot create a
+duplicate Conversation. (Revised 2026-07-18 by the hardening plan — this
+supersedes the earlier deterministic-derivation wording.) A shared pure domain
+hash maps the key into bucket `0..9_999`, and cumulative basis-point ranges
+select the Variant in a stable order. Stable ordering uses the immutable
+per-Variant `allocationOrdinal` assigned at Variant creation, and the Agent's
+`allocationRevision` records the allocation epoch (see
+`docs/reference/agent-deployment-routing.md`). The Conversation stores the key,
+bucket, allocation mode, selected Variant, and Version. Convex `_id` remains the
+storage identifier.
 
 This refines ADR 0003's conversation-id wording so allocation can happen before
 insertion and retries cannot create a different result.
@@ -320,6 +351,15 @@ intermediate client-selected Version ID. An existing Conversation found by
 `conversationKey` is returned only when its direction, provider identity, and
 resolved owner fields match the current request; any mismatch returns an
 idempotency conflict.
+
+The implemented surface also exposes trusted non-voice start channels beyond
+this plan's original voice scope: `POST /api/machine/conversations/whatsapp` and
+`POST /api/machine/conversations/direct` (see
+`docs/reference/agent-deployment-routing.md`). The direct channel accepts a
+caller-supplied `agentVersionId` by design — it pins an immutable published
+Version for trusted non-voice callers and is not subject to AE10, whose
+prohibition applies to inbound telephony callers only. Non-voice channels
+resolve no directional workflow.
 
 ### KTD9: Convex Persists; Provider Services Operate SDKs
 
@@ -368,14 +408,14 @@ flowchart TB
 
 ### Target Ownership Model
 
-| Resource        | Owns                                                                                   | Does not own                                    |
-| --------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| `agents`        | Stable tenant deployment identity, display name, archive state, Main reference         | Draft configuration, traffic, published pointer |
-| `agentVariants` | Independent draft, Main marker, traffic basis points, published pointer, archive state | Immutable history                               |
-| `agentVersions` | Immutable Variant snapshot, per-Variant sequence, publisher, directional workflows     | Mutable draft state                             |
-| `procedures`    | Variant-owned mutable procedure definitions                                            | Agent-global behavior                           |
-| `phoneNumbers`  | Provider number identity, capabilities, default inbound Agent assignment               | Variant assignment                              |
-| `conversations` | Immutable Agent, Variant, Version, workflow, allocation, and phone attribution         | Mutable deployment selection                    |
+| Resource        | Owns                                                                                                                  | Does not own                                    |
+| --------------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| `agents`        | Stable tenant deployment identity, display name, archive state, Main reference, `allocationRevision`                  | Draft configuration, traffic, published pointer |
+| `agentVariants` | Independent draft, Main marker, traffic basis points, immutable `allocationOrdinal`, published pointer, archive state | Immutable history                               |
+| `agentVersions` | Immutable Variant snapshot, per-Variant sequence, publisher, directional workflows                                    | Mutable draft state                             |
+| `procedures`    | Variant-owned mutable procedure definitions                                                                           | Agent-global behavior                           |
+| `phoneNumbers`  | Provider number identity, capabilities, default inbound Agent assignment                                              | Variant assignment                              |
+| `conversations` | Immutable Agent, Variant, Version, workflow, allocation, and phone attribution                                        | Mutable deployment selection                    |
 
 ## Sequencing
 
@@ -531,10 +571,6 @@ allocation invariants.
   and patch atomically.
 - Merge by copying the source Variant draft and Procedure drafts into Main, then
   publishing a new Main Version in one mutation.
-- Add explicit audit payloads or durable event rows for create, publish, merge,
-  archive, and allocation changes if the existing audit substrate is present;
-  otherwise expose structured event hooks without blocking this unit on
-  analytics UI.
 
 **Patterns:** Preserve immutable narrowing used by `agentVersions` in
 `packages/domain/src/schemas/agents.ts` and transactional write style in
@@ -760,7 +796,9 @@ against generated Convex APIs.
 **Goal:** Leave a stable backend contract for the next back-office iteration
 without implementing UI.
 
-**Requirements:** R1-R18; AE1-AE15.
+**Requirements:** R12, R17 (read-model delivery); documents the R13-R16 machine
+contracts. Remaining requirements and acceptance examples are end-to-end
+verification scope, not new deliverables.
 
 **Dependencies:** U1-U7.
 
@@ -860,3 +898,64 @@ Additionally:
 - Provider SDK operations remain outside Convex.
 - Focused codegen, tests, typechecks, and checks pass, and reference
   documentation matches the implemented contracts.
+
+## Deferred / Open Questions
+
+> **Resolved 2026-07-18:** every item below was addressed by
+> `docs/plans/2026-07-18-001-fix-routing-review-hardening-plan.md` (implemented
+> same day). Per-item resolutions: per-service `CONVEX_SERVICE_TOKENS` with
+> rotation overlap; canonical durable-identity fingerprints with conflict
+> recovery and provider-session dedupe; tenant-admin-persisted overrides with
+> audit fields; retention purge cron + erasure primitive;
+> `conversationKey`-bound append/finish; per-call allocation accepted and
+> documented; per-Variant outcome counters; `republishVersion` rollback;
+> `dial_failed`/`never_dialed` lifecycle; caller-ID single ownership documented;
+> R12 workflow attribution scoped to voice. See
+> `docs/reference/agent-deployment-routing.md` for the updated contract.
+
+### From 2026-07-18 review
+
+- **[P1] Service token lifecycle (security):** `CONVEX_SERVICE_TOKEN` is a
+  single flat token shared by every machine caller, with no rotation cadence,
+  per-service scoping, revocation path, or dual-token overlap window. Decide
+  whether to support two concurrently valid tokens for zero-downtime rotation
+  and per-service issuance before real telephony traffic.
+- **[P1] Idempotency fingerprint uses mutable resolved fields (adversarial):**
+  KTD8 conflicts a retry when re-resolved owner fields changed between attempts
+  (for example a number reassignment mid-retry), leaving a Conversation the
+  caller can never re-fetch. Consider fingerprinting only caller-supplied
+  request identity (direction, provider identity, provider).
+- **[P2] Variant-override authorization actor (security):** who authorizes an
+  outbound override, where the authorization is persisted, and its audit trail
+  are undefined; today any token holder could pin any published Variant.
+  Consider honoring only overrides already stored server-side on the
+  batch/recipient record by a tenant-administrator mutation.
+- **[P2] PII lifecycle (security):** no retention/deletion policy for
+  transcripts and participant phone numbers, no log-redaction rule for machine
+  request bodies, no GDPR/CCPA deletion mechanism.
+- **[P2] Append/finish caller binding (security):** append and finish are bound
+  only to the shared service token, not to the conversation; consider requiring
+  the `conversationKey` (or a per-conversation secret from the start response)
+  on mutating lifecycle calls.
+- **[P2] Caller stickiness (adversarial):** allocation units are individual
+  calls, not callers — a repeat caller can flip Variants between calls. Decide
+  whether that trade-off is accepted or inbound should hash a caller-stable
+  identity during experiments.
+- **[P2] Merge decision signal (adversarial):** experiment analytics are out of
+  scope, so merges currently have no quantitative basis. Consider a minimal
+  per-Variant aggregate (conversation count and terminal-status breakdown by
+  Version) in the read models.
+- **[P2] Main publish rollback (adversarial):** publish (including inside merge)
+  is an instant full-weight cutover with no ramp or rollback; consider a
+  "republish prior Version" pointer-rollback operation as the emergency path.
+- **[P2] Failed-dial Conversation lifecycle (adversarial):** a Conversation
+  created before a dial that never happens is indistinguishable from a real
+  exposure. Define a never-dialed/failed-dial terminal status and whether a
+  re-dial reuses the original `conversationKey`.
+- **[P2] Outbound caller-ID policy ownership (scope):** KTD4 says workflow
+  config carries "outbound caller-ID policy" while KTD7 gives ownership to the
+  phoneRouting selector; clarify whether the workflow config is the selector's
+  input or should drop caller-ID fields.
+- **[P2] Non-voice workflow attribution (adversarial, FYI):** R12 requires
+  workflow attribution on every Conversation, but non-voice channels resolve no
+  directional workflow; scope R12's requirement to voice directions explicitly.
