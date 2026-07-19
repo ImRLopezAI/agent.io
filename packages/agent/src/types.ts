@@ -165,6 +165,7 @@ export interface ConvexIngest {
 	start(args: ConversationStartArgs): Promise<MachineConversationStart>
 	append(args: {
 		conversationId: string
+		conversationKey: string
 		messageKey: string
 		role: 'user' | 'agent' | 'system'
 		text?: string
@@ -179,6 +180,7 @@ export interface ConvexIngest {
 	}): Promise<{ sequence: number }>
 	finish(args: {
 		conversationId: string
+		conversationKey: string
 		status: 'done' | 'failed'
 		terminationReason?: string
 		durationSecs?: number

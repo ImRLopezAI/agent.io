@@ -645,7 +645,7 @@ describe('TranscriptRecorder', () => {
 	test('scripted event stream → ordered append/finish calls', async () => {
 		const { ingest, calls } = mkIngest()
 		const recorder = new TranscriptRecorder(ingest)
-		recorder.bind('conv_1')
+		recorder.bind('conv_1', 'key_conv_1')
 		const events: NormalizedEvent[] = [
 			{ type: 'session.ready' },
 			{ type: 'user.transcript', text: 'hi there', final: true },
@@ -676,7 +676,7 @@ describe('TranscriptRecorder', () => {
 	test('barge-in marks the agent turn interrupted', async () => {
 		const { ingest, calls } = mkIngest()
 		const recorder = new TranscriptRecorder(ingest)
-		recorder.bind('conv_1')
+		recorder.bind('conv_1', 'key_conv_1')
 		recorder.onEvent({
 			type: 'agent.transcript',
 			text: 'Let me expl—',
@@ -713,7 +713,7 @@ describe('TranscriptRecorder', () => {
 			searchKnowledgeBase: async () => ({ text: '' }),
 		}
 		const recorder = new TranscriptRecorder(flaky)
-		recorder.bind('conv_1')
+		recorder.bind('conv_1', 'key_conv_1')
 		recorder.onEvent({ type: 'user.transcript', text: 'turn-1', final: true })
 		recorder.onEvent({ type: 'user.transcript', text: 'turn-2', final: true })
 		recorder.onEvent({ type: 'user.transcript', text: 'turn-3', final: true })

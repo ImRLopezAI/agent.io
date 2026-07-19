@@ -15,6 +15,7 @@ interface PendingTurn {
  */
 export class TranscriptRecorder {
 	private conversationId: string | null = null
+	private conversationKey: string | null = null
 	private queue: Promise<void> = Promise.resolve()
 	private currentAgentTurn: PendingTurn | null = null
 	private startedAt = Date.now()
@@ -23,8 +24,9 @@ export class TranscriptRecorder {
 
 	constructor(private readonly ingest: ConvexIngest) {}
 
-	bind(conversationId: string) {
+	bind(conversationId: string, conversationKey: string) {
 		this.conversationId = conversationId
+		this.conversationKey = conversationKey
 		this.startedAt = Date.now()
 	}
 
@@ -44,7 +46,8 @@ export class TranscriptRecorder {
 
 	onEvent(event: NormalizedEvent) {
 		const conversationId = this.conversationId
-		if (!conversationId) return
+		const conversationKey = this.conversationKey
+		if (!conversationId || !conversationKey) return
 		switch (event.type) {
 			case 'user.transcript':
 				if (event.final && event.text) {
@@ -52,6 +55,7 @@ export class TranscriptRecorder {
 					void this.enqueue(() =>
 						this.ingest.append({
 							conversationId,
+							conversationKey,
 							messageKey,
 							role: 'user',
 							text: event.text,
@@ -97,6 +101,7 @@ export class TranscriptRecorder {
 					void this.enqueue(() =>
 						this.ingest.append({
 							conversationId,
+							conversationKey,
 							messageKey,
 							role: 'agent',
 							text: turn.text || undefined,
@@ -111,6 +116,7 @@ export class TranscriptRecorder {
 				void this.enqueue(() =>
 					this.ingest.finish({
 						conversationId,
+						conversationKey,
 						status: this.failedStatus ? 'failed' : 'done',
 						terminationReason: this.failedStatus ?? event.reason,
 						durationSecs: Math.round((Date.now() - this.startedAt) / 1000),
